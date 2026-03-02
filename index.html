@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>إكرام الضيف | المشاريع التقنية</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&family=Amiri:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold: #C6A84C;
+    --gold-light: #E8D48B;
+    --green-deep: #1B4332;
+    --green-mid: #2D6A4F;
+    --cream: #FDF8EF;
+    --white: #FFFFFF;
+    --shadow: rgba(27, 67, 50, 0.12);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Tajawal', sans-serif;
+    background: var(--cream);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Geometric Islamic pattern background */
+  .bg-pattern {
+    position: fixed;
+    inset: 0;
+    opacity: 0.04;
+    background-image: url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%231B4332' fill-rule='evenodd'%3E%3Cpath d='M40 0L80 40L40 80L0 40z' fill='none' stroke='%231B4332' stroke-width='1'/%3E%3Cpath d='M40 10L70 40L40 70L10 40z' fill='none' stroke='%231B4332' stroke-width='0.5'/%3E%3C/g%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 40px 24px 60px;
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+    margin-bottom: 16px;
+  }
+
+  .logo-wrapper {
+    display: inline-block;
+    margin-bottom: 20px;
+    animation: fadeDown 0.8s ease-out;
+  }
+
+  .logo-wrapper img {
+    height: 90px;
+    filter: drop-shadow(0 2px 8px rgba(0,0,0,0.08));
+  }
+
+  .header h1 {
+    font-family: 'Amiri', serif;
+    font-size: 2rem;
+    color: var(--green-deep);
+    font-weight: 700;
+    margin-bottom: 6px;
+    animation: fadeDown 0.8s ease-out 0.1s both;
+  }
+
+  .header .subtitle {
+    font-size: 1.05rem;
+    color: var(--green-mid);
+    font-weight: 400;
+    letter-spacing: 0.5px;
+    animation: fadeDown 0.8s ease-out 0.2s both;
+  }
+
+  .divider {
+    width: 80px;
+    height: 3px;
+    background: linear-gradient(90deg, var(--gold), var(--gold-light), var(--gold));
+    margin: 24px auto 40px;
+    border-radius: 2px;
+    animation: fadeDown 0.8s ease-out 0.3s both;
+  }
+
+  /* Projects Grid */
+  .projects-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    margin-bottom: 32px;
+  }
+
+  .project-card {
+    background: var(--white);
+    border-radius: 20px;
+    padding: 36px 24px 28px;
+    text-align: center;
+    text-decoration: none;
+    color: inherit;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 20px var(--shadow);
+    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    cursor: pointer;
+    animation: fadeUp 0.7s ease-out both;
+  }
+
+  .project-card:nth-child(1) { animation-delay: 0.2s; }
+  .project-card:nth-child(2) { animation-delay: 0.3s; }
+  .project-card:nth-child(3) { animation-delay: 0.4s; }
+  .project-card:nth-child(4) { animation-delay: 0.5s; }
+  .project-card:nth-child(5) { animation-delay: 0.6s; }
+
+  .project-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--gold), var(--green-mid));
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .project-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 40px rgba(27, 67, 50, 0.18);
+  }
+
+  .project-card:hover::before {
+    opacity: 1;
+  }
+
+  .project-card:hover .icon-circle {
+    background: var(--green-deep);
+    transform: scale(1.1);
+  }
+
+  .project-card:hover .icon-circle svg {
+    stroke: var(--gold-light);
+  }
+
+  .icon-circle {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--green-deep), var(--green-mid));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 18px;
+    transition: all 0.4s ease;
+  }
+
+  .icon-circle svg {
+    width: 34px;
+    height: 34px;
+    stroke: var(--gold);
+    stroke-width: 1.8;
+    fill: none;
+    transition: stroke 0.3s;
+  }
+
+  .project-card h3 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--green-deep);
+    margin-bottom: 8px;
+  }
+
+  .project-card p {
+    font-size: 0.85rem;
+    color: #6B7C74;
+    line-height: 1.6;
+  }
+
+  /* Bottom row centering for 2 cards */
+  .projects-grid .project-card:nth-child(4) {
+    grid-column: 1 / 2;
+    justify-self: end;
+    width: 100%;
+  }
+  .projects-grid .project-card:nth-child(5) {
+    grid-column: 2 / 3;
+  }
+
+  /* Actually, let's center the last 2 properly */
+  .bottom-row {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+    max-width: 660px;
+    margin: 0 auto;
+  }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    margin-top: 40px;
+    animation: fadeUp 0.7s ease-out 0.7s both;
+  }
+
+  .footer a {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--green-mid);
+    text-decoration: none;
+    font-size: 0.95rem;
+    font-weight: 500;
+    padding: 12px 28px;
+    border: 2px solid var(--gold);
+    border-radius: 50px;
+    transition: all 0.3s;
+  }
+
+  .footer a:hover {
+    background: var(--green-deep);
+    color: var(--gold-light);
+    border-color: var(--green-deep);
+  }
+
+  .footer a svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .season-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, var(--green-deep), var(--green-mid));
+    color: var(--gold-light);
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 6px 20px;
+    border-radius: 50px;
+    margin-top: 20px;
+    letter-spacing: 1px;
+  }
+
+  /* Animations */
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .projects-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+    .bottom-row {
+      grid-template-columns: 1fr;
+      max-width: 300px;
+    }
+    .header h1 { font-size: 1.6rem; }
+    .project-card { padding: 28px 16px 22px; }
+    .icon-circle { width: 60px; height: 60px; }
+    .icon-circle svg { width: 28px; height: 28px; }
+  }
+
+  @media (max-width: 480px) {
+    .projects-grid {
+      grid-template-columns: 1fr;
+    }
+    .container { padding: 24px 16px 40px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-pattern"></div>
+
+<div class="container">
+  <div class="header">
+    <div class="logo-wrapper">
+      <img src="https://image2url.com/r2/default/images/1772481985932-93e0d877-dd0b-41ac-846f-a90d6dffe7a8.jpg" alt="شركة إكرام الضيف" />
+    </div>
+    <h1>المشاريع التقنية التشغيلية</h1>
+    <p class="subtitle">الأنظمة الرقمية لإدارة عمليات الحج</p>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- Top 3 cards -->
+  <div class="projects-grid">
+
+    <a href="https://script.google.com/macros/s/AKfycbyBKuj5n7MCPGNHHYC2bOg7z_HEWoYpIevjz1sH2VcETiBJE1fHrp7ppRerwAoEyjiotA/exec" target="_blank" class="project-card">
+      <div class="icon-circle">
+        <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="18" rx="2"/><path d="M2 8h20"/><path d="M8 8v13"/></svg>
+      </div>
+      <h3>نظام الباقات</h3>
+      <p>إدارة باقات الحج والرحلات والفنادق وبيانات الحجاج</p>
+    </a>
+
+    <a href="https://script.google.com/macros/s/AKfycbxPDDKFtMXRX7piSA6X0htTYQiBkfUfzb0sI1sPK67stQWLAjWz-30MlFV2jF9spAIZ/exec" target="_blank" class="project-card">
+      <div class="icon-circle">
+        <svg viewBox="0 0 24 24"><path d="M2 22l10-7 10 7V4a2 2 0 00-2-2H4a2 2 0 00-2 2z"/><path d="M8 10l2 2 4-4"/><circle cx="17" cy="3" r="3" fill="none"/></svg>
+      </div>
+      <h3>نظام المطار</h3>
+      <p>استقبال الحجاج ومسح الجوازات وتوزيع الحافلات</p>
+    </a>
+
+    <a href="https://script.google.com/macros/s/AKfycbz1Nzfl9EwYc5VQaKyYW3cALetbGXbpbelW3kZA0_KdRaF9Bp6APMGxFW8ereKSW_nW/exec" target="_blank" class="project-card">
+      <div class="icon-circle">
+        <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      </div>
+      <h3>نظام مخيم منى</h3>
+      <p>إدارة الخيام وتوزيع الحجاج في المشاعر المقدسة</p>
+    </a>
+
+  </div>
+
+  <!-- Bottom 2 cards centered -->
+  <div class="bottom-row">
+
+    <a href="https://script.google.com/macros/s/AKfycbzekwok8gO8R29UkxDD_QX-tvKJ9E3vvd7buhIJsPTe65sEohfSJbtRDhwYVqapXT2XVg/exec" target="_blank" class="project-card" style="animation-delay:0.5s">
+      <div class="icon-circle">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/><path d="M11 8v6"/><path d="M8 11h6"/></svg>
+      </div>
+      <h3>بحث الحجاج</h3>
+      <p>البحث المتقدم في قاعدة بيانات الحجاج متعدد المعايير</p>
+    </a>
+
+    <a href="https://t.me/IkramAlDayfBot" target="_blank" class="project-card" style="animation-delay:0.6s">
+      <div class="icon-circle">
+        <svg viewBox="0 0 24 24"><path d="M21 3L1 11l7.5 3.5M21 3l-8 18-3.5-7.5M21 3L8.5 14.5"/></svg>
+      </div>
+      <h3>بوت تيليجرام</h3>
+      <p>خدمة ذاتية للحجاج عبر تيليجرام بدعم متعدد اللغات</p>
+    </a>
+
+  </div>
+
+  <div class="footer">
+    <a href="https://ekramaldyf.com/" target="_blank">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+      ekramaldyf.com
+    </a>
+    <br>
+    <span class="season-badge">موسم حج 1447 هـ — 2026</span>
+  </div>
+
+</div>
+
+</body>
+</html>
