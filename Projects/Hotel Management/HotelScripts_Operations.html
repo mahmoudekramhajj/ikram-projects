@@ -1,0 +1,758 @@
+<script>
+/**
+ * Hotel Management App — Operations Scripts
+ * v3.0 — Departures, inventory, dashboard, export, forecast
+ */
+
+// ============================================================
+// RENDER: DEPARTURES TAB
+// ============================================================
+
+function renderDeparturesTab() {
+  renderDepartureStats(state.filteredDepartures);
+
+  var filterDate = state.departureFilterDate;
+  var displayDate = filterDate || getTodayStr();
+
+  var dayDeps = state.filteredDepartures.filter(function(d) { return d.departureDate === displayDate; });
+
+  document.getElementById('departureTitle').innerHTML = '🚌 مغادرات — ' + displayDate + ' (' + dayDeps.length + ' حاج)';
+
+  if (dayDeps.length === 0) {
+    document.getElementById('departuresList').innerHTML = '<div style="text-align:center;padding:20px;color:#64748b">لا توجد مغادرات لهذا اليوم</div>';
+    renderUpcomingDepartures();
+    return;
+  }
+
+  // === تجميع حسب الوجهة ===
+  var groups = {};
+  dayDeps.forEach(function(d) {
+    // مفتاح التجميع: الفندق الوجهة أو الوجهة العامة (مطار/محطة قطار)
+    var groupKey = d.destinationHotel || d.destination || 'أخرى';
+    if (!groups[groupKey]) {
+      groups[groupKey] = { destination: d.destination, hotel: d.destinationHotel, transport: d.transport, time: d.departureTime, linkedFlight: d.linkedFlight, linkedTime: d.linkedTime, type: d.type, pilgrims: [] };
+    }
+    groups[groupKey].pilgrims.push(d);
+  });
+
+  var html = '';
+  var groupKeys = Object.keys(groups).sort(function(a, b) {
+    return groups[b].pilgrims.length - groups[a].pilgrims.length;
+  });
+
+  groupKeys.forEach(function(key) {
+    var g = groups[key];
+    var isAirport = g.destination && g.destination.indexOf('مطار') >= 0;
+    var isTrain = g.transport === 'قطار';
+    var isShifting = g.type === 'shifting';
+
+    // لون حسب النوع
+    var borderColor = isAirport ? '#f97316' : isTrain ? '#6ee7b7' : isShifting ? '#c084fc' : '#60a5fa';
+    var bgColor = isAirport ? '#1a1207' : isTrain ? '#071a14' : isShifting ? '#1e1b4b' : '#0c1929';
+
+    html += '<div style="background:' + bgColor + ';border:1px solid ' + borderColor + '33;border-radius:12px;padding:14px;margin-bottom:12px">';
+
+    // عنوان المجموعة
+    html += '<div onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'\':\'none\'" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;flex-wrap:wrap;gap:6px">';
+    html += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">';
+    html += '<span style="font-size:15px;font-weight:800;color:' + borderColor + '">' + g.pilgrims.length + '</span>';
+    html += '<span style="font-size:13px;font-weight:700;color:#e2e8f0">';
+    if (isAirport) html += '✈️ ';
+    else if (isTrain) html += '🚂 ';
+    else if (isShifting) html += '🔄 ';
+    else html += '🚌 ';
+    html += (g.hotel || g.destination) + '</span>';
+    if (g.hotel && g.destination) html += '<span style="font-size:11px;color:#94a3b8">(' + g.destination + ')</span>';
+    html += '</div>';
+    html += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">';
+    var transportBg = isTrain ? '#064e3b' : isAirport ? '#7c2d12' : '#1e3a5f';
+    var transportColor = isTrain ? '#6ee7b7' : isAirport ? '#fdba74' : '#93c5fd';
+    html += '<span style="background:' + transportBg + ';color:' + transportColor + ';padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700">' + (isTrain ? '🚂 قطار' : isAirport ? '✈️ حافلة للمطار' : '🚌 حافلة') + '</span>';
+    if (g.time) html += '<span style="font-size:12px;font-weight:700;color:#f97316">⏰ ' + g.time + '</span>';
+    else if (isTrain) html += '<span style="font-size:11px;color:#6ee7b7">موعد القطار غير محدد</span>';
+    html += '<span style="color:#64748b;font-size:12px">▼</span>';
+    html += '</div></div>';
+
+    // قائمة الحجاج (مطوية افتراضياً)
+    html += '<div style="display:none;margin-top:10px;display:flex;flex-direction:column;gap:4px">';
+
+    // تجميع فرعي حسب الرحلة (للمطار)
+    if (isAirport) {
+      var byFlight = {};
+      g.pilgrims.forEach(function(d) {
+        var fk = d.linkedFlight || 'بدون رحلة';
+        if (!byFlight[fk]) byFlight[fk] = { flight: d.linkedFlight, time: d.linkedTime, pilgrims: [] };
+        byFlight[fk].pilgrims.push(d);
+      });
+
+      Object.keys(byFlight).forEach(function(fk) {
+        var fg = byFlight[fk];
+        html += '<div style="background:#0f172a;border-radius:8px;padding:8px 10px;margin-bottom:4px">';
+        html += '<div style="font-size:11px;font-weight:700;color:#60a5fa;margin-bottom:4px">✈️ ' + (fg.flight || '-') + (fg.time ? ' — ' + fg.time : '') + ' (' + fg.pilgrims.length + ' حاج)</div>';
+        fg.pilgrims.forEach(function(d) {
+          html += renderDepartureRow_(d);
+        });
+        html += '</div>';
+      });
+    } else {
+      g.pilgrims.forEach(function(d) {
+        html += renderDepartureRow_(d);
+      });
+    }
+
+    html += '</div></div>';
+  });
+
+  document.getElementById('departuresList').innerHTML = html;
+  renderUpcomingDepartures();
+}
+
+function renderDepartureRow_(d) {
+  var tIcon = d.transport === 'قطار' ? '🚂' : d.destination && d.destination.indexOf('مطار') >= 0 ? '✈️' : '🚌';
+  var destLabel = d.destinationHotel
+    ? d.destinationHotel + (d.destination ? ' (' + d.destination + ')' : '')
+    : (d.destination || '');
+
+  return '<div style="display:grid;grid-template-columns:1fr auto auto auto auto;align-items:center;gap:10px;padding:6px 10px;border-bottom:1px solid #1e293b">' +
+    '<span style="font-weight:700;color:#e2e8f0;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + d.name + '</span>' +
+    '<span style="color:#64748b;font-size:11px;white-space:nowrap">#' + d.groupNumber + '</span>' +
+    '<span style="color:#94a3b8;font-size:11px;font-family:monospace;white-space:nowrap">' + (d.passport || '') + '</span>' +
+    (destLabel
+      ? '<span style="font-size:11px;color:#60a5fa;white-space:nowrap">' + tIcon + ' ' + destLabel + '</span>'
+      : '<span></span>') +
+    '<div style="display:flex;align-items:center;gap:6px">' +
+      (d.departureTime ? '<span style="color:#f97316;font-size:11px;font-weight:700;white-space:nowrap">⏰ ' + d.departureTime + '</span>' : '') +
+      departureBadge(d.type) +
+    '</div>' +
+  '</div>';
+}
+
+function renderDepartureStats(departures) {
+  var filterDate = state.departureFilterDate || getTodayStr();
+  var dayDeps = departures.filter(function(d) { return d.departureDate === filterDate; });
+  var early = dayDeps.filter(function(d) { return d.type === 'early'; }).length;
+  var late = dayDeps.filter(function(d) { return d.type === 'late'; }).length;
+  
+  document.getElementById('departureStats').innerHTML =
+    statCard('مغادرون اليوم', dayDeps.length, '#f97316', '#7c2d12') +
+    statCard('مغادرة مبكرة', early, '#f87171', '#7f1d1d') +
+    statCard('مغادرة متأخرة', late, '#fbbf24', '#78350f');
+}
+
+function renderUpcomingDepartures() {
+  var days = {};
+  state.filteredDepartures.forEach(function(d) {
+    if (!days[d.departureDate]) days[d.departureDate] = { date: d.departureDate, count: 0, destinations: {}, transports: {} };
+    days[d.departureDate].count++;
+    days[d.departureDate].destinations[d.destination] = (days[d.departureDate].destinations[d.destination] || 0) + 1;
+    if (d.destinationHotel) days[d.departureDate].destinations[d.destinationHotel] = (days[d.departureDate].destinations[d.destinationHotel] || 0) + 1;
+    days[d.departureDate].transports[d.transport] = (days[d.departureDate].transports[d.transport] || 0) + 1;
+  });
+  
+  var sorted = Object.values(days).sort(function(a, b) { return a.date > b.date ? 1 : -1; });
+  
+  var html = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px">';
+  sorted.slice(0, 10).forEach(function(d) {
+    var topDest = Object.entries(d.destinations).sort(function(a, b) { return b[1] - a[1]; })[0];
+    var topTransport = Object.entries(d.transports).sort(function(a, b) { return b[1] - a[1]; })[0];
+    html += '<div class="day-card" onclick="setDepartureDate(\'' + d.date + '\')" style="cursor:pointer">';
+    html += '<div class="day-date">' + d.date + '</div>';
+    html += '<div class="day-count">' + d.count + '</div>';
+    html += '<div class="day-dest">إلى ' + (topDest ? topDest[0] : '-') + '</div>';
+    html += '<div style="font-size:10px;color:#94a3b8;margin-top:4px">🚌 ' + (topTransport ? topTransport[0] : '-') + '</div>';
+    html += '</div>';
+  });
+  html += '</div>';
+  
+  document.getElementById('upcomingDepartures').innerHTML = html;
+}
+
+function setDepartureDate(date) {
+  document.getElementById('departureDateFilter').value = date;
+  applyDepartureFilters();
+}
+
+// ============================================================
+// RENDER: INVENTORY TAB
+// ============================================================
+
+function renderInventoryTab() {
+  document.getElementById('inventoryTitle').innerHTML = '📊 مخزون الغرف والأسرّة — ' + state.currentHotel;
+  
+  var invData = state.inventory;
+  var inventory = invData.inventory || invData;
+  var roomStats = invData.roomStats || null;
+  
+  // حفظ البيانات في state للفلاتر
+  state.invRaw = { inventory: inventory, roomStats: roomStats };
+  
+  // بناء الفلاتر
+  renderInventoryFilters_();
+  
+  // عرض بالفلتر الافتراضي
+  applyInventoryFilter_();
+}
+
+function renderInventoryFilters_() {
+  var container = document.getElementById('inventoryFilters');
+  var roomStats = state.invRaw.roomStats;
+  if (!roomStats || !roomStats.byPeriod || roomStats.byPeriod.length === 0) {
+    container.style.display = 'none';
+    return;
+  }
+  
+  container.style.display = '';
+  var periods = roomStats.byPeriod;
+  var types = roomStats.byType;
+  
+  var html = '<div style="display:flex;gap:10px;flex-wrap:wrap;margin:12px 0;align-items:center">';
+  
+  // فلتر الفترة
+  html += '<div style="display:flex;align-items:center;gap:6px">';
+  html += '<span style="font-size:11px;color:#94a3b8;font-weight:600">📅 الفترة:</span>';
+  html += '<select id="invFilterPeriod" onchange="applyInventoryFilter_()" style="background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:4px 8px;font-size:11px">';
+  html += '<option value="all">كل الفترات</option>';
+  periods.forEach(function(p, i) {
+    html += '<option value="' + i + '">' + p.checkIn + ' → ' + p.checkOut + ' (' + p.total + ' غرفة)</option>';
+  });
+  html += '</select></div>';
+  
+  // فلتر النوع
+  html += '<div style="display:flex;align-items:center;gap:6px">';
+  html += '<span style="font-size:11px;color:#94a3b8;font-weight:600">🛏️ النوع:</span>';
+  html += '<select id="invFilterType" onchange="applyInventoryFilter_()" style="background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:4px 8px;font-size:11px">';
+  html += '<option value="all">الكل</option>';
+  var typeMap = { 'Double': 'ثنائي', 'Triple': 'ثلاثي', 'Quad': 'رباعي' };
+  for (var rt in types) {
+    html += '<option value="' + rt + '">' + (typeMap[rt] || rt) + ' (' + types[rt].total + ')</option>';
+  }
+  html += '</select></div>';
+  
+  // فلتر الحالة
+  html += '<div style="display:flex;align-items:center;gap:6px">';
+  html += '<span style="font-size:11px;color:#94a3b8;font-weight:600">📌 الحالة:</span>';
+  html += '<select id="invFilterStatus" onchange="applyInventoryFilter_()" style="background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:4px 8px;font-size:11px">';
+  html += '<option value="all">الكل</option>';
+  html += '<option value="available">متاح فقط</option>';
+  html += '<option value="occupied">مشغول فقط</option>';
+  html += '</select></div>';
+  
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+function applyInventoryFilter_() {
+  var roomStats = state.invRaw.roomStats;
+  var inventory = state.invRaw.inventory;
+  
+  var fPeriod = document.getElementById('invFilterPeriod') ? document.getElementById('invFilterPeriod').value : 'all';
+  var fType = document.getElementById('invFilterType') ? document.getElementById('invFilterType').value : 'all';
+  var fStatus = document.getElementById('invFilterStatus') ? document.getElementById('invFilterStatus').value : 'all';
+  
+  var typeMap = { 'Quad': 'رباعي', 'Triple': 'ثلاثي', 'Double': 'ثنائي' };
+  var typeColors = { 'Quad': '#c084fc', 'Triple': '#60a5fa', 'Double': '#6ee7b7' };
+  
+  // ── حساب الإحصائيات المفلترة ──
+  var fTotal = 0, fOccupied = 0, fAvailable = 0;
+  var fByType = {};
+  var fPeriods = [];
+  
+  if (roomStats && roomStats.byPeriod) {
+    var periods = roomStats.byPeriod;
+    
+    for (var pi = 0; pi < periods.length; pi++) {
+      if (fPeriod !== 'all' && pi !== parseInt(fPeriod)) continue;
+      var p = periods[pi];
+      var filteredTypes = [];
+      
+      for (var ti = 0; ti < p.types.length; ti++) {
+        var t = p.types[ti];
+        if (fType !== 'all' && t.type !== fType) continue;
+        
+        var showTotal = t.total;
+        var showOcc = t.occupied;
+        var showAvail = t.available;
+        
+        if (fStatus === 'available') { showTotal = showAvail; showOcc = 0; }
+        if (fStatus === 'occupied') { showTotal = showOcc; showAvail = 0; }
+        
+        fTotal += showTotal;
+        fOccupied += showOcc;
+        fAvailable += showAvail;
+        
+        if (!fByType[t.type]) fByType[t.type] = { total: 0, occupied: 0, available: 0 };
+        fByType[t.type].total += showTotal;
+        fByType[t.type].occupied += showOcc;
+        fByType[t.type].available += showAvail;
+        
+        filteredTypes.push({ type: t.type, total: t.total, occupied: t.occupied, available: t.available });
+      }
+      
+      if (filteredTypes.length > 0) {
+        fPeriods.push({ checkIn: p.checkIn, checkOut: p.checkOut, total: p.total, occupied: p.occupied, available: p.available, types: filteredTypes });
+      }
+    }
+  }
+  
+  var out = '';
+  
+  // ── بطاقات ──
+  if (fTotal > 0 || (roomStats && roomStats.total > 0)) {
+    var pct = fTotal > 0 ? Math.round((fOccupied / fTotal) * 100) : 0;
+    var pctColor = pct > 80 ? '#f87171' : pct > 50 ? '#fbbf24' : '#6ee7b7';
+    
+    out += '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">';
+    out += '<div style="flex:1;min-width:120px;background:#0f172a;border-radius:10px;padding:12px;text-align:center">';
+    out += '<div style="font-size:11px;color:#94a3b8">إجمالي الغرف</div>';
+    out += '<div style="font-size:24px;font-weight:700;color:#60a5fa">' + fTotal + '</div></div>';
+    out += '<div style="flex:1;min-width:120px;background:#0f172a;border-radius:10px;padding:12px;text-align:center">';
+    out += '<div style="font-size:11px;color:#94a3b8">مشغولة</div>';
+    out += '<div style="font-size:24px;font-weight:700;color:#f87171">' + fOccupied + '</div></div>';
+    out += '<div style="flex:1;min-width:120px;background:#0f172a;border-radius:10px;padding:12px;text-align:center">';
+    out += '<div style="font-size:11px;color:#94a3b8">متاحة</div>';
+    out += '<div style="font-size:24px;font-weight:700;color:#6ee7b7">' + fAvailable + '</div></div>';
+    out += '<div style="flex:1;min-width:120px;background:#0f172a;border-radius:10px;padding:12px;text-align:center">';
+    out += '<div style="font-size:11px;color:#94a3b8">نسبة الإشغال</div>';
+    out += '<div style="font-size:24px;font-weight:700;color:' + pctColor + '">' + pct + '%</div></div>';
+    out += '</div>';
+    
+    // شرائط حسب النوع
+    if (Object.keys(fByType).length > 0) {
+      out += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">';
+      for (var rt in fByType) {
+        var bt = fByType[rt];
+        var tPct = bt.total > 0 ? Math.round((bt.occupied / bt.total) * 100) : 0;
+        out += '<div style="flex:1;min-width:140px;background:#1e293b;border-radius:8px;padding:10px">';
+        out += '<div style="font-size:12px;font-weight:700;color:' + (typeColors[rt] || '#e2e8f0') + ';margin-bottom:6px">' + (typeMap[rt] || rt) + '</div>';
+        out += '<div style="display:flex;justify-content:space-between;font-size:11px;color:#94a3b8">';
+        out += '<span>إجمالي: ' + bt.total + '</span>';
+        out += '<span style="color:#f87171">مشغول: ' + bt.occupied + '</span>';
+        out += '<span style="color:#6ee7b7">متاح: ' + bt.available + '</span>';
+        out += '</div>';
+        out += '<div style="background:#334155;border-radius:4px;height:6px;margin-top:6px;overflow:hidden">';
+        out += '<div style="background:' + (typeColors[rt] || '#60a5fa') + ';height:100%;width:' + tPct + '%;border-radius:4px"></div>';
+        out += '</div></div>';
+      }
+      out += '</div>';
+    }
+  }
+  
+  // ── جدول الفترات ──
+  if (fPeriods.length > 0) {
+    out += '<div style="margin-bottom:16px">';
+    out += '<div style="font-size:13px;font-weight:700;color:#e2e8f0;margin-bottom:8px">📅 تفصيل حسب الفترة:</div>';
+    out += '<div style="overflow-x:auto"><table class="inventory-table">';
+    out += '<thead><tr>';
+    out += '<th style="text-align:right">الدخول</th><th>الخروج</th>';
+    out += '<th>النوع</th><th>إجمالي</th>';
+    out += '<th style="color:#f87171">مشغول</th>';
+    out += '<th style="color:#6ee7b7">متاح</th>';
+    out += '<th>الإشغال</th>';
+    out += '</tr></thead><tbody>';
+    
+    fPeriods.forEach(function(p) {
+      p.types.forEach(function(t, idx) {
+        var tPct = t.total > 0 ? Math.round((t.occupied / t.total) * 100) : 0;
+        var pctColor2 = tPct > 80 ? '#f87171' : tPct > 50 ? '#fbbf24' : '#6ee7b7';
+        out += '<tr>';
+        if (idx === 0) {
+          out += '<td rowspan="' + p.types.length + '" style="font-weight:700">' + p.checkIn + '</td>';
+          out += '<td rowspan="' + p.types.length + '">' + p.checkOut + '</td>';
+        }
+        out += '<td>' + (typeMap[t.type] || t.type) + '</td>';
+        out += '<td style="text-align:center">' + t.total + '</td>';
+        out += '<td style="text-align:center;color:#f87171;font-weight:700">' + t.occupied + '</td>';
+        out += '<td style="text-align:center;color:#6ee7b7;font-weight:700">' + t.available + '</td>';
+        out += '<td style="text-align:center"><span style="color:' + pctColor2 + ';font-weight:700">' + tPct + '%</span></td>';
+        out += '</tr>';
+      });
+    });
+    out += '</tbody></table></div></div>';
+  }
+  
+  // ── جدول العقود ──
+  var dates = Object.keys(inventory).sort();
+  if (dates.length > 0) {
+    out += '<div style="overflow-x:auto"><table class="inventory-table">';
+    out += '<thead><tr>';
+    out += '<th style="text-align:right">التاريخ</th>';
+    out += '<th>ثنائي</th><th>ثلاثي</th><th>رباعي</th>';
+    out += '<th style="color:#6ee7b7">إجمالي الغرف</th>';
+    out += '<th style="color:#60a5fa">إجمالي الأسرّة</th>';
+    out += '</tr></thead><tbody>';
+    dates.forEach(function(d) {
+      var inv = inventory[d];
+      out += '<tr><td>' + d + '</td>';
+      out += '<td>' + (inv.dbl || 0) + '</td>';
+      out += '<td>' + (inv.tri || 0) + '</td>';
+      out += '<td>' + (inv.quad || 0) + '</td>';
+      out += '<td style="color:#6ee7b7;font-weight:700">' + (inv.rooms || 0) + '</td>';
+      out += '<td style="color:#60a5fa;font-weight:700">' + (inv.beds || 0) + '</td></tr>';
+    });
+    out += '</tbody></table></div>';
+  }
+  
+  document.getElementById('inventoryTable').innerHTML = out;
+}
+
+// ============================================================
+// RENDER: DASHBOARD TAB
+// ============================================================
+
+function loadDashboard() {
+  showLoading(true);
+  google.script.run
+    .withSuccessHandler(function(data) {
+      state.dashboardStats = data;
+      renderDashboard();
+      showLoading(false);
+    })
+    .withFailureHandler(function(err) {
+      showToast('خطأ: ' + err.message, true);
+      showLoading(false);
+    })
+    .getDashboardStats();
+}
+
+function renderDashboard() {
+  var stats = Object.values(state.dashboardStats);
+  
+  var totalAll = stats.reduce(function(s, h) { return s + h.total; }, 0);
+  var arrivedAll = stats.reduce(function(s, h) { return s + h.arrived; }, 0);
+  var delayedAll = stats.reduce(function(s, h) { return s + h.delayed; }, 0);
+  var pendingAll = stats.reduce(function(s, h) { return s + h.pending; }, 0);
+  var noShowAll = stats.reduce(function(s, h) { return s + (h.noShow || 0); }, 0);
+  
+  document.getElementById('dashboardOverall').innerHTML =
+    statCard('إجمالي الحجاج', totalAll, '#6ee7b7', '#064e3b') +
+    statCard('وصلوا', arrivedAll, '#34d399', '#065f46') +
+    statCard('لم يصلوا', pendingAll, '#fbbf24', '#78350f') +
+    statCard('متأخرون', delayedAll, '#f87171', '#7f1d1d') +
+    (noShowAll > 0 ? statCard('No Show', noShowAll, '#94a3b8', '#1e293b') : '');
+  
+  var html = '<div style="overflow-x:auto"><table class="dashboard-table">';
+  html += '<thead><tr>';
+  html += '<th style="text-align:right;border-radius:10px 0 0 0">الفندق</th>';
+  html += '<th>المدينة</th><th>الإجمالي</th><th>وصلوا</th><th>لم يصلوا</th><th>متأخرون</th><th>No Show</th>';
+  html += '<th style="border-radius:0 10px 0 0">Check-in %</th>';
+  html += '</tr></thead><tbody>';
+  
+  stats.sort(function(a, b) { return b.total - a.total; }).forEach(function(h) {
+    var pctClass = h.checkinPct > 85 ? 'pct-good' : h.checkinPct > 60 ? 'pct-warn' : 'pct-bad';
+    html += '<tr>';
+    html += '<td>' + h.hotel + '</td>';
+    html += '<td style="text-align:center">' + h.city + '</td>';
+    html += '<td>' + h.total + '</td>';
+    html += '<td style="color:#6ee7b7;font-weight:700">' + h.arrived + '</td>';
+    html += '<td style="color:#fbbf24">' + h.pending + '</td>';
+    html += '<td style="color:#f87171;font-weight:700">' + h.delayed + '</td>';
+    html += '<td style="color:#94a3b8">' + (h.noShow || 0) + '</td>';
+    html += '<td><span class="pct-badge ' + pctClass + '">' + h.checkinPct + '%</span></td>';
+    html += '</tr>';
+  });
+  
+  html += '</tbody></table></div>';
+  document.getElementById('hotelPerformance').innerHTML = html;
+  
+  if (delayedAll > 0) {
+    document.getElementById('allDelayed').innerHTML =
+      '<div class="alert-title">🚨 متأخرون عن الوصول — ' + delayedAll + ' حاج</div>' +
+      '<div style="font-size:11px;color:#fca5a5">' +
+      stats.filter(function(h) { return h.delayed > 0; })
+        .map(function(h) { return h.hotel + ': ' + h.delayed; }).join(' | ') +
+      '</div>';
+    document.getElementById('allDelayed').style.display = '';
+  }
+}
+
+// ============================================================
+// CHECK-IN ACTIONS
+// ============================================================
+
+function populateDepartureDateFilter() {
+  var dates = {};
+  state.departures.forEach(function(d) {
+    if (d.departureDate) dates[d.departureDate] = true;
+  });
+  
+  var select = document.getElementById('departureDateFilter');
+  select.innerHTML = '<option value="">كل التواريخ</option>';
+  Object.keys(dates).sort().forEach(function(d) {
+    select.innerHTML += '<option value="' + d + '">' + d + '</option>';
+  });
+}
+
+function applyDepartureFilters() {
+  var dateVal = document.getElementById('departureDateFilter').value;
+  state.departureFilterDate = dateVal;
+  
+  if (dateVal) {
+    state.filteredDepartures = state.departures.filter(function(d) { return d.departureDate === dateVal; });
+  } else {
+    state.filteredDepartures = state.departures.slice();
+  }
+  
+  renderDeparturesTab();
+}
+
+function clearDepartureFilters() {
+  document.getElementById('departureDateFilter').value = '';
+  state.departureFilterDate = '';
+  state.filteredDepartures = state.departures.slice();
+  renderDeparturesTab();
+}
+
+function exportReport(reportType) {
+  var hotelName = state.currentHotel;
+  var cityCode = getHotelCityCode();
+  
+  if ((reportType !== 'dashboard' && reportType !== 'forecast') && !hotelName) {
+    showToast('اختر فندقاً أولاً', true);
+    return;
+  }
+  
+  // Build filter data for filtered export
+  var filterData = null;
+  if (reportType === 'pilgrims') {
+    var dateVal = document.getElementById('dateFilter').value;
+    var statusVal = document.getElementById('statusFilter').value;
+    var flightVal = document.getElementById('flightFilter').value;
+    var searchVal = document.getElementById('searchInput').value.trim();
+    
+    if (dateVal || statusVal || flightVal || searchVal) {
+      filterData = { date: dateVal, status: statusVal, flight: flightVal, search: searchVal };
+    }
+  } else if (reportType === 'departures') {
+    var depDate = document.getElementById('departureDateFilter').value;
+    if (depDate) { filterData = { date: depDate }; }
+  }
+  
+  showToast('جاري إنشاء التقرير...');
+  showLoading(true);
+  
+  google.script.run
+    .withSuccessHandler(function(result) {
+      showLoading(false);
+      if (result.success) {
+        showToast('✅ تم إنشاء التقرير — جاري التحميل');
+        window.open(result.url, '_blank');
+      } else {
+        showToast('خطأ في إنشاء التقرير', true);
+      }
+    })
+    .withFailureHandler(function(err) {
+      showToast('خطأ: ' + err.message, true);
+      showLoading(false);
+    })
+    .exportToExcel(reportType, hotelName, cityCode, filterData);
+}
+
+// ============================================================
+// FORECAST DISPLAY
+// ============================================================
+
+function loadForecast() {
+  showLoading(true);
+  google.script.run
+    .withSuccessHandler(function(data) {
+      renderForecast(data);
+      showLoading(false);
+    })
+    .withFailureHandler(function(err) {
+      showToast('خطأ: ' + err.message, true);
+      showLoading(false);
+    })
+    .getForecastData();
+}
+
+function renderForecast(forecast) {
+  var section = document.getElementById('forecastSection');
+  section.style.display = '';
+  
+  var hotels = Object.keys(forecast).sort(function(a, b) {
+    var peakA = 0, peakB = 0;
+    for (var d in forecast[a].dates) { if (forecast[a].dates[d].occupancy > peakA) peakA = forecast[a].dates[d].occupancy; }
+    for (var d in forecast[b].dates) { if (forecast[b].dates[d].occupancy > peakB) peakB = forecast[b].dates[d].occupancy; }
+    return peakB - peakA;
+  });
+  
+  var html = '';
+  
+  hotels.forEach(function(hotel) {
+    var info = forecast[hotel];
+    var dates = Object.keys(info.dates).sort();
+    
+    var totalArr = 0, totalDep = 0, peakOcc = 0, totalEarly = 0, totalLate = 0, totalNoShow = 0;
+    dates.forEach(function(d) {
+      var f = info.dates[d];
+      totalArr += f.arrivals;
+      totalDep += f.departures;
+      if (f.occupancy > peakOcc) peakOcc = f.occupancy;
+      totalEarly += f.early;
+      totalLate += f.late;
+      totalNoShow += (f.noshow || 0);
+    });
+    
+    var cityLabel = info.city === 'Madina' ? '🕌 المدينة' : info.city === 'Makkah' ? '🕋 مكة' : '🔄 مكة تحويل';
+    
+    html += '<div style="background:#1e293b;border-radius:12px;padding:14px;margin-bottom:10px;border:1px solid #334155">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:6px">';
+    html += '<span style="font-weight:700;color:#e2e8f0;font-size:13px">' + hotel + '</span>';
+    html += '<span style="font-size:11px;color:#94a3b8">' + cityLabel + '</span>';
+    html += '</div>';
+    
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:6px;margin-bottom:10px">';
+    html += '<div style="text-align:center"><div style="font-size:10px;color:#94a3b8">إجمالي وصول</div><div style="font-size:16px;font-weight:800;color:#6ee7b7">' + totalArr + '</div></div>';
+    html += '<div style="text-align:center"><div style="font-size:10px;color:#94a3b8">ذروة الإشغال</div><div style="font-size:16px;font-weight:800;color:#60a5fa">' + peakOcc + '</div></div>';
+    html += '<div style="text-align:center"><div style="font-size:10px;color:#94a3b8">وصول مبكر</div><div style="font-size:16px;font-weight:800;color:#c084fc">' + totalEarly + '</div></div>';
+    html += '<div style="text-align:center"><div style="font-size:10px;color:#94a3b8">وصول متأخر</div><div style="font-size:16px;font-weight:800;color:#fb923c">' + totalLate + '</div></div>';
+    if (totalNoShow > 0) html += '<div style="text-align:center"><div style="font-size:10px;color:#94a3b8">No Show</div><div style="font-size:16px;font-weight:800;color:#94a3b8">' + totalNoShow + '</div></div>';
+    html += '</div>';
+    
+    html += '<div style="overflow-x:auto"><table style="width:100%;font-size:10px;border-collapse:collapse">';
+    html += '<tr style="color:#6ee7b7"><th style="text-align:right;padding:4px">التاريخ</th><th>وصول</th><th>مغادرة</th><th>إشغال</th><th>مبكر</th><th>متأخر</th><th>No Show</th></tr>';
+    
+    dates.forEach(function(d) {
+      var f = info.dates[d];
+      if (f.arrivals === 0 && f.departures === 0 && f.occupancy === 0 && (f.noshow || 0) === 0) return;
+      html += '<tr style="border-top:1px solid #334155">';
+      html += '<td style="padding:3px 4px;color:#e2e8f0;font-weight:600">' + d + '</td>';
+      html += '<td style="text-align:center;color:#6ee7b7">' + (f.arrivals || '-') + '</td>';
+      html += '<td style="text-align:center;color:#f97316">' + (f.departures || '-') + '</td>';
+      html += '<td style="text-align:center;color:#60a5fa;font-weight:700">' + f.occupancy + '</td>';
+      html += '<td style="text-align:center;color:#c084fc">' + (f.early || '-') + '</td>';
+      html += '<td style="text-align:center;color:#fb923c">' + (f.late || '-') + '</td>';
+      html += '<td style="text-align:center;color:#94a3b8">' + (f.noshow || '-') + '</td>';
+      html += '</tr>';
+    });
+    
+    html += '</table></div></div>';
+  });
+  
+  document.getElementById('forecastContent').innerHTML = html;
+}
+
+// ============================================================
+// ROOM MAPPING: توليد + عرض + حفظ
+// ============================================================
+
+function generateRoomMappingUI() {
+  var hotelName = state.currentHotel;
+  var cityCode = getHotelCityCode();
+  if (!hotelName) { showToast('اختر فندقاً أولاً', true); return; }
+  
+  showLoading(true);
+  showToast('جاري توليد أرقام الغرف...');
+  
+  google.script.run
+    .withSuccessHandler(function(result) {
+      showLoading(false);
+      if (result.success) {
+        showToast('✅ تم التوليد — ' + result.generated + ' غرفة جديدة (إجمالي: ' + result.total + ')');
+        loadRoomMapping();
+      } else {
+        showToast('خطأ في التوليد', true);
+      }
+    })
+    .withFailureHandler(function(err) {
+      showToast('خطأ: ' + err.message, true);
+      showLoading(false);
+    })
+    .generateRoomMapping(hotelName, cityCode);
+}
+
+function loadRoomMapping() {
+  var hotelName = state.currentHotel;
+  if (!hotelName) return;
+  
+  google.script.run
+    .withSuccessHandler(function(rooms) {
+      renderRoomMapping(rooms);
+    })
+    .withFailureHandler(function(err) {
+      showToast('خطأ تحميل الربط: ' + err.message, true);
+    })
+    .getRoomMappingForHotel(hotelName);
+}
+
+function renderRoomMapping(rooms) {
+  var titleEl = document.getElementById('roomMappingTitle');
+  var tableEl = document.getElementById('roomMappingTable');
+  
+  if (!rooms || rooms.length === 0) {
+    titleEl.style.display = 'none';
+    tableEl.innerHTML = '';
+    return;
+  }
+  
+  titleEl.style.display = '';
+  titleEl.innerHTML = '🔑 ربط أرقام الغرف — ' + rooms.length + ' غرفة';
+  
+  var typeMap = { 'Quad': 'رباعي', 'Triple': 'ثلاثي', 'Double': 'ثنائي' };
+  var filled = rooms.filter(function(r) { return r.actualRoomNo; }).length;
+  var occupied = rooms.filter(function(r) { return r.status === 'Occupied'; }).length;
+  
+  var html = '<div style="margin-bottom:8px;font-size:12px;color:#94a3b8">';
+  html += 'مربوطة: <span style="color:#6ee7b7;font-weight:700">' + filled + '</span> / ' + rooms.length;
+  html += ' &nbsp;|&nbsp; مشغولة: <span style="color:#f87171;font-weight:700">' + occupied + '</span>';
+  html += '</div>';
+  html += '<div style="overflow-x:auto"><table class="inventory-table">';
+  html += '<thead><tr>';
+  html += '<th>الرقم الداخلي</th><th>النوع</th><th>السعة</th>';
+  html += '<th>الدخول</th><th>الخروج</th>';
+  html += '<th>الحالة</th><th>الحجاج</th>';
+  html += '<th style="color:#f59e0b">رقم الغرفة الفعلي</th>';
+  html += '</tr></thead><tbody>';
+  
+  rooms.forEach(function(r) {
+    var typeLabel = typeMap[r.roomType] || r.roomType;
+    var isOccupied = r.status === 'Occupied';
+    var rowBg = isOccupied ? 'background:#0f2a1f' : r.actualRoomNo ? '' : 'background:#1a1a2e';
+    html += '<tr style="' + rowBg + '">';
+    html += '<td style="font-family:monospace;color:#60a5fa;font-weight:700">' + r.internalId + '</td>';
+    html += '<td>' + typeLabel + '</td>';
+    html += '<td style="text-align:center">' + r.capacity + '</td>';
+    html += '<td>' + r.checkIn + '</td>';
+    html += '<td>' + r.checkOut + '</td>';
+    
+    if (isOccupied) {
+      html += '<td><span style="background:#166534;color:#6ee7b7;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">مشغولة</span></td>';
+      html += '<td style="font-size:10px;color:#94a3b8;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + (r.occupantIds || '') + '">' + (r.occupantIds ? String(r.occupantIds).split(',').join(' | ') : '-') + '</td>';
+    } else {
+      html += '<td><span style="background:#1e3a5f;color:#60a5fa;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">متاحة</span></td>';
+      html += '<td style="color:#334155;font-size:10px">—</td>';
+    }
+    
+    html += '<td><input type="text" value="' + r.actualRoomNo + '" '
+         + 'onchange="saveRoomNo(this, \'' + r.internalId + '\')" '
+         + 'style="width:80px;background:#0f172a;color:#f59e0b;border:1px solid #334155;'
+         + 'border-radius:6px;padding:4px 8px;text-align:center;font-weight:700;font-size:13px" '
+         + 'placeholder="—"></td>';
+    html += '</tr>';
+  });
+  
+  html += '</tbody></table></div>';
+  tableEl.innerHTML = html;
+}
+
+function saveRoomNo(input, internalId) {
+  var value = input.value.trim();
+  
+  google.script.run
+    .withSuccessHandler(function(result) {
+      if (result.success) {
+        input.style.borderColor = '#6ee7b7';
+        setTimeout(function() { input.style.borderColor = '#334155'; }, 1500);
+      } else {
+        showToast(result.error, true);
+        input.style.borderColor = '#f87171';
+      }
+    })
+    .withFailureHandler(function(err) {
+      showToast('خطأ: ' + err.message, true);
+      input.style.borderColor = '#f87171';
+    })
+    .saveActualRoomNo(internalId, value);
+}
+
+</script>

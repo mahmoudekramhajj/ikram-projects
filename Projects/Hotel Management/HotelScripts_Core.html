@@ -1,0 +1,344 @@
+<script>
+/**
+ * Hotel Management App — Core Scripts
+ * v3.0 — State, initialization, data loading, tab switching, UI utilities
+ */
+
+// ============================================================
+// STATE
+// ============================================================
+
+var state = {
+  currentCity: 'madinah',
+  currentHotel: '',
+  currentTab: 'checkin',
+  currentRole: 'hotel',
+  hotels: {},
+  pilgrims: [],
+  filteredPilgrims: [],
+  departures: [],
+  filteredDepartures: [],
+  inventory: {},
+  dashboardStats: {},
+  selectedForCheckin: [],
+  selectedForRooming: [],
+  roomGroups: [],
+  departureFilterDate: '',
+  optimizationSuggestions: null
+};
+
+// ============================================================
+// INITIALIZATION
+// ============================================================
+
+document.addEventListener('DOMContentLoaded', function() {
+  // تسجيل الدخول أولاً
+  google.script.run
+    .withSuccessHandler(function(user) {
+      if (!user.success) {
+        document.getElementById('loginError').textContent = user.error;
+        document.getElementById('loginScreen').style.display = 'flex';
+        return;
+      }
+
+      state.currentUser = user;
+
+      // تطبيق الدور
+      if (!user.openMode) {
+        state.currentRole = user.role;
+        var roleSelect = document.getElementById('roleSelector');
+        roleSelect.value = user.role;
+        if (user.role !== 'ops') roleSelect.disabled = true;
+      }
+
+      var dashTab = document.getElementById('dashboardTab');
+      dashTab.style.display = state.currentRole === 'ops' ? '' : 'none';
+
+      document.getElementById('roleSelector').addEventListener('change', function() {
+        state.currentRole = this.value;
+        dashTab.style.display = state.currentRole === 'ops' ? '' : 'none';
+        if (state.currentRole !== 'ops' && state.currentTab === 'dashboard') {
+          switchTab('checkin');
+        }
+      });
+
+      // عرض اسم المستخدم
+      var userEl = document.getElementById('currentUserName');
+      if (userEl) userEl.textContent = user.name;
+
+      loadHotels();
+    })
+    .withFailureHandler(function(err) {
+      // في حالة الخطأ — السماح بالدخول (وضع مفتوح)
+      document.getElementById('roleSelector').addEventListener('change', function() {
+        state.currentRole = this.value;
+        var dashTab = document.getElementById('dashboardTab');
+        dashTab.style.display = state.currentRole === 'ops' ? '' : 'none';
+      });
+      loadHotels();
+    })
+    .getLoginUser();
+});
+
+// ============================================================
+// HOTEL SELECTION
+// ============================================================
+
+function loadHotels() {
+  showLoading(true);
+  google.script.run
+    .withSuccessHandler(function(data) {
+      state.hotels = data;
+      populateHotelDropdown();
+      showLoading(false);
+    })
+    .withFailureHandler(function(err) {
+      showToast('خطأ في تحميل الفنادق: ' + err.message, true);
+      showLoading(false);
+    })
+    .getHotelList();
+}
+
+function selectCity(city) {
+  state.currentCity = city;
+  document.querySelectorAll('.city-btn').forEach(function(btn) {
+    btn.classList.toggle('active', btn.getAttribute('data-city') === city);
+  });
+  populateHotelDropdown();
+  state.currentHotel = '';
+  clearData();
+}
+
+function populateHotelDropdown() {
+  var dropdown = document.getElementById('hotelDropdown');
+  var hotels = state.hotels[state.currentCity] || {};
+  
+  dropdown.innerHTML = '<option value="">— اختر الفندق —</option>';
+  var sorted = Object.entries(hotels).sort(function(a, b) { return b[1] - a[1]; });
+  
+  sorted.forEach(function(entry) {
+    var opt = document.createElement('option');
+    opt.value = entry[0];
+    opt.textContent = entry[0] + ' (' + entry[1] + ' حاج)';
+    dropdown.appendChild(opt);
+  });
+}
+
+function onHotelSelected() {
+  var hotel = document.getElementById('hotelDropdown').value;
+  state.currentHotel = hotel;
+  document.getElementById('hotelActions').style.display = hotel ? '' : 'none';
+  if (!hotel) { clearData(); return; }
+  loadPilgrims();
+}
+
+function getHotelCityCode() {
+  var map = { 'madinah': 'Madina', 'makkah': 'Makkah' };
+  return map[state.currentCity] || 'Madina';
+}
+
+// ============================================================
+// LOAD DATA
+// ============================================================
+
+function loadPilgrims() {
+  if (!state.currentHotel) return;
+  showLoading(true);
+  var cityCode = getHotelCityCode();
+  
+  google.script.run
+    .withSuccessHandler(function(data) {
+      state.pilgrims = data || [];
+      state.filteredPilgrims = state.pilgrims.slice();
+      
+      populateDateFilter();
+      populateFlightFilter();
+      renderCheckinTab();
+      renderRoomingTab();
+
+      loadDepartures();
+      loadInventory();
+      updateRefreshTime_();
+      showLoading(false);
+    })
+    .withFailureHandler(function(err) {
+      showToast('خطأ في تحميل البيانات: ' + err.message, true);
+      showLoading(false);
+    })
+    .getPilgrimsForHotel(state.currentHotel, cityCode);
+}
+
+function loadDepartures() {
+  var cityCode = getHotelCityCode();
+  google.script.run
+    .withSuccessHandler(function(data) {
+      state.departures = data || [];
+      state.filteredDepartures = state.departures.slice();
+      populateDepartureDateFilter();
+      renderDeparturesTab();
+    })
+    .getDeparturesForHotel(state.currentHotel, cityCode);
+}
+
+function loadInventory() {
+  var cityCode = getHotelCityCode();
+  google.script.run
+    .withSuccessHandler(function(data) {
+      state.inventory = data || {};
+      renderInventoryTab();
+      loadRoomMapping();
+    })
+    .getRoomInventory(state.currentHotel, cityCode);
+}
+
+// ============================================================
+// TAB SWITCHING
+// ============================================================
+
+function switchTab(tabId) {
+  state.currentTab = tabId;
+  document.querySelectorAll('.tab-btn').forEach(function(btn) {
+    btn.classList.toggle('active', btn.getAttribute('data-tab') === tabId);
+  });
+  document.querySelectorAll('.tab-content').forEach(function(tab) {
+    tab.classList.toggle('active', tab.id === 'tab-' + tabId);
+  });
+  if (tabId === 'dashboard' && state.currentRole === 'ops') loadDashboard();
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+
+function statCard(label, value, color, bg) {
+  return '<div class="stat-card" style="background:' + bg + ';border:1px solid ' + color + '22">' +
+    '<div class="stat-label">' + label + '</div>' +
+    '<div class="stat-value" style="color:' + color + '">' + value + '</div>' +
+  '</div>';
+}
+
+function statusBadge(status) {
+  var map = {
+    'arrived': '<span class="badge badge-arrived">وصل ✓</span>',
+    'pending': '<span class="badge badge-pending">لم يصل</span>',
+    'delayed': '<span class="badge badge-delayed">متأخر</span>'
+  };
+  return map[status] || map['pending'];
+}
+
+function departureBadge(type) {
+  var map = {
+    'early': '<span class="badge badge-dept-early">مغادرة مبكرة</span>',
+    'late': '<span class="badge badge-dept-late">مغادرة متأخرة</span>',
+    'normal': '<span class="badge badge-dept-normal">مغادرة عادية</span>',
+    'shifting': '<span style="background:#4c1d95;color:#c084fc;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700">🔄 تحويل</span>'
+  };
+  return map[type] || '';
+}
+
+function getTodayStr() {
+  var now = new Date();
+  var y = now.getFullYear();
+  var m = String(now.getMonth() + 1).padStart(2, '0');
+  var d = String(now.getDate()).padStart(2, '0');
+  return y + '-' + m + '-' + d;
+}
+
+// ============================================================
+// HOTEL SHEET INITIALIZATION
+// ============================================================
+
+function initHotelSheet() {
+  if (!state.currentHotel) { showToast('اختر فندقاً أولاً', true); return; }
+  
+  showLoading(true);
+  showToast('جاري تهيئة شيت الفندق...');
+  var cityCode = getHotelCityCode();
+  
+  google.script.run
+    .withSuccessHandler(function(result) {
+      showLoading(false);
+      if (result.success) {
+        showToast('✅ تم تهيئة شيت ' + state.currentHotel + ' — ' + result.total + ' حاج');
+        loadPilgrims(); // Reload to reflect new data
+      }
+    })
+    .withFailureHandler(function(err) {
+      showToast('خطأ: ' + err.message, true);
+      showLoading(false);
+    })
+    .populateHotelSheet(state.currentHotel, cityCode);
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+
+function clearData() {
+  state.pilgrims = [];
+  state.filteredPilgrims = [];
+  state.departures = [];
+  state.filteredDepartures = [];
+  state.inventory = {};
+  state.selectedForRooming = [];
+  state.departureFilterDate = '';
+  
+  document.getElementById('hotelActions').style.display = 'none';
+  document.getElementById('checkinStats').innerHTML = '';
+  document.getElementById('pilgrimsList').innerHTML = '<div style="text-align:center;padding:40px;color:#64748b">اختر فندقاً لعرض البيانات</div>';
+  document.getElementById('expectedArrivals').style.display = 'none';
+  document.getElementById('earlyArrivalAlert').style.display = 'none';
+  document.getElementById('noShowAlert').style.display = 'none';
+}
+
+function showLoading(show) {
+  document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none';
+}
+
+function showToast(msg, isError) {
+  var toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.className = 'toast' + (isError ? ' error' : '');
+  toast.classList.add('show');
+  var duration = msg.length > 80 ? 6000 : 3000;
+  setTimeout(function() { toast.classList.remove('show'); }, duration);
+}
+
+// ============================================================
+// REFRESH & AUTO-REFRESH
+// ============================================================
+
+function refreshData() {
+  if (!state.currentHotel) return;
+  loadPilgrims();
+  updateRefreshTime_();
+}
+
+function updateRefreshTime_() {
+  var el = document.getElementById('lastRefreshTime');
+  if (el) {
+    var now = new Date();
+    el.textContent = 'آخر تحديث: ' + String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+  }
+}
+
+// تحديث تلقائي كل دقيقة — فقط إذا كان التبويب نشطاً وهناك فندق محدد
+var _autoRefreshTimer = null;
+
+function startAutoRefresh_() {
+  if (_autoRefreshTimer) clearInterval(_autoRefreshTimer);
+  _autoRefreshTimer = setInterval(function() {
+    if (!document.hidden && state.currentHotel && state.currentTab !== 'dashboard') {
+      refreshData();
+    }
+  }, 900000); // كل ربع ساعة
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  startAutoRefresh_();
+});
+
+// ============================================================
+// EXPORT TO EXCEL (with filters)
+// ============================================================
+</script>

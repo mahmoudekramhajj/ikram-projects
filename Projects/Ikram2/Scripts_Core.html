@@ -1,0 +1,573 @@
+<script>
+// ══════════════════════════════════════════════════════════════
+// Scripts_Core.html - المتغيرات العامة والدوال المساعدة
+// الإصدار 27.0 - توفر الغرف + الدول المستهدفة
+// ══════════════════════════════════════════════════════════════
+
+// ==================== المتغيرات العامة ====================
+var allPackages = [];
+var allFlights = [];
+var allHotels = [];
+var currentLang = 'en';
+var currentResults = [];
+var currentFlightsResults = [];
+var currentHotelsResults = {};
+var selectedForCompare = [];
+var savedFilters = { packages: {}, flights: {}, hotels: {} };
+var isAuthenticated = false;
+var authExpiry = 0;
+
+// ==================== بيانات الدول ====================
+var countryData = {
+  'Italy': { flag: '🇮🇹', color: 'italy' },
+  'Australia': { flag: '🇦🇺', color: 'australia' },
+  'Canada': { flag: '🇨🇦', color: 'canada' },
+  'USA': { flag: '🇺🇸', color: 'usa' },
+  'Switzerland': { flag: '🇨🇭', color: 'switzerland' },
+  'Austria': { flag: '🇦🇹', color: 'austria' },
+  'Germany': { flag: '🇩🇪', color: 'germany' },
+  'Netherland': { flag: '🇳🇱', color: 'netherland' },
+  'Netherlands': { flag: '🇳🇱', color: 'netherland' },
+  'France': { flag: '🇫🇷', color: 'france' },
+  'UK': { flag: '🇬🇧', color: 'uk' },
+  'United Kingdom': { flag: '🇬🇧', color: 'uk' },
+  'Spain': { flag: '🇪🇸', color: 'spain' },
+  'Denmark': { flag: '🇩🇰', color: 'denmark' },
+  'Belgium': { flag: '🇧🇪', color: 'belgium' },
+  'Sweden': { flag: '🇸🇪', color: 'sweden' },
+  'South Africa': { flag: '🇿🇦', color: 'southafrica' },
+  'Greece': { flag: '🇬🇷', color: 'greece' },
+  'Japan': { flag: '🇯🇵', color: 'japan' },
+  'Finland': { flag: '🇫🇮', color: 'finland' },
+  'Norway': { flag: '🇳🇴', color: 'norway' }
+};
+
+function getCountryInfo(c) {
+  if (!c) return { flag: '🌍', color: 'default' };
+  var trimmed = String(c).trim();
+  if (countryData[trimmed]) return countryData[trimmed];
+  for (var k in countryData) {
+    if (trimmed.toLowerCase().indexOf(k.toLowerCase()) !== -1) return countryData[k];
+  }
+  return { flag: '🌍', color: 'default' };
+}
+
+// ==================== الترجمات ====================
+var T = {
+  ar: {
+    headerTitle: '🕋 شركة إكرام الضيف للسياحة',
+    headerSubtitle: 'نظام إدارة باقات الحج',
+    statPackages: 'باقات متاحة',
+    statPilgrims: 'حجاج متبقي',
+    statBookingPercent: 'نسبة الحجز',
+    statTickets: 'تذاكر متبقية',
+    tabPackages: '📦 الباقات',
+    tabFlights: '✈️ الطيران',
+    tabHotels: '🏨 الفنادق',
+    filtersTitle: '⚙️ خيارات البحث',
+    showSoldOut: 'إظهار المباع بالكامل',
+    lblCountry: '🌍 الدولة',
+    lblCity: '✈️ مدينة المغادرة',
+    lblAirline: '🛫 شركة الطيران',
+    lblCategory: '⭐ فئة الباقة',
+    lblStartCity: '🕌 مدينة البداية',
+    lblHotel: '🏨 الفندق',
+    lblSalesPercent: '📊 نسبة البيع',
+    lblPackage: '📦 اسم الباقة',
+    lblPNR: '🎫 رقم PNR',
+    lblTargetCountry: '🎯 الدولة المستهدفة',
+    btnSearch: '🔍 بحث',
+    btnClear: '🔄 مسح',
+    btnCompare: '⚖️ مقارنة',
+    btnWhatsapp: '📤 واتساب',
+    btnExcel: '📊 Excel',
+    btnPrint: '🖨️ طباعة',
+    lblSort: 'ترتيب:',
+    sortDefault: 'الافتراضي',
+    sortPriceAsc: 'السعر ↑',
+    sortPriceDesc: 'السعر ↓',
+    sortRemainingDesc: 'المتبقي ↓',
+    sortSalesDesc: 'نسبة البيع ↓',
+    found: 'تم العثور على',
+    packages: 'باقات',
+    flights: 'رحلات',
+    autoRefresh: 'تحديث تلقائي كل 30 ثانية',
+    loading: 'جاري التحميل...',
+    makkah: 'مكة',
+    madinah: 'المدينة',
+    sar: 'ريال',
+    days: 'يوم',
+    nights: 'ليالي',
+    hotels: 'الفنادق',
+    noResults: 'لا توجد نتائج',
+    soldOut: 'مباع',
+    all: 'الكل',
+    sold: 'مباع',
+    remaining: 'متبقي',
+    capacity: 'السعة',
+    total: 'الإجمالي',
+    sales: 'المبيعات',
+    pkgPrice: 'السعر',
+    bookNow: 'احجز',
+    location: 'الموقع',
+    linkedPackages: 'الباقات المرتبطة',
+    linkedFlights: 'الرحلات المرتبطة',
+    available: 'متاح',
+    hotelsInMakkah: '🕋 فنادق مكة',
+    hotelsInMadinah: '🕌 فنادق المدينة',
+    totalBeds: 'الإجمالي',
+    soldBeds: 'المباع',
+    remainingBeds: 'المتبقي',
+    whatsappCompany: '🕋 إكرام الضيف للحج',
+    whatsappContact: '📱 للاستفسارات والحجز: +966125111940',
+    linkCopied: 'تم النسخ!',
+    noLink: 'لا يوجد رابط',
+    selectAtLeast2: 'اختر باقتين على الأقل',
+    departure: 'الذهاب',
+    returnFlight: 'العودة',
+    direct: 'مباشر',
+    transit: 'ترانزيت',
+    price: 'السعر',
+    duration: 'المدة',
+    compareTitle: '⚖️ مقارنة الباقات',
+    compareImage: '📷 صورة',
+    passwordTitle: '🔐 أدخل كلمة السر',
+    passwordError: 'كلمة السر غير صحيحة',
+    passwordSubmit: 'دخول',
+    passwordCancel: 'إلغاء',
+    // توفر الغرف
+    roomAvail: 'توفر الغرف',
+    dbl: 'ثنائي',
+    tri: 'ثلاثي',
+    quad: 'رباعي',
+    roomAvailable: 'متوفر',
+    roomUnavailable: 'غير متوفر',
+    roomUnconfirmed: 'غير مؤكد',
+    lastUpdate: 'آخر تحديث',
+    // الدول المستهدفة
+    targetCountries: 'الدول المستهدفة'
+  },
+  en: {
+    headerTitle: '🕋 Ikram AlDyf for Hajj',
+    headerSubtitle: 'Hajj Packages Management System',
+    statPackages: 'Packages',
+    statPilgrims: 'Remaining',
+    statBookingPercent: 'Booking %',
+    statTickets: 'Tickets',
+    tabPackages: '📦 Packages',
+    tabFlights: '✈️ Flights',
+    tabHotels: '🏨 Hotels',
+    filtersTitle: '⚙️ Search Options',
+    showSoldOut: 'Include Sold Out',
+    lblCountry: '🌍 Country',
+    lblCity: '✈️ City',
+    lblAirline: '🛫 Airline',
+    lblCategory: '⭐ Category',
+    lblStartCity: '🕌 Start City',
+    lblHotel: '🏨 Hotel',
+    lblSalesPercent: '📊 Sales %',
+    lblPackage: '📦 Package',
+    lblPNR: '🎫 PNR',
+    lblTargetCountry: '🎯 Target Country',
+    btnSearch: '🔍 Search',
+    btnClear: '🔄 Clear',
+    btnCompare: '⚖️ Compare',
+    btnWhatsapp: '📤 WhatsApp',
+    btnExcel: '📊 Excel',
+    btnPrint: '🖨️ Print',
+    lblSort: 'Sort:',
+    sortDefault: 'Default',
+    sortPriceAsc: 'Price ↑',
+    sortPriceDesc: 'Price ↓',
+    sortRemainingDesc: 'Remaining ↓',
+    sortSalesDesc: 'Sales % ↓',
+    found: 'Found',
+    packages: 'packages',
+    flights: 'flights',
+    autoRefresh: 'Auto-refresh every 30 seconds',
+    loading: 'Loading...',
+    makkah: 'Makkah',
+    madinah: 'Madinah',
+    sar: 'SAR',
+    days: 'days',
+    nights: 'nights',
+    hotels: 'Hotels',
+    noResults: 'No results found',
+    soldOut: 'Sold',
+    all: 'All',
+    sold: 'Sold',
+    remaining: 'Left',
+    capacity: 'Capacity',
+    total: 'Total',
+    sales: 'Sales',
+    pkgPrice: 'Price',
+    bookNow: 'Book',
+    location: 'Location',
+    linkedPackages: 'Linked Packages',
+    linkedFlights: 'Linked Flights',
+    available: 'Available',
+    hotelsInMakkah: '🕋 Makkah Hotels',
+    hotelsInMadinah: '🕌 Madinah Hotels',
+    totalBeds: 'Total',
+    soldBeds: 'Sold',
+    remainingBeds: 'Left',
+    whatsappCompany: '🕋 Ikram AlDyf for Hajj',
+    whatsappContact: '📱 For inquiries: +966125111940',
+    linkCopied: 'Copied!',
+    noLink: 'No link',
+    selectAtLeast2: 'Select at least 2',
+    departure: 'Departure',
+    returnFlight: 'Return',
+    direct: 'Direct',
+    transit: 'Transit',
+    price: 'Price',
+    duration: 'Duration',
+    compareTitle: '⚖️ Compare Packages',
+    compareImage: '📷 Image',
+    passwordTitle: '🔐 Enter Password',
+    passwordError: 'Incorrect password',
+    passwordSubmit: 'Enter',
+    passwordCancel: 'Cancel',
+    // Room Availability
+    roomAvail: 'Room Availability',
+    dbl: 'Dbl',
+    tri: 'Tri',
+    quad: 'Quad',
+    roomAvailable: 'Available',
+    roomUnavailable: 'Unavailable',
+    roomUnconfirmed: 'Unconfirmed',
+    lastUpdate: 'Last Update',
+    // Target Countries
+    targetCountries: 'Target Countries'
+  }
+};
+
+// ==================== دوال مساعدة ====================
+function gv(id) { 
+  var e = document.getElementById(id); 
+  return e ? e.value.trim() : ''; 
+}
+
+function sv(id, v) { 
+  var e = document.getElementById(id); 
+  if (e) e.value = v; 
+}
+
+function gc(id) { 
+  var e = document.getElementById(id); 
+  return e ? e.checked : false; 
+}
+
+function sc(id, v) { 
+  var e = document.getElementById(id); 
+  if (e) e.checked = v; 
+}
+
+function fmtN(n) { 
+  return Number(n).toLocaleString('en-US'); 
+}
+
+function fillSelect(id, arr, allText) {
+  var s = document.getElementById(id);
+  if (!s) return;
+  s.innerHTML = '<option value="">' + allText + '</option>';
+  for (var i = 0; i < arr.length; i++) {
+    var val = String(arr[i]).trim();
+    if (val) s.innerHTML += '<option value="' + val + '">' + val + '</option>';
+  }
+}
+
+function getUnique(arr, key) {
+  var u = [];
+  for (var i = 0; i < arr.length; i++) {
+    var v = arr[i][key];
+    if (v) {
+      var trimmed = String(v).trim();
+      if (trimmed && u.indexOf(trimmed) === -1) u.push(trimmed);
+    }
+  }
+  return u.sort();
+}
+
+function getProgressClass(p) {
+  if (p >= 100) return 'full';
+  if (p >= 75) return 'high';
+  if (p >= 50) return 'medium';
+  return 'low';
+}
+
+function getHotelMapLink(ar, en) {
+  for (var i = 0; i < allHotels.length; i++) {
+    var h = allHotels[i];
+    if ((ar && h.nameAr === ar) || (en && h.nameEn === en)) return h.mapLink || '';
+  }
+  return '';
+}
+
+/**
+ * استخراج جميع الدول المستهدفة من كل الرحلات (بدون تكرار)
+ */
+function getAllTargetCountries() {
+  var u = [];
+  for (var i = 0; i < allFlights.length; i++) {
+    var tc = allFlights[i].targetCountries;
+    if (tc && tc.length > 0) {
+      for (var j = 0; j < tc.length; j++) {
+        var v = String(tc[j]).trim();
+        if (v && u.indexOf(v) === -1) u.push(v);
+      }
+    }
+  }
+  return u.sort();
+}
+
+// ==================== التحميل والتهيئة ====================
+document.addEventListener('DOMContentLoaded', function() {
+  checkAuthStatus();
+  updateUILanguage();
+  loadData();
+  setInterval(function() { 
+    saveFilters(); 
+    loadData(); 
+  }, 30000);
+});
+
+function changeLang(lang) {
+  currentLang = lang;
+  document.body.className = lang === 'ar' ? 'rtl' : 'ltr';
+  document.documentElement.lang = lang;
+  document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+  updateUILanguage();
+  restoreFilters();
+  doSearch();
+  doFlightsSearch();
+  doHotelsSearch();
+}
+
+function loadData() {
+  google.script.run
+    .withSuccessHandler(function(json) {
+      var data = JSON.parse(json);
+      allPackages = data.packages || [];
+      allFlights = data.flights || [];
+      allHotels = data.hotels || [];
+      document.getElementById('statPackages').textContent = fmtN(data.stats.availablePackages);
+      document.getElementById('statPilgrims').textContent = fmtN(data.stats.remainingPilgrims);
+      document.getElementById('statBookingPercent').textContent = data.stats.bookingPercent + '%';
+      document.getElementById('statTickets').textContent = fmtN(data.stats.remainingTickets);
+      initFilters();
+      initFlightsFilters();
+      initHotelsFilters();
+      restoreFilters();
+      doSearch();
+      doFlightsSearch();
+      doHotelsSearch();
+    })
+    .withFailureHandler(function(err) {
+      console.error('Load error:', err);
+      document.getElementById('resultsArea').innerHTML = '<div class="error-box">Error loading data</div>';
+    })
+    .getAllData();
+}
+
+// ==================== نظام المصادقة ====================
+function checkAuthStatus() {
+  var stored = localStorage.getItem('authExpiry');
+  if (stored && parseInt(stored) > Date.now()) {
+    isAuthenticated = true;
+    authExpiry = parseInt(stored);
+  } else {
+    isAuthenticated = false;
+    localStorage.removeItem('authExpiry');
+  }
+}
+
+function setAuthenticated() {
+  isAuthenticated = true;
+  authExpiry = Date.now() + (60 * 60 * 1000);
+  localStorage.setItem('authExpiry', authExpiry.toString());
+}
+
+function showPasswordModal(targetTab) {
+  var t = T[currentLang];
+  document.getElementById('passwordModalTitle').textContent = t.passwordTitle;
+  document.getElementById('passwordError').textContent = t.passwordError;
+  document.getElementById('passwordError').style.display = 'none';
+  document.getElementById('passwordInput').value = '';
+  document.getElementById('passwordSubmitBtn').textContent = t.passwordSubmit;
+  document.getElementById('passwordCancelBtn').textContent = t.passwordCancel;
+  document.getElementById('passwordModal').dataset.targetTab = targetTab;
+  document.getElementById('passwordModal').classList.add('show');
+  document.getElementById('passwordInput').focus();
+}
+
+function closePasswordModal() {
+  document.getElementById('passwordModal').classList.remove('show');
+}
+
+function submitPassword() {
+  var entered = document.getElementById('passwordInput').value;
+  var targetTab = document.getElementById('passwordModal').dataset.targetTab;
+  google.script.run
+    .withSuccessHandler(function(correct) {
+      if (entered === correct) {
+        setAuthenticated();
+        closePasswordModal();
+        switchTabDirect(targetTab);
+      } else {
+        document.getElementById('passwordError').style.display = 'block';
+        document.getElementById('passwordInput').value = '';
+        document.getElementById('passwordInput').focus();
+      }
+    })
+    .withFailureHandler(function(err) {
+      document.getElementById('passwordError').style.display = 'block';
+    })
+    .getPassword();
+}
+
+// ==================== التبويبات ====================
+function switchTab(tab) {
+ if (tab === 'hotels' && !isAuthenticated) {
+    checkAuthStatus();
+    if (!isAuthenticated) { 
+      showPasswordModal(tab); 
+      return; 
+    }
+  }
+  switchTabDirect(tab);
+}
+
+function switchTabDirect(tab) {
+  var tabs = ['packages', 'flights', 'hotels'];
+  for (var i = 0; i < tabs.length; i++) {
+    var btn = document.getElementById('tab' + tabs[i].charAt(0).toUpperCase() + tabs[i].slice(1));
+    var content = document.getElementById('content' + tabs[i].charAt(0).toUpperCase() + tabs[i].slice(1));
+    if (tabs[i] === tab) { 
+      btn.classList.add('active'); 
+      content.classList.add('active'); 
+    } else { 
+      btn.classList.remove('active'); 
+      content.classList.remove('active'); 
+    }
+  }
+}
+
+// ==================== حفظ واستعادة الفلاتر ====================
+function saveFilters() {
+  savedFilters.packages = { 
+    country: gv('fCountry'), 
+    city: gv('fCity'), 
+    airline: gv('fAirline'), 
+    category: gv('fCategory'), 
+    startCity: gv('fStartCity'), 
+    hotel: gv('fHotel'), 
+    salesPercent: gv('fSalesPercent'), 
+    package: gv('fPackage'), 
+    pnr: gv('fPNR'), 
+    showSoldOut: gc('showSoldOut'), 
+    sortBy: gv('sortBy') 
+  };
+  savedFilters.flights = { 
+    country: gv('fFlightCountry'), 
+    city: gv('fFlightCity'), 
+    airline: gv('fFlightAirline'), 
+    pnr: gv('fFlightPNR'), 
+    package: gv('fFlightPackage'), 
+    targetCountry: gv('fFlightTargetCountry'),
+    showSoldOut: gc('showSoldOutFlights') 
+  };
+  savedFilters.hotels = { 
+    city: gv('fHotelCity'), 
+    name: gv('fHotelName'), 
+    package: gv('fHotelPackage') 
+  };
+}
+
+function restoreFilters() {
+  if (savedFilters.packages.country !== undefined) {
+    sv('fCountry', savedFilters.packages.country); 
+    sv('fCity', savedFilters.packages.city); 
+    sv('fAirline', savedFilters.packages.airline);
+    sv('fCategory', savedFilters.packages.category); 
+    sv('fStartCity', savedFilters.packages.startCity); 
+    sv('fHotel', savedFilters.packages.hotel);
+    sv('fSalesPercent', savedFilters.packages.salesPercent); 
+    sv('fPackage', savedFilters.packages.package); 
+    sv('fPNR', savedFilters.packages.pnr);
+    sc('showSoldOut', savedFilters.packages.showSoldOut); 
+    sv('sortBy', savedFilters.packages.sortBy);
+  }
+  if (savedFilters.flights.country !== undefined) {
+    sv('fFlightCountry', savedFilters.flights.country); 
+    sv('fFlightCity', savedFilters.flights.city); 
+    sv('fFlightAirline', savedFilters.flights.airline);
+    sv('fFlightPNR', savedFilters.flights.pnr); 
+    sv('fFlightPackage', savedFilters.flights.package); 
+    sv('fFlightTargetCountry', savedFilters.flights.targetCountry);
+    sc('showSoldOutFlights', savedFilters.flights.showSoldOut);
+  }
+  if (savedFilters.hotels.city !== undefined) {
+    sv('fHotelCity', savedFilters.hotels.city); 
+    sv('fHotelName', savedFilters.hotels.name); 
+    sv('fHotelPackage', savedFilters.hotels.package);
+  }
+}
+
+// ==================== تحديث واجهة اللغة ====================
+function updateUILanguage() {
+  var t = T[currentLang];
+  document.getElementById('headerTitle').textContent = t.headerTitle;
+  document.getElementById('headerSubtitle').textContent = t.headerSubtitle;
+  document.getElementById('lblStatPackages').textContent = t.statPackages;
+  document.getElementById('lblStatPilgrims').textContent = t.statPilgrims;
+  document.getElementById('lblStatBookingPercent').textContent = t.statBookingPercent;
+  document.getElementById('lblStatTickets').textContent = t.statTickets;
+  document.getElementById('tabPackages').textContent = t.tabPackages;
+  document.getElementById('tabFlights').textContent = t.tabFlights;
+  document.getElementById('tabHotels').textContent = t.tabHotels;
+  document.getElementById('filtersTitle').textContent = t.filtersTitle;
+  document.getElementById('lblShowSoldOut').textContent = t.showSoldOut;
+  document.getElementById('lblCountry').textContent = t.lblCountry;
+  document.getElementById('lblCity').textContent = t.lblCity;
+  document.getElementById('lblAirline').textContent = t.lblAirline;
+  document.getElementById('lblCategory').textContent = t.lblCategory;
+  document.getElementById('lblStartCity').textContent = t.lblStartCity;
+  document.getElementById('lblHotel').textContent = t.lblHotel;
+  document.getElementById('lblSalesPercent').textContent = t.lblSalesPercent;
+  document.getElementById('lblPackage').textContent = t.lblPackage;
+  document.getElementById('lblPNR').textContent = t.lblPNR;
+  document.getElementById('btnSearch').textContent = t.btnSearch;
+  document.getElementById('btnClear').textContent = t.btnClear;
+  document.getElementById('btnCompare').innerHTML = t.btnCompare + ' (<span id="compareCount">' + selectedForCompare.length + '</span>)';
+  document.getElementById('btnWhatsapp').textContent = t.btnWhatsapp;
+  document.getElementById('btnExcel').textContent = t.btnExcel;
+  document.getElementById('btnPrint').textContent = t.btnPrint;
+  document.getElementById('lblSort').textContent = t.lblSort;
+  document.getElementById('optDefault').textContent = t.sortDefault;
+  document.getElementById('optPriceAsc').textContent = t.sortPriceAsc;
+  document.getElementById('optPriceDesc').textContent = t.sortPriceDesc;
+  document.getElementById('optRemaining').textContent = t.sortRemainingDesc;
+  document.getElementById('optSales').textContent = t.sortSalesDesc;
+  document.getElementById('txtFound').textContent = t.found;
+  document.getElementById('txtPackages').textContent = t.packages;
+  document.getElementById('txtAutoRefresh').textContent = t.autoRefresh;
+  document.getElementById('txtLoading').textContent = t.loading;
+  document.getElementById('filtersTitleFlights').textContent = t.filtersTitle;
+  document.getElementById('lblShowSoldOutFlights').textContent = t.showSoldOut;
+  document.getElementById('lblFlightCountry').textContent = t.lblCountry;
+  document.getElementById('lblFlightCity').textContent = t.lblCity;
+  document.getElementById('lblFlightAirline').textContent = t.lblAirline;
+  document.getElementById('lblFlightPNR').textContent = t.lblPNR;
+  document.getElementById('lblFlightPackage').textContent = t.lblPackage;
+  document.getElementById('lblFlightTargetCountry').textContent = t.lblTargetCountry;
+  document.getElementById('txtFoundFlights').textContent = t.found;
+  document.getElementById('txtFlights').textContent = t.flights;
+  document.getElementById('filtersTitleHotels').textContent = t.filtersTitle;
+  document.getElementById('lblHotelCity').textContent = t.lblStartCity;
+  document.getElementById('lblHotelName').textContent = t.lblHotel;
+  document.getElementById('lblHotelPackage').textContent = t.lblPackage;
+  document.getElementById('compareTitle').textContent = t.compareTitle;
+  document.getElementById('btnCompareImage').textContent = t.compareImage;
+}
+</script>

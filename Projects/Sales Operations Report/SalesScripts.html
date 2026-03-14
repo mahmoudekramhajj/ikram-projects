@@ -1,0 +1,609 @@
+<script>
+// ══════════════════════════════════════════════════════════════
+// SalesScripts.html - Sales Report Logic v1.1
+// التحديث: حفظ الفلاتر وموقع التمرير عند التحديث التلقائي
+// ══════════════════════════════════════════════════════════════
+
+// ==================== State ====================
+var rawFlights = [];
+var filteredFlights = [];
+var reportData = null;
+var currentLang = 'en';
+var chartInstances = {};
+
+// ==================== Translations ====================
+var L = {
+  ar: {
+    headerTitle: 'تقرير المبيعات والعمليات',
+    headerSub: 'شركة إكرام الضيف للحج',
+    kpiPnrs: 'إجمالي PNR',
+    kpiPax: 'إجمالي المقاعد',
+    kpiSold: 'المباع',
+    kpiRemaining: 'المتبقي',
+    kpiPct: 'نسبة البيع',
+    filterCountry: 'الدولة',
+    filterAirline: 'شركة الطيران',
+    filterSupplier: 'المورد',
+    apply: 'تطبيق',
+    clear: 'مسح',
+    excel: '📊 إكسل',
+    print: '🖨️ طباعة',
+    loading: 'جاري تحميل البيانات...',
+    titleCountries: '🌍 حسب الدولة',
+    titleAirlines: '✈️ حسب شركة الطيران',
+    titleSuppliers: '🤝 حسب المورد',
+    titleCharts: '📈 تحليلات بصرية',
+    titlePnrDetails: '📋 تفاصيل PNR',
+    chartCountry: 'المبيعات حسب الدولة',
+    chartAirline: 'المبيعات حسب شركة الطيران',
+    chartSupplier: 'نسبة البيع حسب المورد',
+    thCountry: 'الدولة', thAirline: 'الشركة', thSupplier: 'المورد',
+    thPnrs: 'PNR', thPax: 'المقاعد', thSold: 'المباع',
+    thRemaining: 'المتبقي', thPct: 'النسبة', thBar: 'التقدم',
+    thCountries: 'الدول', thCity: 'المدينة', thPnr: 'PNR',
+    all: 'الكل', total: 'الإجمالي',
+    footer: 'إكرام الضيف للحج - تقرير المبيعات v1.1',
+    autoRefresh: 'تحديث تلقائي كل 30 ث'
+  },
+  en: {
+    headerTitle: 'Sales & Operations Report',
+    headerSub: 'Ikram AlDyf for Hajj',
+    kpiPnrs: 'Total PNRs',
+    kpiPax: 'Total PAX',
+    kpiSold: 'Sold',
+    kpiRemaining: 'Remaining',
+    kpiPct: 'Sales %',
+    filterCountry: 'Country',
+    filterAirline: 'Airline',
+    filterSupplier: 'Supplier',
+    apply: 'Apply',
+    clear: 'Clear',
+    excel: '📊 Excel',
+    print: '🖨️ Print',
+    loading: 'Loading data...',
+    titleCountries: '🌍 By Country',
+    titleAirlines: '✈️ By Airline',
+    titleSuppliers: '🤝 By Supplier',
+    titleCharts: '📈 Visual Analytics',
+    titlePnrDetails: '📋 PNR Details',
+    chartCountry: 'Sales by Country',
+    chartAirline: 'Sales by Airline',
+    chartSupplier: 'Sales % by Supplier',
+    thCountry: 'Country', thAirline: 'Airline', thSupplier: 'Supplier',
+    thPnrs: 'PNRs', thPax: 'PAX', thSold: 'Sold',
+    thRemaining: 'Remaining', thPct: 'Sales %', thBar: 'Progress',
+    thCountries: 'Countries', thCity: 'City', thPnr: 'PNR',
+    all: 'All', total: 'Total',
+    footer: 'Ikram AlDyf for Hajj - Sales Report v1.1',
+    autoRefresh: 'Auto-refresh 30s'
+  }
+};
+
+// ==================== Init ====================
+document.addEventListener('DOMContentLoaded', function() {
+  updateUITexts();
+  loadData();
+  setInterval(loadData, 30000);
+});
+
+function changeLang(lang) {
+  currentLang = lang;
+  document.body.className = lang === 'ar' ? 'rtl' : 'ltr';
+  document.documentElement.lang = lang;
+  document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+  updateUITexts();
+  if (rawFlights.length > 0) applyFilters();
+}
+
+function updateUITexts() {
+  var t = L[currentLang];
+  setText('headerTitle', t.headerTitle);
+  setText('headerSub', t.headerSub);
+  setText('kpiPnrsLabel', t.kpiPnrs);
+  setText('kpiPaxLabel', t.kpiPax);
+  setText('kpiSoldLabel', t.kpiSold);
+  setText('kpiRemainingLabel', t.kpiRemaining);
+  setText('kpiPctLabel', t.kpiPct);
+  setText('lblFilterCountry', t.filterCountry);
+  setText('lblFilterAirline', t.filterAirline);
+  setText('lblFilterSupplier', t.filterSupplier);
+  setText('btnApply', t.apply);
+  setText('btnClear', t.clear);
+  setText('btnExport', t.excel);
+  setText('btnPrint', t.print);
+  setText('txtLoading', t.loading);
+  setText('titleCountries', t.titleCountries);
+  setText('titleAirlines', t.titleAirlines);
+  setText('titleSuppliers', t.titleSuppliers);
+  setText('titleCharts', t.titleCharts);
+  setText('titlePnrDetails', t.titlePnrDetails);
+  setText('chartTitleCountry', t.chartCountry);
+  setText('chartTitleAirline', t.chartAirline);
+  setText('chartTitleSupplier', t.chartSupplier);
+  setText('thCountry', t.thCountry);
+  setText('thAirline', t.thAirline);
+  setText('thSupplier', t.thSupplier);
+  ['1','2','3','4'].forEach(function(n) {
+    setText('thPnrs'+n, t.thPnrs);
+    setText('thPax'+n, t.thPax);
+    setText('thSold'+n, t.thSold);
+    setText('thRemaining'+n, t.thRemaining);
+    setText('thPct'+n, t.thPct);
+    if (document.getElementById('thBar'+n)) setText('thBar'+n, t.thBar);
+  });
+  setText('thCountries3', t.thCountries);
+  setText('thCity4', t.thCity);
+  setText('thPnr4', t.thPnr);
+  setText('thCountry4', t.thCountry);
+  setText('thAirline4', t.thAirline);
+  setText('thSupplier4', t.thSupplier);
+  setText('footerText', t.footer);
+  setText('footerRefresh', t.autoRefresh);
+}
+
+function setText(id, text) {
+  var el = document.getElementById(id);
+  if (el) el.textContent = text;
+}
+
+// ==================== Data Loading ====================
+function loadData() {
+  // حفظ الحالة الحالية قبل التحديث
+  var scrollPos = window.scrollY || window.pageYOffset;
+  var savedCountry = val('fCountry');
+  var savedAirline = val('fAirline');
+  var savedSupplier = val('fSupplier');
+  var isFirstLoad = rawFlights.length === 0;
+  
+  google.script.run
+    .withSuccessHandler(function(json) {
+      var data = JSON.parse(json);
+      if (!data.success) {
+        if (isFirstLoad) showError(data.error || 'Unknown error');
+        return;
+      }
+      rawFlights = data.flights || [];
+      initFilterOptions();
+      
+      // استعادة الفلاتر المحفوظة
+      if (savedCountry) document.getElementById('fCountry').value = savedCountry;
+      if (savedAirline) document.getElementById('fAirline').value = savedAirline;
+      if (savedSupplier) document.getElementById('fSupplier').value = savedSupplier;
+      
+      applyFilters();
+      
+      // تحديث الوقت
+      document.getElementById('footerTimestamp').textContent = 
+        new Date().toLocaleTimeString();
+      
+      // إخفاء التحميل وإظهار المحتوى
+      document.getElementById('loadingArea').style.display = 'none';
+      document.getElementById('contentArea').style.display = 'block';
+      
+      // استعادة موقع التمرير (فقط عند التحديث وليس التحميل الأول)
+      if (!isFirstLoad) {
+        window.scrollTo(0, scrollPos);
+      }
+    })
+    .withFailureHandler(function(err) {
+      // عند فشل التحديث نحتفظ بالبيانات الحالية
+      if (rawFlights.length > 0) {
+        console.log('Auto-refresh failed, keeping current data');
+      } else {
+        showError(err.message || 'Connection error');
+      }
+    })
+    .getSalesData();
+}
+
+function showError(msg) {
+  document.getElementById('loadingArea').innerHTML = 
+    '<div style="color:#dc3545;font-size:1.1rem;">❌ ' + msg + '</div>';
+}
+
+// ==================== Filters ====================
+function initFilterOptions() {
+  var t = L[currentLang];
+  var countries = [], airlines = [], suppliers = [];
+  
+  for (var i = 0; i < rawFlights.length; i++) {
+    var f = rawFlights[i];
+    if (f.country && countries.indexOf(f.country) === -1) countries.push(f.country);
+    if (f.airline && airlines.indexOf(f.airline) === -1) airlines.push(f.airline);
+    if (f.supplier && suppliers.indexOf(f.supplier) === -1) suppliers.push(f.supplier);
+  }
+  
+  fillSelect('fCountry', countries.sort(), t.all);
+  fillSelect('fAirline', airlines.sort(), t.all);
+  fillSelect('fSupplier', suppliers.sort(), t.all);
+}
+
+function fillSelect(id, arr, allText) {
+  var s = document.getElementById(id);
+  if (!s) return;
+  var current = s.value;
+  s.innerHTML = '<option value="">' + allText + '</option>';
+  for (var i = 0; i < arr.length; i++) {
+    s.innerHTML += '<option value="' + arr[i] + '">' + arr[i] + '</option>';
+  }
+  if (current) s.value = current;
+}
+
+function applyFilters() {
+  var fc = val('fCountry');
+  var fa = val('fAirline');
+  var fs = val('fSupplier');
+  
+  filteredFlights = rawFlights.filter(function(f) {
+    if (fc && f.country !== fc) return false;
+    if (fa && f.airline !== fa) return false;
+    if (fs && f.supplier !== fs) return false;
+    return true;
+  });
+  
+  reportData = generateClientReport(filteredFlights);
+  renderAll();
+}
+
+function clearFilters() {
+  document.getElementById('fCountry').value = '';
+  document.getElementById('fAirline').value = '';
+  document.getElementById('fSupplier').value = '';
+  applyFilters();
+}
+
+function val(id) {
+  var el = document.getElementById(id);
+  return el ? el.value.trim() : '';
+}
+
+// ==================== Client-side Report ====================
+function generateClientReport(flights) {
+  var byCountry = {}, byAirline = {}, bySupplier = {};
+  var totals = { pnrs: 0, pax: 0, sold: 0, remaining: 0 };
+  
+  for (var i = 0; i < flights.length; i++) {
+    var f = flights[i];
+    totals.pnrs++;
+    totals.pax += f.pax;
+    totals.sold += f.sold;
+    totals.remaining += f.remaining;
+    
+    aggregate(byCountry, f.country || 'Unknown', f);
+    aggregate(byAirline, f.airline || 'Unknown', f);
+    
+    var s = f.supplier || 'Unknown';
+    if (!bySupplier[s]) bySupplier[s] = { name: s, pnrs: 0, pax: 0, sold: 0, remaining: 0, countries: [] };
+    bySupplier[s].pnrs++;
+    bySupplier[s].pax += f.pax;
+    bySupplier[s].sold += f.sold;
+    bySupplier[s].remaining += f.remaining;
+    if (f.country && bySupplier[s].countries.indexOf(f.country) === -1) {
+      bySupplier[s].countries.push(f.country);
+    }
+  }
+  
+  totals.salesPct = totals.pax > 0 ? round1(totals.sold / totals.pax * 100) : 0;
+  
+  return {
+    totals: totals,
+    countries: toSortedArray(byCountry),
+    airlines: toSortedArray(byAirline),
+    suppliers: toSortedArray(bySupplier)
+  };
+}
+
+function aggregate(obj, key, f) {
+  if (!obj[key]) obj[key] = { name: key, pnrs: 0, pax: 0, sold: 0, remaining: 0 };
+  obj[key].pnrs++;
+  obj[key].pax += f.pax;
+  obj[key].sold += f.sold;
+  obj[key].remaining += f.remaining;
+}
+
+function toSortedArray(obj) {
+  var arr = [];
+  for (var k in obj) {
+    var item = obj[k];
+    item.salesPct = item.pax > 0 ? round1(item.sold / item.pax * 100) : 0;
+    arr.push(item);
+  }
+  return arr.sort(function(a, b) { return b.pax - a.pax; });
+}
+
+function round1(n) { return Math.round(n * 10) / 10; }
+function fmtN(n) { return Number(n).toLocaleString('en-US'); }
+
+// ==================== Rendering ====================
+function renderAll() {
+  var r = reportData;
+  var t = L[currentLang];
+  
+  // KPIs
+  setText('kpiPnrs', fmtN(r.totals.pnrs));
+  setText('kpiPax', fmtN(r.totals.pax));
+  setText('kpiSold', fmtN(r.totals.sold));
+  setText('kpiRemaining', fmtN(r.totals.remaining));
+  setText('kpiPct', r.totals.salesPct + '%');
+  
+  // Section counts
+  setText('countCountries', r.countries.length);
+  setText('countAirlines', r.airlines.length);
+  setText('countSuppliers', r.suppliers.length);
+  setText('countPnrs', filteredFlights.length);
+  
+  // Tables
+  renderTable('tbodyCountries', 'tfootCountries', r.countries, r.totals, false);
+  renderTable('tbodyAirlines', 'tfootAirlines', r.airlines, r.totals, false);
+  renderTable('tbodySuppliers', 'tfootSuppliers', r.suppliers, r.totals, true);
+  renderPnrTable();
+  
+  // Charts
+  renderCharts();
+}
+
+function renderTable(tbodyId, tfootId, items, totals, showCountries) {
+  var t = L[currentLang];
+  var tbody = document.getElementById(tbodyId);
+  var tfoot = document.getElementById(tfootId);
+  if (!tbody || !tfoot) return;
+  
+  var html = '';
+  for (var i = 0; i < items.length; i++) {
+    var item = items[i];
+    var pctClass = getPctClass(item.salesPct);
+    
+    html += '<tr>' +
+      '<td>' + item.name + '</td>' +
+      '<td>' + item.pnrs + '</td>' +
+      '<td>' + fmtN(item.pax) + '</td>' +
+      '<td>' + fmtN(item.sold) + '</td>' +
+      '<td>' + fmtN(item.remaining) + '</td>' +
+      '<td><span class="pct-badge ' + pctClass + '">' + item.salesPct + '%</span></td>' +
+      '<td><div class="progress-cell">' +
+        '<div class="mini-bar"><div class="mini-bar-fill ' + pctClass + '" style="width:' + Math.min(item.salesPct, 100) + '%"></div></div>' +
+      '</div></td>';
+    
+    if (showCountries) {
+      html += '<td><div class="country-tags">';
+      var ctrs = item.countries || [];
+      for (var j = 0; j < ctrs.length; j++) {
+        html += '<span class="country-tag">' + ctrs[j] + '</span>';
+      }
+      html += '</div></td>';
+    }
+    
+    html += '</tr>';
+  }
+  tbody.innerHTML = html;
+  
+  var totalPct = totals.pax > 0 ? round1(totals.sold / totals.pax * 100) : 0;
+  tfoot.innerHTML = '<tr>' +
+    '<td>' + t.total + '</td>' +
+    '<td>' + totals.pnrs + '</td>' +
+    '<td>' + fmtN(totals.pax) + '</td>' +
+    '<td>' + fmtN(totals.sold) + '</td>' +
+    '<td>' + fmtN(totals.remaining) + '</td>' +
+    '<td><span class="pct-badge ' + getPctClass(totalPct) + '">' + totalPct + '%</span></td>' +
+    '<td></td>' +
+    (showCountries ? '<td></td>' : '') +
+    '</tr>';
+}
+
+function renderPnrTable() {
+  var tbody = document.getElementById('tbodyPnrDetails');
+  var tfoot = document.getElementById('tfootPnrDetails');
+  var t = L[currentLang];
+  if (!tbody) return;
+  
+  var sorted = filteredFlights.slice().sort(function(a, b) { return b.salesPct - a.salesPct; });
+  
+  var html = '';
+  for (var i = 0; i < sorted.length; i++) {
+    var f = sorted[i];
+    var pctClass = getPctClass(f.salesPct);
+    html += '<tr>' +
+      '<td>' + (i + 1) + '</td>' +
+      '<td style="font-weight:700;color:#1565c0;">' + f.pnr + '</td>' +
+      '<td>' + f.country + '</td>' +
+      '<td>' + f.city + '</td>' +
+      '<td>' + f.airline + '</td>' +
+      '<td>' + f.supplier + '</td>' +
+      '<td>' + fmtN(f.pax) + '</td>' +
+      '<td>' + fmtN(f.sold) + '</td>' +
+      '<td>' + fmtN(f.remaining) + '</td>' +
+      '<td><span class="pct-badge ' + pctClass + '">' + f.salesPct + '%</span></td>' +
+      '</tr>';
+  }
+  tbody.innerHTML = html;
+  
+  var r = reportData.totals;
+  tfoot.innerHTML = '<tr>' +
+    '<td></td><td>' + t.total + '</td><td></td><td></td><td></td><td></td>' +
+    '<td>' + fmtN(r.pax) + '</td>' +
+    '<td>' + fmtN(r.sold) + '</td>' +
+    '<td>' + fmtN(r.remaining) + '</td>' +
+    '<td><span class="pct-badge ' + getPctClass(r.salesPct) + '">' + r.salesPct + '%</span></td>' +
+    '</tr>';
+}
+
+function getPctClass(pct) {
+  if (pct >= 75) return 'high';
+  if (pct >= 50) return 'medium';
+  return 'low';
+}
+
+// ==================== Charts ====================
+function renderCharts() {
+  var r = reportData;
+  renderBarChart('chartCountry', r.countries);
+  renderBarChart('chartAirline', r.airlines);
+  renderSupplierChart('chartSupplier', r.suppliers);
+}
+
+function renderBarChart(canvasId, items) {
+  var t = L[currentLang];
+  
+  if (chartInstances[canvasId]) {
+    chartInstances[canvasId].destroy();
+  }
+  
+  var labels = items.map(function(i) { return i.name; });
+  var soldData = items.map(function(i) { return i.sold; });
+  var remainData = items.map(function(i) { return i.remaining; });
+  
+  var ctx = document.getElementById(canvasId);
+  if (!ctx) return;
+  
+  chartInstances[canvasId] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: t.thSold,
+          data: soldData,
+          backgroundColor: '#4caf50',
+          borderRadius: 3
+        },
+        {
+          label: t.thRemaining,
+          data: remainData,
+          backgroundColor: '#ff9800',
+          borderRadius: 3
+        }
+      ]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 0 },
+      plugins: {
+        legend: { position: 'top', labels: { font: { family: 'Cairo', size: 11 } } }
+      },
+      scales: {
+        x: { 
+          stacked: true,
+          grid: { display: false },
+          ticks: { font: { family: 'Cairo', size: 10 } }
+        },
+        y: { 
+          stacked: true,
+          grid: { display: false },
+          ticks: { font: { family: 'Cairo', size: 11 } }
+        }
+      }
+    }
+  });
+  
+  ctx.parentElement.style.height = Math.max(250, items.length * 32) + 'px';
+}
+
+function renderSupplierChart(canvasId, items) {
+  var t = L[currentLang];
+  
+  if (chartInstances[canvasId]) {
+    chartInstances[canvasId].destroy();
+  }
+  
+  var sorted = items.slice().sort(function(a, b) { return b.salesPct - a.salesPct; });
+  var labels = sorted.map(function(i) { return i.name; });
+  var pctData = sorted.map(function(i) { return i.salesPct; });
+  var colors = pctData.map(function(p) {
+    if (p >= 75) return '#dc3545';
+    if (p >= 50) return '#fd7e14';
+    return '#4caf50';
+  });
+  
+  var ctx = document.getElementById(canvasId);
+  if (!ctx) return;
+  
+  chartInstances[canvasId] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: t.thPct,
+        data: pctData,
+        backgroundColor: colors,
+        borderRadius: 4
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 0 },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function(ctx) { return ctx.parsed.x + '%'; }
+          }
+        }
+      },
+      scales: {
+        x: { 
+          max: 100,
+          grid: { color: 'rgba(0,0,0,.05)' },
+          ticks: { 
+            callback: function(v) { return v + '%'; },
+            font: { family: 'Cairo', size: 10 }
+          }
+        },
+        y: { 
+          grid: { display: false },
+          ticks: { font: { family: 'Cairo', size: 11 } }
+        }
+      }
+    }
+  });
+  
+  ctx.parentElement.style.height = Math.max(250, sorted.length * 30) + 'px';
+}
+
+// ==================== Export ====================
+function exportAllExcel() {
+  if (!reportData) return;
+  var t = L[currentLang];
+  
+  var csv = '\uFEFF';
+  csv += '=== ' + t.titleCountries + ' ===\n';
+  csv += t.thCountry + ',' + t.thPnrs + ',' + t.thPax + ',' + t.thSold + ',' + t.thRemaining + ',' + t.thPct + '\n';
+  for (var i = 0; i < reportData.countries.length; i++) {
+    var c = reportData.countries[i];
+    csv += '"' + c.name + '",' + c.pnrs + ',' + c.pax + ',' + c.sold + ',' + c.remaining + ',' + c.salesPct + '%\n';
+  }
+  
+  csv += '\n=== ' + t.titleAirlines + ' ===\n';
+  csv += t.thAirline + ',' + t.thPnrs + ',' + t.thPax + ',' + t.thSold + ',' + t.thRemaining + ',' + t.thPct + '\n';
+  for (var j = 0; j < reportData.airlines.length; j++) {
+    var a = reportData.airlines[j];
+    csv += '"' + a.name + '",' + a.pnrs + ',' + a.pax + ',' + a.sold + ',' + a.remaining + ',' + a.salesPct + '%\n';
+  }
+  
+  csv += '\n=== ' + t.titleSuppliers + ' ===\n';
+  csv += t.thSupplier + ',' + t.thPnrs + ',' + t.thPax + ',' + t.thSold + ',' + t.thRemaining + ',' + t.thPct + ',' + t.thCountries + '\n';
+  for (var k = 0; k < reportData.suppliers.length; k++) {
+    var s = reportData.suppliers[k];
+    csv += '"' + s.name + '",' + s.pnrs + ',' + s.pax + ',' + s.sold + ',' + s.remaining + ',' + s.salesPct + '%,"' + (s.countries || []).join('; ') + '"\n';
+  }
+  
+  csv += '\n=== ' + t.titlePnrDetails + ' ===\n';
+  csv += t.thPnr + ',' + t.thCountry + ',' + t.thCity + ',' + t.thAirline + ',' + t.thSupplier + ',' + t.thPax + ',' + t.thSold + ',' + t.thRemaining + ',' + t.thPct + '\n';
+  for (var m = 0; m < filteredFlights.length; m++) {
+    var f = filteredFlights[m];
+    csv += '"' + f.pnr + '","' + f.country + '","' + f.city + '","' + f.airline + '","' + f.supplier + '",' + f.pax + ',' + f.sold + ',' + f.remaining + ',' + f.salesPct + '%\n';
+  }
+  
+  var tot = reportData.totals;
+  csv += '"TOTAL","","","","",'+tot.pax+','+tot.sold+','+tot.remaining+','+tot.salesPct+'%\n';
+  
+  var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  var link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'SalesReport_' + new Date().toISOString().slice(0,10) + '.csv';
+  link.click();
+}
+</script>

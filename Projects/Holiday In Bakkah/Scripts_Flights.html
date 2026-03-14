@@ -1,0 +1,134 @@
+<script>
+/* ══════════════════════════════════════
+   Scripts_Flights.html
+   عرض تبويب الطيران
+   ══════════════════════════════════════ */
+
+function renderFlights(container) {
+  var flights = allData.flights.slice();
+  var showSoldOut = document.getElementById('showSoldOut');
+  showSoldOut = showSoldOut ? showSoldOut.checked : false;
+
+  var country = getFilterValue('filterCountry');
+  var city = getFilterValue('filterCity');
+  var airline = getFilterValue('filterAirline');
+  var pnr = getFilterValue('filterPNR').toLowerCase();
+
+  flights = flights.filter(function(f) {
+    if (!showSoldOut && f.isSoldOut) return false;
+    if (country && f.country !== country) return false;
+    if (city && f.city !== city) return false;
+    if (airline && f.airline !== airline) return false;
+    if (pnr && !(f.pnr && f.pnr.toLowerCase().indexOf(pnr) >= 0)) return false;
+    return true;
+  });
+
+  filteredData = flights;
+  document.getElementById('resultsCount').textContent = t('found') + ' ' + flights.length + ' ' + t('flight');
+
+  if (flights.length === 0) {
+    container.innerHTML = '<div class="empty-state"><div class="empty-icon">✈️</div><h3>' + t('noFlights') + '</h3></div>';
+    return;
+  }
+
+  var h = '<div class="cards-grid">';
+  flights.forEach(function(f) {
+    var cColor = getCountryColor(f.country);
+    var sold = f.salesCount || 0;
+    var total = f.pax || 0;
+    var left = f.remaining || 0;
+    var pct = f.salesPercent || 0;
+    var pBarColor = pct >= 80 ? 'var(--danger)' : (pct >= 50 ? 'var(--warning)' : 'var(--primary)');
+
+    h += '<div class="package-card">';
+
+    // ═══ Header ═══
+    h += '<div style="background:' + cColor + ';color:white;padding:12px 15px;display:flex;justify-content:space-between;align-items:center">';
+    h += '<div style="display:flex;align-items:center;gap:10px">';
+    h += '<span style="background:rgba(255,255,255,0.25);padding:4px 10px;border-radius:6px;font-weight:700;font-size:0.85rem">' + (f.pnr || '-') + '</span>';
+    h += '<span style="font-size:0.9rem">' + (f.country || '') + ' ' + (f.city || '') + '</span>';
+    h += '<span style="font-size:0.85rem">✈️ ' + (f.airline || '-') + '</span>';
+    h += '</div>';
+    h += '<span style="background:rgba(255,255,255,0.25);padding:6px 14px;border-radius:20px;font-weight:700;font-size:0.95rem">' + formatNumber(f.priceNusk) + ' SAR</span>';
+    h += '</div>';
+
+    // ═══ Departure ═══
+    if (f.depIsDirect) {
+      h += '<div style="padding:12px 15px;border-bottom:1px solid var(--border-light)">';
+      h += '<div style="color:var(--primary);font-weight:700;font-size:0.85rem;margin-bottom:8px">✈️ ' + t('departure') + ' (' + t('direct') + ')</div>';
+      h += '<div style="text-align:center;padding:10px 0;font-size:1.3rem;font-weight:700">' + (f.dep1From || '-') + ' <span style="color:var(--text-muted);margin:0 12px">→</span> ' + (f.dep1To || '-') + '</div>';
+      h += '</div>';
+    } else {
+      h += '<div style="padding:12px 15px;border-bottom:1px solid var(--border-light)">';
+      h += '<div style="color:var(--primary);font-weight:700;font-size:0.85rem;margin-bottom:8px">✈️ ' + t('departure') + ' 1</div>';
+      h += '<div style="text-align:center;padding:10px 0;font-size:1.3rem;font-weight:700">' + (f.dep1From || '-') + ' <span style="color:var(--text-muted);margin:0 12px">→</span> ' + (f.dep1To || '-') + '</div>';
+      h += '</div>';
+      h += '<div style="padding:12px 15px;border-bottom:1px solid var(--border-light)">';
+      h += '<div style="color:var(--primary);font-weight:700;font-size:0.85rem;margin-bottom:8px">✈️ ' + t('departure') + ' 2</div>';
+      h += '<div style="text-align:center;padding:10px 0;font-size:1.3rem;font-weight:700">' + (f.dep2From || '-') + ' <span style="color:var(--text-muted);margin:0 12px">→</span> ' + (f.dep2To || '-') + '</div>';
+      h += '</div>';
+    }
+
+    // ═══ Return ═══
+    if (f.retIsDirect) {
+      h += '<div style="padding:12px 15px;border-bottom:1px solid var(--border-light)">';
+      h += '<div style="color:var(--primary);font-weight:700;font-size:0.85rem;margin-bottom:8px">✈️ ' + t('returnFlight') + ' (' + t('direct') + ')</div>';
+      h += '<div style="text-align:center;padding:10px 0;font-size:1.3rem;font-weight:700">' + (f.ret1From || '-') + ' <span style="color:var(--text-muted);margin:0 12px">→</span> ' + (f.ret1To || '-') + '</div>';
+      h += '</div>';
+    } else {
+      h += '<div style="padding:12px 15px;border-bottom:1px solid var(--border-light)">';
+      h += '<div style="color:var(--primary);font-weight:700;font-size:0.85rem;margin-bottom:8px">✈️ ' + t('returnFlight') + ' 1</div>';
+      h += '<div style="text-align:center;padding:10px 0;font-size:1.3rem;font-weight:700">' + (f.ret1From || '-') + ' <span style="color:var(--text-muted);margin:0 12px">→</span> ' + (f.ret1To || '-') + '</div>';
+      h += '</div>';
+      h += '<div style="padding:12px 15px;border-bottom:1px solid var(--border-light)">';
+      h += '<div style="color:var(--primary);font-weight:700;font-size:0.85rem;margin-bottom:8px">✈️ ' + t('returnFlight') + ' 2</div>';
+      h += '<div style="text-align:center;padding:10px 0;font-size:1.3rem;font-weight:700">' + (f.ret2From || '-') + ' <span style="color:var(--text-muted);margin:0 12px">→</span> ' + (f.ret2To || '-') + '</div>';
+      h += '</div>';
+    }
+
+    // ═══ Sales ═══
+    h += '<div style="margin:12px 15px;border:1px solid var(--border);border-radius:8px;padding:12px">';
+    h += '<div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="font-weight:700;font-size:0.85rem">📊 ' + t('sales') + '</span><span style="font-weight:700;color:' + pBarColor + '">' + pct + '%</span></div>';
+    h += '<div style="width:100%;height:8px;background:var(--border);border-radius:4px;overflow:hidden"><div style="width:' + Math.min(pct, 100) + '%;height:100%;background:' + pBarColor + ';border-radius:4px"></div></div>';
+    h += '<div style="display:flex;justify-content:space-between;margin-top:8px;font-size:0.8rem;color:var(--text-light)">';
+    h += '<span>' + t('capacity') + ': ' + total + '</span>';
+    h += '<span>' + t('sold') + ': ' + sold + '</span>';
+    h += '<span>' + t('left') + ': ' + left + '</span>';
+    h += '</div></div>';
+
+    // ═══ Linked Packages ═══
+    var linkedPkgs = [];
+    if (f.linkedPackages && f.linkedPackages.length > 0) {
+      f.linkedPackages.forEach(function(nusk) {
+        for (var i = 0; i < allData.packages.length; i++) {
+          if (allData.packages[i].nuskNo === nusk) {
+            linkedPkgs.push(allData.packages[i]);
+            break;
+          }
+        }
+      });
+    }
+    if (linkedPkgs.length > 0) {
+      h += '<div style="padding:12px 15px">';
+      h += '<div style="font-weight:700;font-size:0.85rem;color:var(--primary);margin-bottom:8px">📦 ' + t('linkedPkgs') + ' (' + linkedPkgs.length + ')</div>';
+      linkedPkgs.forEach(function(pkg) {
+        var pkgName = (currentLang === 'en' && pkg.nameEn) ? pkg.nameEn : pkg.name;
+        var isSold = pkg.isSoldOut;
+        h += '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:var(--bg-light);border-radius:6px;margin-bottom:4px;font-size:0.85rem">';
+        h += '<span>' + pkgName + '</span>';
+        if (isSold) {
+          h += '<span style="background:#FEE2E2;color:var(--danger);padding:2px 8px;border-radius:4px;font-size:0.75rem;font-weight:600">' + t('soldOut') + '</span>';
+        } else {
+          h += '<span style="background:#D1FAE5;color:#065F46;padding:2px 8px;border-radius:4px;font-size:0.75rem;font-weight:600">' + t('remaining') + ': ' + (pkg.remaining || 0) + '</span>';
+        }
+        h += '</div>';
+      });
+      h += '</div>';
+    }
+
+    h += '</div>';
+  });
+  h += '</div>';
+  container.innerHTML = h;
+}
+</script>

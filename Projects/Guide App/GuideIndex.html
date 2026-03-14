@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>إكرام الضيف — تجميع الغرف</title>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Tajawal', sans-serif;
+      background: #f5f6fa; color: #333;
+      min-height: 100vh; direction: rtl;
+    }
+    .header {
+      background: linear-gradient(135deg, #1a5276, #2980b9);
+      color: #fff; padding: 16px 20px; text-align: center;
+    }
+    .header h1 { font-size: 1.1rem; font-weight: 700; margin-bottom: 4px; }
+    .header .guide-name {
+      font-size: 1.3rem; font-weight: 800;
+      background: rgba(255,255,255,0.15);
+      display: inline-block; padding: 4px 16px; border-radius: 20px; margin-top: 4px;
+    }
+    .container { max-width: 600px; margin: 0 auto; padding: 12px; }
+
+    /* ── صفحة الدخول ── */
+    .login-card {
+      background: #fff; border-radius: 16px; padding: 30px 20px;
+      margin-top: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    .login-card .login-icon { font-size: 3rem; margin-bottom: 12px; }
+    .login-card h2 { font-size: 1.2rem; font-weight: 700; color: #1a5276; margin-bottom: 6px; }
+    .login-card p { font-size: 0.85rem; color: #888; margin-bottom: 20px; }
+    .login-input {
+      width: 100%; padding: 14px; font-size: 1.1rem; font-family: 'Tajawal';
+      border: 2px solid #ddd; border-radius: 12px; text-align: center;
+      letter-spacing: 2px; font-weight: 700; direction: ltr;
+      background: #fafafa; transition: border-color 0.2s;
+    }
+    .login-input:focus { border-color: #2980b9; outline: none; background: #fff; }
+    .login-input.error { border-color: #e74c3c; background: #fdecea; }
+    .login-btn {
+      width: 100%; padding: 14px; font-size: 1.1rem; font-weight: 700;
+      font-family: 'Tajawal'; border: none; border-radius: 12px; cursor: pointer;
+      background: linear-gradient(135deg, #1a5276, #2980b9); color: #fff;
+      margin-top: 12px; transition: all 0.2s;
+    }
+    .login-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(26,82,118,0.3); }
+    .login-btn:disabled { background: #bdc3c7; cursor: not-allowed; transform: none; }
+    .login-error {
+      color: #c0392b; font-size: 0.85rem; font-weight: 600;
+      margin-top: 10px; display: none;
+    }
+
+    .hotel-selector {
+      background: #fff; border-radius: 12px; padding: 16px;
+      margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .hotel-selector label { font-weight: 700; font-size: 0.95rem; display: block; margin-bottom: 8px; }
+    .hotel-selector select, .bed-select {
+      width: 100%; padding: 10px; font-size: 0.95rem; font-family: 'Tajawal';
+      border: 2px solid #ddd; border-radius: 8px; background: #fafafa;
+      direction: rtl; appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: 12px center;
+    }
+    .hotel-selector select:focus, .bed-select:focus { border-color: #2980b9; outline: none; }
+
+    .summary-bar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+    .summary-item {
+      flex: 1; min-width: 70px; background: #fff; border-radius: 10px;
+      padding: 10px 6px; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .summary-item .num { font-size: 1.3rem; font-weight: 800; color: #2980b9; }
+    .summary-item .label { font-size: 0.7rem; color: #888; margin-top: 2px; }
+
+    .category-section {
+      background: #fff; border-radius: 12px; margin-bottom: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08); overflow: hidden;
+    }
+    .category-header {
+      padding: 12px 16px; font-weight: 700; font-size: 0.95rem;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .cat-men .category-header { background: #ebf5fb; color: #1a5276; border-bottom: 2px solid #2980b9; }
+    .cat-women .category-header { background: #f4ecf7; color: #6c3483; border-bottom: 2px solid #8e44ad; }
+    .cat-prefilled .category-header { background: #eafaf1; color: #1e8449; border-bottom: 2px solid #27ae60; }
+    .category-body { padding: 12px; }
+
+    .group-card {
+      border: 2px solid #e8e8e8; border-radius: 10px; margin-bottom: 10px; overflow: hidden;
+    }
+    .group-card-header {
+      background: #f8f9fa; padding: 8px 12px;
+      font-weight: 700; font-size: 0.85rem; color: #555;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .group-card-header .status { font-size: 0.75rem; }
+    .status-complete { color: #27ae60; }
+    .status-incomplete { color: #e67e22; }
+    .group-card-body { padding: 10px 12px; }
+
+    .bed-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 0; border-bottom: 1px solid #f0f0f0;
+    }
+    .bed-row:last-child { border-bottom: none; }
+    .bed-label { font-size: 0.8rem; color: #888; min-width: 55px; flex-shrink: 0; }
+    .bed-select.selected { border-color: #27ae60; background: #f0faf4; }
+    .bed-select.prefilled { border-color: #f39c12; background: #fef9e7; }
+
+    .system-note {
+      background: #fef9e7; border: 1px solid #f9e79f; border-radius: 8px;
+      padding: 10px 12px; font-size: 0.8rem; color: #7d6608;
+      display: flex; align-items: center; gap: 6px; margin-top: 6px;
+    }
+    .family-warning {
+      background: #fdecea; border: 1px solid #f5c6cb; border-radius: 8px;
+      padding: 10px 12px; font-size: 0.8rem; color: #c0392b;
+      display: flex; align-items: center; gap: 6px; margin-top: 6px; font-weight: 600;
+    }
+
+    .save-section { padding: 12px 0 24px; }
+    .action-btn {
+      width: 100%; padding: 14px; font-size: 1.05rem; font-weight: 700;
+      font-family: 'Tajawal'; border: none; border-radius: 12px; cursor: pointer;
+      transition: all 0.2s; color: #fff; margin-bottom: 8px;
+    }
+    .btn-clear { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+    .btn-clear:hover { box-shadow: 0 4px 12px rgba(231,76,60,0.3); }
+    .btn-save { background: linear-gradient(135deg, #27ae60, #2ecc71); }
+    .btn-save:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(39,174,96,0.3); }
+    .btn-save:disabled { background: #bdc3c7; cursor: not-allowed; transform: none; box-shadow: none; }
+    .btn-save.saving { background: #f39c12; }
+    .btn-pdf { background: linear-gradient(135deg, #2980b9, #3498db); }
+    .btn-pdf:hover { box-shadow: 0 4px 12px rgba(41,128,185,0.3); }
+    .progress-text { text-align: center; margin-top: 8px; font-size: 0.85rem; color: #666; }
+
+    .readonly-banner {
+      background: linear-gradient(135deg, #27ae60, #2ecc71);
+      color: #fff; padding: 14px; border-radius: 12px; text-align: center;
+      margin-bottom: 12px; font-weight: 700; font-size: 1rem;
+    }
+    .conf-banner {
+      background: #eaf2f8; border: 2px solid #2980b9; border-radius: 12px;
+      padding: 12px; text-align: center; margin-bottom: 12px;
+    }
+    .conf-banner .conf-label { font-size: 0.8rem; color: #666; }
+    .conf-banner .conf-num { font-size: 1.4rem; font-weight: 800; color: #1a5276; }
+    .readonly-member {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 8px 12px; background: #f8f9fa; border-radius: 6px;
+      margin-bottom: 4px; font-size: 0.85rem;
+    }
+    .readonly-member .family-tag {
+      font-size: 0.7rem; background: #fff3cd; color: #856404;
+      padding: 2px 8px; border-radius: 10px; font-weight: 600;
+    }
+
+    .loading { text-align: center; padding: 40px; color: #888; }
+    .loading .spinner {
+      width: 36px; height: 36px; border: 3px solid #e0e0e0;
+      border-top-color: #2980b9; border-radius: 50%;
+      animation: spin 0.8s linear infinite; margin: 0 auto 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .error-msg {
+      background: #fdecea; color: #c0392b; padding: 14px; border-radius: 10px;
+      text-align: center; font-weight: 600; margin: 12px 0;
+    }
+    .empty-state { text-align: center; padding: 40px 20px; color: #999; }
+    .empty-state .icon { font-size: 2rem; margin-bottom: 8px; }
+    .toast {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      background: #333; color: #fff; padding: 12px 24px; border-radius: 10px;
+      font-size: 0.85rem; z-index: 999; opacity: 0; transition: opacity 0.3s; max-width: 90%;
+    }
+    .toast.show { opacity: 1; }
+    .toast.error { background: #c0392b; }
+    .toast.success { background: #27ae60; }
+    .gender-badge {
+      font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; font-weight: 600;
+    }
+    .badge-male { background: #ebf5fb; color: #1a5276; }
+    .badge-female { background: #f4ecf7; color: #6c3483; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>إكرام الضيف للسياحة — تجميع الغرف</h1>
+    <div class="guide-name" id="guideNameDisplay"></div>
+  </div>
+
+  <div class="container" id="mainContainer">
+    <div class="loading" id="initialLoading" style="display:none;">
+      <div class="spinner"></div>
+      <div>جاري تحميل البيانات...</div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    var STATE = {
+      guideName: '<?!= guideName ?>',
+      mode: '<?!= mode ?>',
+      selectedHotel: '',
+      sections: [],
+      prefilled: [],
+      isReadOnly: false,
+      allPilgrimsFlat: []
+    };
+
+    window.onload = function() {
+      var nameEl = document.getElementById('guideNameDisplay');
+      
+      if (STATE.mode === 'direct' && STATE.guideName) {
+        // ── وضع الرابط المباشر (?g=) ──
+        nameEl.textContent = STATE.guideName;
+        document.getElementById('initialLoading').style.display = 'block';
+        loadHotels();
+      } else {
+        // ── وضع تسجيل الدخول بالجواز ──
+        nameEl.textContent = 'تسجيل الدخول';
+        renderLoginPage();
+      }
+    };
+
+    // ══════════════════════════════════════════════════════════
+    // صفحة تسجيل الدخول بالجواز — v2.2 (جديد)
+    // ══════════════════════════════════════════════════════════
+    function renderLoginPage() {
+      var container = document.getElementById('mainContainer');
+      container.innerHTML = '<div class="login-card">' +
+        '<div class="login-icon">🛂</div>' +
+        '<h2>تسجيل دخول المرشد</h2>' +
+        '<p>أدخل رقم جواز سفرك للوصول إلى نظام تجميع الغرف</p>' +
+        '<input type="text" class="login-input" id="passportInput" placeholder="رقم جواز السفر" autocomplete="off" onkeydown="if(event.key===\'Enter\')doLogin()">' +
+        '<button class="login-btn" id="loginBtn" onclick="doLogin()">🔐 دخول</button>' +
+        '<div class="login-error" id="loginError"></div>' +
+        '</div>';
+      
+      setTimeout(function() { document.getElementById('passportInput').focus(); }, 300);
+    }
+
+    function doLogin() {
+      var input = document.getElementById('passportInput');
+      var btn = document.getElementById('loginBtn');
+      var errorEl = document.getElementById('loginError');
+      var passport = input.value.trim();
+      
+      if (!passport) {
+        input.className = 'login-input error';
+        errorEl.textContent = 'الرجاء إدخال رقم جواز السفر';
+        errorEl.style.display = 'block';
+        return;
+      }
+      
+      btn.disabled = true;
+      btn.textContent = '⏳ جاري التحقق...';
+      errorEl.style.display = 'none';
+      input.className = 'login-input';
+      
+      google.script.run
+        .withSuccessHandler(function(result) {
+          if (result.success) {
+            STATE.guideName = result.guideName;
+            STATE.mode = 'direct';
+            document.getElementById('guideNameDisplay').textContent = STATE.guideName;
+            document.getElementById('mainContainer').innerHTML = '<div class="loading" id="initialLoading"><div class="spinner"></div><div>جاري تحميل البيانات...</div></div>';
+            loadHotels();
+          } else {
+            input.className = 'login-input error';
+            errorEl.textContent = result.error;
+            errorEl.style.display = 'block';
+            btn.disabled = false;
+            btn.textContent = '🔐 دخول';
+          }
+        })
+        .withFailureHandler(function(err) {
+          errorEl.textContent = 'خطأ في الاتصال: ' + err.message;
+          errorEl.style.display = 'block';
+          btn.disabled = false;
+          btn.textContent = '🔐 دخول';
+        })
+        .loginWithPassport(passport);
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // تحميل الفنادق
+    // ══════════════════════════════════════════════════════════
+    function loadHotels() {
+      google.script.run
+        .withSuccessHandler(function(result) {
+          var loadEl = document.getElementById('initialLoading');
+          if (loadEl) loadEl.style.display = 'none';
+          if (!result.success) { showError(result.error); return; }
+          if (result.hotels.length === 0) { showEmpty('لا يوجد فنادق تحتاج تجميع'); return; }
+          renderHotelSelector(result.hotels);
+        })
+        .withFailureHandler(function(err) { showError('خطأ في الاتصال: ' + err.message); })
+        .getGuideHotels(STATE.guideName);
+    }
+
+    function renderHotelSelector(hotels) {
+      var container = document.getElementById('mainContainer');
+      var html = '<div class="hotel-selector">';
+      html += '<label>اختر الفندق</label>';
+      html += '<select id="hotelSelect" onchange="onHotelChange(this.value)">';
+      html += '<option value="">— اختر الفندق —</option>';
+      for (var i = 0; i < hotels.length; i++) {
+        var h = hotels[i];
+        var badge = h.alreadyGrouped ? ' ✅ تم التجميع' : ' (' + h.pilgrimCount + ' حاج)';
+        html += '<option value="' + escHtml(h.hotelName) + '">' + escHtml(h.hotelName) + badge + '</option>';
+      }
+      html += '</select></div><div id="groupingArea"></div>';
+      container.innerHTML = html;
+    }
+
+    function onHotelChange(hotelName) {
+      var area = document.getElementById('groupingArea');
+      if (!hotelName) { area.innerHTML = ''; return; }
+      STATE.selectedHotel = hotelName;
+      area.innerHTML = '<div class="loading"><div class="spinner"></div><div>جاري تحميل الحجاج...</div></div>';
+      google.script.run
+        .withSuccessHandler(function(existing) {
+          if (existing && existing.groups) { renderReadOnly(existing); }
+          else { loadPilgrims(); }
+        })
+        .withFailureHandler(function() { loadPilgrims(); })
+        .getExistingGrouping(STATE.guideName, hotelName);
+    }
+
+    function loadPilgrims() {
+      google.script.run
+        .withSuccessHandler(function(result) {
+          if (!result.success) {
+            document.getElementById('groupingArea').innerHTML = '<div class="error-msg">' + escHtml(result.error) + '</div>';
+            return;
+          }
+          STATE.sections = result.sections || [];
+          STATE.prefilled = result.prefilled || [];
+          STATE.isReadOnly = false;
+          STATE.allPilgrimsFlat = [];
+          for (var i = 0; i < STATE.prefilled.length; i++)
+            for (var p = 0; p < STATE.prefilled[i].pilgrims.length; p++)
+              STATE.allPilgrimsFlat.push(STATE.prefilled[i].pilgrims[p]);
+          for (var i = 0; i < STATE.sections.length; i++)
+            for (var p = 0; p < STATE.sections[i].pilgrims.length; p++)
+              STATE.allPilgrimsFlat.push(STATE.sections[i].pilgrims[p]);
+          renderGroupingUI(result);
+        })
+        .withFailureHandler(function(err) {
+          document.getElementById('groupingArea').innerHTML = '<div class="error-msg">خطأ: ' + escHtml(err.message) + '</div>';
+        })
+        .getGuidePilgrims(STATE.guideName, STATE.selectedHotel);
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // عرض واجهة التجميع
+    // ══════════════════════════════════════════════════════════
+    function renderGroupingUI(result) {
+      var area = document.getElementById('groupingArea');
+      var s = result.summary;
+      var html = '';
+      html += '<div class="summary-bar">';
+      html += summaryItem(s.total, 'إجمالي');
+      html += summaryItem(s.prefilledCount, 'عائلات');
+      html += summaryItem(s.menCount, 'رجال');
+      html += summaryItem(s.womenCount, 'نساء');
+      html += '</div>';
+
+      for (var pf = 0; pf < STATE.prefilled.length; pf++) {
+        var pre = STATE.prefilled[pf];
+        var sectionId = 'prefilled_' + pf;
+        var availablePilgrims = getAvailableForPrefilled_(pre);
+        html += '<div class="category-section cat-prefilled">';
+        html += '<div class="category-header">🟢 عائلة — حجز #' + escHtml(pre.bookingId) + ' — ' + pre.roomTypeLabel + ' (' + pre.pilgrims.length + '/' + pre.capacity + ')</div>';
+        html += '<div class="category-body"><div class="group-card"><div class="group-card-header">';
+        html += '<span>مجموعة معبأة مسبقاً</span>';
+        html += '<span class="status status-complete">' + pre.pilgrims.length + '/' + pre.capacity + ' ✅</span>';
+        html += '</div><div class="group-card-body">';
+        for (var s2 = 0; s2 < pre.capacity; s2++) {
+          var preselected = s2 < pre.pilgrims.length ? pre.pilgrims[s2].passport : '';
+          html += '<div class="bed-row"><span class="bed-label">سرير ' + (s2+1) + '</span>';
+          html += '<select class="bed-select' + (preselected ? ' prefilled' : '') + '" data-cat="' + sectionId + '" data-group="0" data-slot="' + s2 + '" data-gender="' + pre.gender + '" data-capacity="' + pre.capacity + '" onchange="onSlotChange(this)">';
+          html += '<option value="">— اختر حاج —</option>';
+          for (var ap = 0; ap < availablePilgrims.length; ap++) {
+            var pil = availablePilgrims[ap];
+            var ft = pil.isFamily ? ' 👨‍👩‍👧 #' + pil.familyBookingId : '';
+            html += '<option value="' + escHtml(pil.passport) + '"' + (pil.passport === preselected ? ' selected' : '') + '>' + escHtml(pil.name) + ft + '</option>';
+          }
+          html += '</select></div>';
+        }
+        html += '</div></div></div></div>';
+      }
+
+      for (var si = 0; si < STATE.sections.length; si++) {
+        var sec = STATE.sections[si];
+        var gLabel = sec.gender === 'Male' ? 'رجال' : 'نساء';
+        var cClass = sec.gender === 'Male' ? 'cat-men' : 'cat-women';
+        var icon = sec.gender === 'Male' ? '🔵' : '🟣';
+        var sectionId = 'sec_' + si;
+        var cap = sec.capacity;
+        var full = Math.floor(sec.pilgrims.length / cap);
+        var rem = sec.pilgrims.length % cap;
+        var tg = full + (rem > 0 ? 1 : 0);
+        html += '<div class="category-section ' + cClass + '">';
+        html += '<div class="category-header">' + icon + ' ' + gLabel + ' — ' + sec.roomTypeLabel + ' (' + sec.pilgrims.length + ' حاج)</div>';
+        html += '<div class="category-body">';
+        for (var g = 0; g < tg; g++) {
+          var isLast = (g === tg - 1) && rem > 0;
+          var slots = isLast ? rem : cap;
+          var sc = isLast && rem < cap ? 'status-incomplete' : 'status-complete';
+          var st = slots + '/' + cap + (isLast && rem < cap ? ' ⏳' : ' ✅');
+          html += '<div class="group-card"><div class="group-card-header"><span>مجموعة ' + (g+1) + '</span><span class="status ' + sc + '">' + st + '</span></div><div class="group-card-body">';
+          for (var s3 = 0; s3 < slots; s3++) {
+            html += '<div class="bed-row"><span class="bed-label">سرير ' + (s3+1) + '</span>';
+            html += '<select class="bed-select" data-cat="' + sectionId + '" data-group="' + g + '" data-slot="' + s3 + '" data-gender="' + sec.gender + '" data-capacity="' + cap + '" onchange="onSlotChange(this)">';
+            html += '<option value="">— اختر حاج —</option>';
+            for (var p = 0; p < sec.pilgrims.length; p++) {
+              var pil = sec.pilgrims[p];
+              var ft = pil.isFamily ? ' 👨‍👩‍👧 #' + pil.familyBookingId : '';
+              html += '<option value="' + escHtml(pil.passport) + '">' + escHtml(pil.name) + ft + '</option>';
+            }
+            html += '</select></div>';
+          }
+          html += '<div class="family-warning-container" id="warn_' + sectionId + '_' + g + '"></div>';
+          if (isLast && rem < cap) html += '<div class="system-note"><span>ℹ️</span> سيتم إكمال هذه المجموعة تلقائياً من قبل النظام</div>';
+          html += '</div></div>';
+        }
+        html += '</div></div>';
+      }
+
+      html += '<div class="save-section">';
+      html += '<button class="action-btn btn-clear" onclick="clearAll()">🗑️ مسح جميع التعيينات</button>';
+      html += '<button class="action-btn btn-save" id="saveBtn" onclick="saveAll()">✅ حفظ التجميع</button>';
+      html += '<div class="progress-text" id="progressText"></div></div>';
+      area.innerHTML = html;
+      var aps = document.querySelectorAll('select[data-cat^="prefilled_"]');
+      for (var i = 0; i < aps.length; i++) onSlotChange(aps[i]);
+      updateProgress();
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // الملء التلقائي للعائلة
+    // ══════════════════════════════════════════════════════════
+    function onSlotChange(selectEl) {
+      var cat = selectEl.dataset.cat;
+      var groupNum = selectEl.dataset.group;
+      var selectedPassport = selectEl.value;
+      var sectionGender = selectEl.dataset.gender;
+      if (selectedPassport) {
+        var sp = findPilgrimByPassport_(selectedPassport);
+        if (sp && sp.isFamily && sp.familyBookingId) {
+          autoFillFamily_(cat, groupNum, sp.familyBookingId, sectionGender, selectedPassport);
+        }
+      }
+      refreshDropdowns_(cat);
+      updateProgress();
+    }
+
+    function autoFillFamily_(cat, groupNum, bookingId, gender, alreadySelected) {
+      var fam = [];
+      for (var i = 0; i < STATE.allPilgrimsFlat.length; i++) {
+        var p = STATE.allPilgrimsFlat[i];
+        if (p.familyBookingId === bookingId && p.gender === gender && p.passport !== alreadySelected) fam.push(p);
+      }
+      if (fam.length === 0) return;
+      var gs = document.querySelectorAll('select[data-cat="' + cat + '"][data-group="' + groupNum + '"]');
+      var empty = [], allChosen = getAllChosenInSection_(cat);
+      for (var i = 0; i < gs.length; i++) { if (!gs[i].value) empty.push(gs[i]); }
+      var avail = [];
+      for (var i = 0; i < fam.length; i++) { if (!allChosen[fam[i].passport]) avail.push(fam[i]); }
+      if (avail.length === 0) return;
+      var wc = document.getElementById('warn_' + cat + '_' + groupNum);
+      if (avail.length > empty.length && wc) {
+        wc.innerHTML = '<div class="family-warning">⚠️ عدد أفراد العائلة (' + (avail.length+1) + ') أكبر من الأسرّة المتاحة (' + (empty.length+1) + ') — سيتم تعبئة المتاح والباقي يحتاج مجموعة أخرى</div>';
+      } else if (wc) { wc.innerHTML = ''; }
+      var fc = Math.min(avail.length, empty.length);
+      for (var i = 0; i < fc; i++) {
+        var sel = empty[i], pil = avail[i];
+        for (var j = 0; j < sel.options.length; j++) {
+          if (sel.options[j].value === pil.passport) { sel.value = pil.passport; sel.className = 'bed-select selected'; break; }
+        }
+      }
+    }
+
+    function getAllChosenInSection_(cat) {
+      var s = document.querySelectorAll('select[data-cat="' + cat + '"]'), c = {};
+      for (var i = 0; i < s.length; i++) { if (s[i].value) c[s[i].value] = true; }
+      return c;
+    }
+
+    function findPilgrimByPassport_(pp) {
+      for (var i = 0; i < STATE.allPilgrimsFlat.length; i++) { if (STATE.allPilgrimsFlat[i].passport === pp) return STATE.allPilgrimsFlat[i]; }
+      return null;
+    }
+
+    function refreshDropdowns_(cat) {
+      var all = document.querySelectorAll('select[data-cat="' + cat + '"]'), ch = {};
+      for (var i = 0; i < all.length; i++) { if (all[i].value) ch[all[i].value] = true; }
+      for (var i = 0; i < all.length; i++) {
+        var s = all[i], cv = s.value, opts = s.querySelectorAll('option');
+        for (var j = 1; j < opts.length; j++) opts[j].style.display = (opts[j].value === cv || !ch[opts[j].value]) ? '' : 'none';
+        if (s.value) { s.className = s.className.indexOf('prefilled') !== -1 ? 'bed-select prefilled selected' : 'bed-select selected'; }
+        else { s.className = 'bed-select'; }
+      }
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // مسح التعيينات
+    // ══════════════════════════════════════════════════════════
+    function clearAll() {
+      var all = document.querySelectorAll('.bed-select');
+      for (var i = 0; i < all.length; i++) {
+        all[i].value = ''; all[i].className = 'bed-select';
+        var opts = all[i].querySelectorAll('option');
+        for (var j = 0; j < opts.length; j++) opts[j].style.display = '';
+      }
+      var w = document.querySelectorAll('.family-warning-container');
+      for (var i = 0; i < w.length; i++) w[i].innerHTML = '';
+      updateProgress();
+      showToast('تم مسح جميع التعيينات', 'error');
+    }
+
+    function updateProgress() {
+      var all = document.querySelectorAll('.bed-select'), t = all.length, f = 0;
+      for (var i = 0; i < all.length; i++) { if (all[i].value) f++; }
+      var el = document.getElementById('progressText');
+      if (el) el.textContent = 'تم اختيار ' + f + ' من ' + t + ' سرير';
+      var btn = document.getElementById('saveBtn');
+      if (btn) btn.disabled = (f === 0);
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // حفظ
+    // ══════════════════════════════════════════════════════════
+    function saveAll() {
+      var btn = document.getElementById('saveBtn');
+      btn.disabled = true; btn.textContent = '⏳ جاري الحفظ...'; btn.className = 'action-btn btn-save saving';
+      var groups = [], gi = 1;
+      for (var pf = 0; pf < STATE.prefilled.length; pf++) {
+        var grp = collectGroup_('prefilled_' + pf, '0', 'عائلة — ' + STATE.prefilled[pf].roomTypeLabel, STATE.prefilled[pf].capacity, gi++);
+        if (grp && grp.pilgrims.length > 0) groups.push(grp);
+      }
+      for (var si = 0; si < STATE.sections.length; si++) {
+        var sec = STATE.sections[si];
+        var sid = 'sec_' + si, gl = sec.gender === 'Male' ? 'رجال' : 'نساء', cat = gl + ' — ' + sec.roomTypeLabel;
+        var gns = {};
+        var sels = document.querySelectorAll('select[data-cat="' + sid + '"]');
+        for (var i = 0; i < sels.length; i++) gns[sels[i].dataset.group] = true;
+        for (var gn in gns) {
+          var grp = collectGroup_(sid, gn, cat, sec.capacity, gi++);
+          if (grp && grp.pilgrims.length > 0) groups.push(grp);
+        }
+      }
+      var tp = 0;
+      for (var g = 0; g < groups.length; g++) tp += groups[g].pilgrims.length;
+      if (tp === 0) {
+        btn.disabled = false; btn.textContent = '✅ حفظ التجميع'; btn.className = 'action-btn btn-save';
+        showToast('لم يتم اختيار أي حاج', 'error'); return;
+      }
+      google.script.run
+        .withSuccessHandler(function(r) {
+          if (r.success) {
+            showToast('تم حفظ ' + r.saved + ' حاج — رقم التأكيد: ' + r.confirmationNo, 'success');
+            setTimeout(function() { onHotelChange(STATE.selectedHotel); }, 2000);
+          } else { showToast(r.error, 'error'); btn.disabled = false; btn.textContent = '✅ حفظ التجميع'; btn.className = 'action-btn btn-save'; }
+        })
+        .withFailureHandler(function(e) { showToast('خطأ: ' + e.message, 'error'); btn.disabled = false; btn.textContent = '✅ حفظ التجميع'; btn.className = 'action-btn btn-save'; })
+        .saveGrouping(STATE.guideName, STATE.selectedHotel, groups);
+    }
+
+    function collectGroup_(ck, gn, cat, cap, gi) {
+      var s = document.querySelectorAll('select[data-cat="' + ck + '"][data-group="' + gn + '"]'), p = [];
+      for (var i = 0; i < s.length; i++) { if (s[i].value) { var pl = findPilgrimByPassport_(s[i].value); if (pl) p.push(pl); } }
+      return { groupIndex: gi, category: cat, capacity: cap, pilgrims: p };
+    }
+
+    function getAvailableForPrefilled_(pre) {
+      var all = pre.pilgrims.slice();
+      for (var i = 0; i < STATE.sections.length; i++) {
+        var sec = STATE.sections[i];
+        if (sec.gender === pre.gender && sec.capacity === pre.capacity)
+          for (var p = 0; p < sec.pilgrims.length; p++) all.push(sec.pilgrims[p]);
+      }
+      var seen = {}, u = [];
+      for (var i = 0; i < all.length; i++) { if (!seen[all[i].passport]) { seen[all[i].passport] = true; u.push(all[i]); } }
+      return u;
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // read-only + PDF
+    // ══════════════════════════════════════════════════════════
+    function renderReadOnly(existing) {
+      var groups = existing.groups, cn = existing.confirmationNo || '';
+      var area = document.getElementById('groupingArea');
+      var html = '<div class="readonly-banner">✅ تم حفظ التجميع لهذا الفندق</div>';
+      if (cn) html += '<div class="conf-banner"><div class="conf-label">رقم التأكيد</div><div class="conf-num">' + escHtml(cn) + '</div></div>';
+      for (var g = 0; g < groups.length; g++) {
+        var grp = groups[g];
+        html += '<div class="category-section cat-prefilled"><div class="category-header">' + escHtml(grp.category) + ' — مجموعة ' + grp.groupIndex + ' (' + grp.pilgrims.length + '/' + grp.capacity + ')</div><div class="category-body">';
+        for (var p = 0; p < grp.pilgrims.length; p++) {
+          var pil = grp.pilgrims[p];
+          var bc = pil.gender === 'Male' ? 'badge-male' : 'badge-female';
+          var bt = pil.gender === 'Male' ? 'ذكر' : 'أنثى';
+          var ft = pil.isFamily ? ' <span class="family-tag">👨‍👩‍👧 عائلة</span>' : '';
+          html += '<div class="readonly-member"><span>' + escHtml(pil.name) + ft + '</span><span class="gender-badge ' + bc + '">' + bt + '</span></div>';
+        }
+        if (grp.pilgrims.length < grp.capacity) html += '<div class="system-note"><span>ℹ️</span> سيتم إكمال هذه المجموعة تلقائياً من قبل النظام</div>';
+        html += '</div></div>';
+      }
+      html += '<div class="save-section"><button class="action-btn btn-pdf" id="pdfBtn" onclick="downloadPDF()">📄 تحميل تأكيد PDF</button></div>';
+      area.innerHTML = html;
+      STATE.isReadOnly = true;
+    }
+
+    function downloadPDF() {
+      var btn = document.getElementById('pdfBtn');
+      btn.disabled = true; btn.textContent = '⏳ جاري توليد PDF...';
+      google.script.run
+        .withSuccessHandler(function(r) {
+          if (r.success) {
+            var bc = atob(r.pdfBase64), bn = new Array(bc.length);
+            for (var i = 0; i < bc.length; i++) bn[i] = bc.charCodeAt(i);
+            var blob = new Blob([new Uint8Array(bn)], { type: 'application/pdf' });
+            var link = document.createElement('a');
+            link.href = URL.createObjectURL(blob); link.download = r.fileName;
+            document.body.appendChild(link); link.click(); document.body.removeChild(link);
+            showToast('تم تحميل PDF بنجاح', 'success');
+          } else { showToast(r.error, 'error'); }
+          btn.disabled = false; btn.textContent = '📄 تحميل تأكيد PDF';
+        })
+        .withFailureHandler(function(e) { showToast('خطأ: ' + e.message, 'error'); btn.disabled = false; btn.textContent = '📄 تحميل تأكيد PDF'; })
+        .generateConfirmationPDF(STATE.guideName, STATE.selectedHotel);
+    }
+
+    function summaryItem(n, l) { return '<div class="summary-item"><div class="num">' + n + '</div><div class="label">' + l + '</div></div>'; }
+    function showError(m) { var c = document.getElementById('mainContainer'); var l = document.getElementById('initialLoading'); if(l) l.style.display='none'; c.innerHTML += '<div class="error-msg">' + escHtml(m) + '</div>'; }
+    function showEmpty(m) { document.getElementById('mainContainer').innerHTML += '<div class="empty-state"><div class="icon">📭</div><div>' + escHtml(m) + '</div></div>'; }
+    function showToast(m, t) { var e = document.getElementById('toast'); e.textContent = m; e.className = 'toast show ' + (t||''); setTimeout(function() { e.className = 'toast'; }, 3500); }
+    function escHtml(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+  </script>
+</body>
+</html>

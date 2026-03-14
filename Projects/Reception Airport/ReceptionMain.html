@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>استقبال الحجاج — إكرام الضيف</title>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <?!= include('ReceptionStyles'); ?>
+</head>
+<body>
+
+  <!-- ═══ الشريط العلوي ═══ -->
+  <div class="top-bar">
+    <div>
+      <div class="app-title">✈️ استقبال الحجاج</div>
+      <div class="staff-info">
+        <span class="staff-name" id="staffDisplay"></span> —
+        <span id="airportDisplay"></span>
+      </div>
+    </div>
+    <div style="font-size:12px;opacity:0.7;cursor:pointer;" onclick="logout()">تسجيل خروج</div>
+  </div>
+
+  <!-- ═══ إحصائيات اليوم ═══ -->
+  <div class="stats-bar" id="statsBar">
+    <div class="stat-item">
+      <div class="stat-value" id="statTotal">-</div>
+      <div class="stat-label">إجمالي اليوم</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value" id="statReceived" style="color:#2E7D32;">-</div>
+      <div class="stat-label">تم استقبالهم</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value" id="statRemaining" style="color:#E65100;">-</div>
+      <div class="stat-label">متبقي</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value" id="statFlights">-</div>
+      <div class="stat-label">رحلات</div>
+    </div>
+  </div>
+
+  <!-- ═══ تبويبات ═══ -->
+  <div class="mode-tabs">
+    <div class="mode-tab active" data-mode="scan" onclick="switchMode('scan')">📱 مسح فردي</div>
+    <div class="mode-tab" data-mode="flights" onclick="switchMode('flights')">✈️ متابعة الرحلات</div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!--  وضع المسح الفردي                              -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <div class="scan-section" id="scanSection">
+    <div class="scan-area">
+
+      <!-- إدخال رقم الجواز -->
+      <div class="passport-input-group">
+        <input type="text" class="passport-input" id="passportInput"
+               placeholder="رقم الجواز" maxlength="15"
+               onkeyup="if(event.key==='Enter') searchPassport()">
+      </div>
+
+      <!-- أزرار -->
+      <div class="scan-actions">
+        <button class="btn-scan" onclick="searchPassport()">🔍 بحث</button>
+        <label class="btn-camera" style="text-align:center;display:block;cursor:pointer;">
+          📷 تصوير الجواز
+          <input type="file" accept="image/*" capture="environment"
+                 id="cameraFileInput" style="display:none;"
+                 onchange="handleCameraCapture(this)">
+        </label>
+      </div>
+
+      <!-- نتيجة البحث + قائمة المسح المُجمّع -->
+      <div id="scanResult"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!--  وضع متابعة الرحلات                            -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <div class="flights-section" id="flightsSection">
+
+    <!-- فلاتر -->
+    <div class="flight-filters">
+      <select class="filter-select" id="dateFilter" onchange="loadFlights()">
+        <option value="">جاري التحميل...</option>
+      </select>
+    </div>
+
+    <!-- قائمة الرحلات -->
+    <div id="flightsList">
+      <div class="loading">
+        <div class="loading-spinner"></div>
+        <div>جاري تحميل الرحلات...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ رسالة Toast ═══ -->
+  <div class="toast" id="toast"></div>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!--  JavaScript                                     -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <script>
+    // ─── المتغيرات العامة ───
+    var session = {};
+    var isProcessing = false;
+    var scannedQueue = []; // قائمة الحجاج الممسوحين قبل التأكيد
+
+    // ─── تهيئة الصفحة ───
+    (function init() {
+      var saved = sessionStorage.getItem('receptionSession');
+      if (!saved) {
+        google.script.run.withSuccessHandler(function(url) {
+          window.open(url + '?page=index', '_top');
+        }).getScriptUrl();
+        return;
+      }
+
+      session = JSON.parse(saved);
+
+      // عرض بيانات الموظف
+      document.getElementById('staffDisplay').textContent = session.staffName;
+      var airportLabel = session.airport === 'jeddah' ? 'جدة' : 'المدينة';
+      if (session.airport === 'jeddah') {
+        airportLabel += ' — صالة ' + session.hall;
+      }
+      document.getElementById('airportDisplay').textContent = airportLabel;
+
+      // تحميل الإحصائيات
+      loadTodayStats();
+
+      // تحميل التواريخ
+      loadAvailableDates();
+
+      // تحميل البيانات مسبقاً للكاش
+      google.script.run.getAllData();
+    })();
+
+
+    // ═══════════════════════════════════════════════
+    //  إحصائيات اليوم
+    // ═══════════════════════════════════════════════
+
+    function loadTodayStats() {
+      google.script.run
+        .withSuccessHandler(function(result) {
+          if (result.success) {
+            document.getElementById('statTotal').textContent = result.totalPilgrims;
+            document.getElementById('statReceived').textContent = result.received;
+            document.getElementById('statRemaining').textContent = result.remaining;
+            document.getElementById('statFlights').textContent = result.totalFlights;
+          }
+        })
+        .getTodayStats(session.airport, session.hall);
+    }
+
+
+    // ═══════════════════════════════════════════════
+    //  تبديل الأوضاع
+    // ═══════════════════════════════════════════════
+
+    function switchMode(mode) {
+      document.querySelectorAll('.mode-tab').forEach(function(t) {
+        t.classList.toggle('active', t.getAttribute('data-mode') === mode);
+      });
+
+      document.getElementById('scanSection').style.display = mode === 'scan' ? 'block' : 'none';
+      document.getElementById('flightsSection').classList.toggle('active', mode === 'flights');
+
+      if (mode === 'flights') {
+        loadFlights();
+      }
+    }
+
+
+    // ═══════════════════════════════════════════════
+    //  وضع المسح الفردي — بحث يدوي
+    // ═══════════════════════════════════════════════
+
+    function searchPassport() {
+      var passport = document.getElementById('passportInput').value.trim();
+      if (passport.length < 3) {
+        showToast('أدخل 3 أحرف على الأقل', 'error');
+        return;
+      }
+
+      document.getElementById('scanResult').innerHTML =
+        '<div class="loading"><div class="loading-spinner"></div><div>جاري البحث...</div></div>';
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          if (result.success && result.data.length > 0) {
+            renderPilgrimCard(result.data[0]);
+          } else {
+            document.getElementById('scanResult').innerHTML =
+              '<div style="text-align:center;padding:20px;color:#C62828;font-weight:700;">' +
+              '❌ ' + (result.error || 'لم يُعثر على حاج') + '</div>';
+          }
+        })
+        .withFailureHandler(function(err) {
+          document.getElementById('scanResult').innerHTML =
+            '<div style="text-align:center;padding:20px;color:#C62828;">خطأ: ' + err.message + '</div>';
+        })
+        .searchByPassport(passport, session.airport, session.hall);
+    }
+
+
+    function renderPilgrimCard(pilgrim) {
+      var html = '<div class="pilgrim-card ' + (pilgrim.isReceived ? 'received' : '') + '">';
+
+      // الهيدر
+      html += '<div class="pilgrim-header">';
+      html += '<div class="pilgrim-name">' + pilgrim.name + '</div>';
+      if (pilgrim.isReceived) {
+        html += '<div class="pilgrim-status done">✅ تم الاستقبال</div>';
+      } else {
+        html += '<div class="pilgrim-status pending">⏳ لم يُستقبل</div>';
+      }
+      html += '</div>';
+
+      // التفاصيل
+      html += '<div class="pilgrim-details">';
+      html += detailItem('رقم الجواز', pilgrim.passport);
+      html += detailItem('الجنسية', pilgrim.nationalityAr);
+      html += detailItem('الرحلة', pilgrim.flightNumber);
+      html += detailItem('تاريخ الوصول', pilgrim.arrivalDate);
+      html += detailItem('وقت الوصول', pilgrim.arrivalTime);
+      html += detailItem('الوجهة', pilgrim.destination);
+      html += detailItem('الفندق', pilgrim.hotel);
+      html += detailItem('المواصلات', pilgrim.transport);
+      html += '</div>';
+
+      // زر التأكيد أو رسالة "مُستقبَل"
+      if (pilgrim.isReceived) {
+        html += '<div class="already-received">';
+        html += 'تم استقباله بواسطة <strong>' + pilgrim.receptionStaff + '</strong>';
+        html += ' — ' + pilgrim.receptionTime;
+        html += '</div>';
+      } else {
+        html += '<button class="btn-confirm" onclick="confirmSingle(' + pilgrim.sheetRow + ')">';
+        html += 'تم الاستقبال ✅</button>';
+      }
+
+      html += '</div>';
+      document.getElementById('scanResult').innerHTML = html;
+    }
+
+
+    function detailItem(label, value) {
+      return '<div class="detail-item">' +
+             '<div class="detail-label">' + label + '</div>' +
+             '<div class="detail-value">' + (value || '—') + '</div></div>';
+    }
+
+
+    function confirmSingle(sheetRow) {
+      if (isProcessing) return;
+      isProcessing = true;
+
+      var btn = document.querySelector('.btn-confirm');
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'جاري التأكيد...';
+      }
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          isProcessing = false;
+          if (result.success) {
+            showToast('✅ ' + result.message, 'success');
+            // إعادة البحث لتحديث البطاقة
+            searchPassport();
+            // تحديث الإحصائيات
+            loadTodayStats();
+            // مسح حقل الإدخال للحاج التالي
+            document.getElementById('passportInput').value = '';
+            document.getElementById('passportInput').focus();
+          } else {
+            showToast('❌ ' + result.error, 'error');
+            if (btn) { btn.disabled = false; btn.textContent = 'تم الاستقبال ✅'; }
+          }
+        })
+        .withFailureHandler(function(err) {
+          isProcessing = false;
+          showToast('❌ خطأ: ' + err.message, 'error');
+          if (btn) { btn.disabled = false; btn.textContent = 'تم الاستقبال ✅'; }
+        })
+        .confirmReception([sheetRow], session.staffName);
+    }
+
+
+    // ═══════════════════════════════════════════════
+    //  تصوير الجواز — مسح مُجمّع
+    // ═══════════════════════════════════════════════
+
+    function handleCameraCapture(input) {
+      if (!input.files || !input.files[0]) return;
+      if (isProcessing) return;
+      isProcessing = true;
+
+      var file = input.files[0];
+
+      // إظهار حالة التحميل مع الحفاظ على القائمة السابقة
+      var queueHtml = document.getElementById('scanResult').innerHTML;
+      document.getElementById('scanResult').innerHTML =
+        '<div class="loading" id="scanLoading"><div class="loading-spinner"></div><div>جاري قراءة الجواز...</div></div>' + queueHtml;
+
+      // ── ضغط الصورة قبل الإرسال ──
+      var img = new Image();
+      img.onload = function() {
+        var canvas = document.createElement('canvas');
+        var maxWidth = 1280;
+        var scale = Math.min(1, maxWidth / img.width);
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+
+        var ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        // تحويل لـ Base64 بجودة 70% (~200KB بدل 3MB)
+        var base64 = canvas.toDataURL('image/jpeg', 0.7).split(',')[1];
+
+        google.script.run
+          .withSuccessHandler(function(result) {
+            isProcessing = false;
+            input.value = ''; // مسح الإدخال للصورة التالية
+
+            if (result.success) {
+              // البحث عن الحاج في بيانات الشيت
+              google.script.run
+                .withSuccessHandler(function(searchResult) {
+                  if (searchResult.success && searchResult.data.length > 0) {
+                    var pilgrim = searchResult.data[0];
+                    // التحقق من عدم التكرار في القائمة
+                    var alreadyInQueue = scannedQueue.some(function(p) {
+                      return p.passport === pilgrim.passport;
+                    });
+                    if (!alreadyInQueue) {
+                      scannedQueue.push(pilgrim);
+                      showToast('✅ ' + pilgrim.name + ' — ' + result.passport, 'success');
+                    } else {
+                      showToast('⚠️ تم مسحه مسبقاً: ' + pilgrim.name, 'error');
+                    }
+                  } else {
+                    showToast('❌ غير موجود في القوائم: ' + result.passport, 'error');
+                  }
+                  renderScanQueue();
+                })
+                .withFailureHandler(function(err) {
+                  showToast('❌ خطأ في البحث: ' + err.message, 'error');
+                  renderScanQueue();
+                })
+                .searchByPassport(result.passport, session.airport, session.hall);
+            } else {
+              showToast('⚠️ ' + result.error, 'error');
+              renderScanQueue();
+            }
+          })
+          .withFailureHandler(function(err) {
+            isProcessing = false;
+            input.value = '';
+            showToast('❌ خطأ: ' + err.message, 'error');
+            renderScanQueue();
+          })
+          .extractPassportFromImage(base64);
+      };
+
+      img.src = URL.createObjectURL(file);
+    }
+
+
+    // ═══════════════════════════════════════════════
+    //  قائمة المسح المُجمّع
+    // ═══════════════════════════════════════════════
+
+    function renderScanQueue() {
+      if (scannedQueue.length === 0) {
+        document.getElementById('scanResult').innerHTML = '';
+        return;
+      }
+
+      var pendingCount = scannedQueue.filter(function(p) { return !p.isReceived; }).length;
+
+      var html = '<div style="background:#fff;border-radius:14px;border:2px solid #0D4A3A;padding:16px;margin-top:16px;">';
+
+      // العنوان + العداد
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">';
+      html += '<div style="font-weight:800;color:#0D4A3A;font-size:16px;">📋 قائمة المسح (' + scannedQueue.length + ')</div>';
+      html += '<div style="font-size:13px;color:#888;cursor:pointer;" onclick="clearQueue()">🗑️ مسح الكل</div>';
+      html += '</div>';
+
+      // قائمة الحجاج
+      scannedQueue.forEach(function(p, idx) {
+        html += '<div class="pilgrim-row ' + (p.isReceived ? 'received' : '') + '">';
+
+        if (p.isReceived) {
+          html += '<span style="width:24px;text-align:center;">✅</span>';
+        } else {
+          html += '<span style="width:24px;text-align:center;font-size:18px;cursor:pointer;color:#C62828;" onclick="removeFromQueue(' + idx + ')">✕</span>';
+        }
+
+        html += '<div class="pilgrim-row-info">';
+        html += '<div class="pilgrim-row-name">' + p.name + '</div>';
+        html += '<div class="pilgrim-row-passport">' + p.passport + ' • ' + p.nationalityAr + ' • ' + p.flightNumber + '</div>';
+        html += '</div>';
+
+        if (p.isReceived) {
+          html += '<div class="pilgrim-row-status done">مُستقبَل</div>';
+        } else {
+          html += '<div class="pilgrim-row-status pending">جديد</div>';
+        }
+
+        html += '</div>';
+      });
+
+      // زر التأكيد الجماعي
+      if (pendingCount > 0) {
+        html += '<button class="btn-confirm" onclick="confirmQueue()" style="margin-top:14px;">';
+        html += 'تأكيد استقبال ' + pendingCount + ' حاج ✅</button>';
+      } else {
+        html += '<div style="text-align:center;padding:12px;color:#2E7D32;font-weight:700;">✅ تم تأكيد الجميع</div>';
+      }
+
+      html += '</div>';
+      document.getElementById('scanResult').innerHTML = html;
+    }
+
+
+    function removeFromQueue(idx) {
+      scannedQueue.splice(idx, 1);
+      renderScanQueue();
+    }
+
+
+    function clearQueue() {
+      scannedQueue = [];
+      document.getElementById('scanResult').innerHTML = '';
+    }
+
+
+    function confirmQueue() {
+      if (isProcessing) return;
+
+      var rows = [];
+      scannedQueue.forEach(function(p) {
+        if (!p.isReceived) rows.push(p.sheetRow);
+      });
+
+      if (rows.length === 0) {
+        showToast('لا يوجد حجاج جدد للتأكيد', 'error');
+        return;
+      }
+
+      isProcessing = true;
+      var btn = document.querySelector('.btn-confirm');
+      btn.disabled = true;
+      btn.textContent = 'جاري التأكيد (' + rows.length + ')...';
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          isProcessing = false;
+          if (result.success) {
+            showToast('✅ تم تأكيد ' + result.confirmed + ' حاج', 'success');
+            // تحديث الحالة في القائمة
+            scannedQueue.forEach(function(p) {
+              if (!p.isReceived) {
+                p.isReceived = true;
+                p.receptionStaff = session.staffName;
+              }
+            });
+            renderScanQueue();
+            loadTodayStats();
+          } else {
+            showToast('❌ ' + result.error, 'error');
+            btn.disabled = false;
+            btn.textContent = 'تأكيد الاستقبال ✅';
+          }
+        })
+        .withFailureHandler(function(err) {
+          isProcessing = false;
+          showToast('❌ خطأ: ' + err.message, 'error');
+          btn.disabled = false;
+          btn.textContent = 'تأكيد الاستقبال ✅';
+        })
+        .confirmReception(rows, session.staffName);
+    }
+
+
+    // ═══════════════════════════════════════════════
+    //  وضع متابعة الرحلات
+    // ═══════════════════════════════════════════════
+
+    function loadAvailableDates() {
+      google.script.run
+        .withSuccessHandler(function(result) {
+          if (result.success) {
+            var select = document.getElementById('dateFilter');
+            var today = new Date().toISOString().substring(0, 10);
+
+            select.innerHTML = '<option value="">كل التواريخ</option>';
+            result.data.forEach(function(d) {
+              var isToday = d === today;
+              select.innerHTML += '<option value="' + d + '"' + (isToday ? ' selected' : '') + '>' +
+                                  d + (isToday ? ' (اليوم)' : '') + '</option>';
+            });
+
+            // تحديد اليوم تلقائياً إذا موجود
+            if (result.data.indexOf(today) > -1) {
+              select.value = today;
+            }
+          }
+        })
+        .getAvailableDates(session.airport, session.hall);
+    }
+
+
+    function loadFlights() {
+      var date = document.getElementById('dateFilter').value;
+      var container = document.getElementById('flightsList');
+
+      container.innerHTML = '<div class="loading"><div class="loading-spinner"></div><div>جاري تحميل الرحلات...</div></div>';
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          if (result.success) {
+            renderFlightsList(result.data);
+          } else {
+            container.innerHTML = '<div style="text-align:center;padding:20px;color:#C62828;">خطأ: ' + result.error + '</div>';
+          }
+        })
+        .getFlightsList(session.airport, session.hall, date);
+    }
+
+
+    function renderFlightsList(flights) {
+      var container = document.getElementById('flightsList');
+
+      if (flights.length === 0) {
+        container.innerHTML = '<div style="text-align:center;padding:40px;color:#888;">لا توجد رحلات في هذا التاريخ</div>';
+        return;
+      }
+
+      var html = '';
+      flights.forEach(function(f, idx) {
+        var pClass = '';
+        if (f.percentage === 100) pClass = 'complete';
+        else if (f.percentage >= 70) pClass = 'high';
+        else if (f.percentage >= 30) pClass = 'mid';
+        else pClass = 'low';
+
+        var isComplete = f.percentage === 100;
+
+        html += '<div class="flight-card ' + (isComplete ? 'complete' : '') + '" id="flight-' + idx + '">';
+
+        // الهيدر
+        html += '<div class="flight-card-header" onclick="toggleFlightPilgrims(' + idx + ',\'' +
+                f.date + '\',\'' + f.flightNumber + '\')">';
+
+        html += '<div class="flight-info">';
+        html += '<div class="flight-number">' + f.flightNumber + ' — ' + (f.airlineAr || f.airline) + '</div>';
+        html += '<div class="flight-meta">' + f.date + ' • ' + f.time + '</div>';
+        html += '</div>';
+
+        html += '<div class="flight-progress">';
+        html += '<div class="progress-circle ' + pClass + '">' + f.received + '/' + f.total + '</div>';
+        html += '<div class="progress-label">' + f.percentage + '%</div>';
+        html += '</div>';
+
+        html += '</div>'; // flight-card-header
+
+        // قائمة الحجاج (مخفية)
+        html += '<div class="flight-pilgrims" id="pilgrims-' + idx + '"></div>';
+
+        html += '</div>'; // flight-card
+      });
+
+      container.innerHTML = html;
+    }
+
+
+    function toggleFlightPilgrims(idx, date, flightNumber) {
+      var el = document.getElementById('pilgrims-' + idx);
+      if (el.classList.contains('visible')) {
+        el.classList.remove('visible');
+        return;
+      }
+
+      // إخفاء الباقي
+      document.querySelectorAll('.flight-pilgrims').forEach(function(p) { p.classList.remove('visible'); });
+
+      el.innerHTML = '<div class="loading"><div class="loading-spinner"></div></div>';
+      el.classList.add('visible');
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          if (result.success) {
+            renderFlightPilgrims(el, result, date, flightNumber);
+          }
+        })
+        .getFlightPilgrims(session.airport, session.hall, date, flightNumber);
+    }
+
+
+    function renderFlightPilgrims(container, result, date, flightNumber) {
+      var data = result.data;
+      var stats = result.stats;
+
+      // حفظ البيانات للبحث المحلي
+      container.setAttribute('data-pilgrims', JSON.stringify(data));
+
+      var html = '';
+
+      // شريط التقدم
+      html += '<div class="progress-bar-container"><div class="progress-bar-fill" style="width:' + stats.percentage + '%"></div></div>';
+
+      // ── حقل البحث الذكي ──
+      html += '<div style="margin-bottom:12px;">';
+      html += '<input type="text" class="passport-input" style="font-size:14px;padding:12px;letter-spacing:0;" ';
+      html += 'placeholder="🔍 ابحث بالاسم أو رقم الجواز..." ';
+      html += 'oninput="filterFlightPilgrims(this)" autocomplete="off">';
+      html += '</div>';
+
+      // أزرار العمليات الجماعية
+      var pendingCount = data.filter(function(p) { return !p.isReceived; }).length;
+
+      html += '<div class="bulk-actions">';
+      html += '<button class="btn-select-all" onclick="selectAllPending(this.closest(\'.flight-pilgrims\'))">تحديد الكل (' + pendingCount + ')</button>';
+      html += '<button class="btn-confirm-bulk" onclick="confirmBulk(this.closest(\'.flight-pilgrims\'))" ' +
+              (pendingCount === 0 ? 'disabled' : '') + '>تأكيد المحددين ✅</button>';
+      html += '<div class="remaining-count">متبقي: ' + stats.remaining + '</div>';
+      html += '</div>';
+
+      // قائمة الحجاج
+      html += '<div class="pilgrims-list">';
+      html += buildPilgrimsListHtml(data, stats);
+      html += '</div>';
+
+      container.innerHTML = html;
+    }
+
+
+    function buildPilgrimsListHtml(data, stats) {
+      var html = '';
+
+      data.forEach(function(p) {
+        var statusClass = p.isReceived ? 'done' : 'pending';
+        var statusText = p.isReceived ? '✅ تم' : '⏳ لم يصل';
+        var rowClass = p.isReceived ? 'received' : '';
+
+        // تنبيه التأخر
+        if (!p.isReceived && stats && stats.firstReceptionTime) {
+          var firstTime = new Date(stats.firstReceptionTime);
+          var now = new Date();
+          var diffMin = (now - firstTime) / (1000 * 60);
+          if (diffMin > 30) {
+            rowClass = 'delayed';
+            statusClass = 'delayed';
+            statusText = '⚠️ متأخر';
+          }
+        }
+
+        html += '<div class="pilgrim-row ' + rowClass + '" data-name="' + p.name + '" data-passport="' + p.passport + '">';
+
+        if (!p.isReceived) {
+          html += '<input type="checkbox" value="' + p.sheetRow + '" class="pilgrim-check">';
+        } else {
+          html += '<span style="width:20px;text-align:center;">✅</span>';
+        }
+
+        html += '<div class="pilgrim-row-info" style="cursor:pointer;" onclick="quickConfirmFromList(' + p.sheetRow + ', this)">';
+        html += '<div class="pilgrim-row-name">' + p.name + '</div>';
+        html += '<div class="pilgrim-row-passport">' + p.passport + ' • ' + p.nationalityAr + '</div>';
+        html += '</div>';
+
+        html += '<div class="pilgrim-row-status ' + statusClass + '">' + statusText + '</div>';
+        html += '</div>';
+      });
+
+      return html;
+    }
+
+
+    function filterFlightPilgrims(input) {
+      var query = input.value.trim().toLowerCase();
+      var container = input.closest('.flight-pilgrims');
+      var rows = container.querySelectorAll('.pilgrim-row');
+
+      rows.forEach(function(row) {
+        var name = (row.getAttribute('data-name') || '').toLowerCase();
+        var passport = (row.getAttribute('data-passport') || '').toLowerCase();
+
+        if (query === '' || name.indexOf(query) > -1 || passport.indexOf(query) > -1) {
+          row.style.display = '';
+        } else {
+          row.style.display = 'none';
+        }
+      });
+    }
+
+
+    function quickConfirmFromList(sheetRow, el) {
+      // التحقق أن الحاج لم يُستقبل
+      var row = el.closest('.pilgrim-row');
+      if (row.classList.contains('received')) return;
+
+      if (isProcessing) return;
+      isProcessing = true;
+
+      row.style.opacity = '0.5';
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          isProcessing = false;
+          if (result.success) {
+            showToast('✅ ' + result.message, 'success');
+            row.classList.add('received');
+            row.style.opacity = '1';
+            row.style.background = '#E8F5E9';
+
+            // تحديث الـ checkbox والحالة
+            var cb = row.querySelector('.pilgrim-check');
+            if (cb) {
+              var span = document.createElement('span');
+              span.style.cssText = 'width:20px;text-align:center;';
+              span.textContent = '✅';
+              cb.parentNode.replaceChild(span, cb);
+            }
+            var status = row.querySelector('.pilgrim-row-status');
+            if (status) {
+              status.className = 'pilgrim-row-status done';
+              status.textContent = '✅ تم';
+            }
+
+            loadTodayStats();
+          } else {
+            row.style.opacity = '1';
+            showToast('❌ ' + result.error, 'error');
+          }
+        })
+        .withFailureHandler(function(err) {
+          isProcessing = false;
+          row.style.opacity = '1';
+          showToast('❌ ' + err.message, 'error');
+        })
+        .confirmReception([sheetRow], session.staffName);
+    }
+
+
+    function selectAllPending(container) {
+      var checkboxes = container.querySelectorAll('.pilgrim-check');
+      var allChecked = true;
+      checkboxes.forEach(function(cb) { if (!cb.checked) allChecked = false; });
+
+      checkboxes.forEach(function(cb) { cb.checked = !allChecked; });
+    }
+
+
+    function confirmBulk(container) {
+      if (isProcessing) return;
+
+      var checked = container.querySelectorAll('.pilgrim-check:checked');
+      if (checked.length === 0) {
+        showToast('حدد حجاجاً أولاً', 'error');
+        return;
+      }
+
+      var rows = [];
+      checked.forEach(function(cb) { rows.push(parseInt(cb.value)); });
+
+      isProcessing = true;
+      var btn = container.querySelector('.btn-confirm-bulk');
+      btn.disabled = true;
+      btn.textContent = 'جاري التأكيد (' + rows.length + ')...';
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          isProcessing = false;
+          if (result.success) {
+            showToast('✅ تم تأكيد ' + result.confirmed + ' حاج', 'success');
+            // إعادة تحميل الرحلات
+            loadFlights();
+            loadTodayStats();
+          } else {
+            showToast('❌ ' + result.error, 'error');
+            btn.disabled = false;
+            btn.textContent = 'تأكيد المحددين ✅';
+          }
+        })
+        .withFailureHandler(function(err) {
+          isProcessing = false;
+          showToast('❌ خطأ: ' + err.message, 'error');
+          btn.disabled = false;
+          btn.textContent = 'تأكيد المحددين ✅';
+        })
+        .confirmReception(rows, session.staffName);
+    }
+
+
+    // ═══════════════════════════════════════════════
+    //  دوال مساعدة
+    // ═══════════════════════════════════════════════
+
+    function showToast(msg, type) {
+      var toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.className = 'toast ' + (type || '') + ' show';
+      setTimeout(function() { toast.classList.remove('show'); }, 3000);
+    }
+
+
+    function logout() {
+      sessionStorage.removeItem('receptionSession');
+      google.script.run.withSuccessHandler(function(url) {
+        window.open(url + '?page=index', '_top');
+      }).getScriptUrl();
+    }
+  </script>
+
+</body>
+</html>

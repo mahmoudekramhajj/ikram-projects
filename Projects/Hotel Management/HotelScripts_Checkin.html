@@ -1,0 +1,371 @@
+<script>
+/**
+ * Hotel Management App — Check-in Scripts
+ * v3.0 — Check-in tab rendering, actions, and filters
+ */
+
+// ============================================================
+// RENDER: CHECK-IN TAB
+// ============================================================
+
+function renderCheckinTab() {
+  renderCheckinStats(state.filteredPilgrims);
+  renderNoShowAlert();
+  renderExpectedArrivals();
+  renderEarlyArrivalAlert();
+  renderPilgrimsList();
+}
+
+function renderCheckinStats(pilgrims) {
+  var total = pilgrims.length;
+  var arrived = pilgrims.filter(function(p) { return p.checkInStatus === 'arrived'; }).length;
+  var pending = pilgrims.filter(function(p) { return p.checkInStatus === 'pending'; }).length;
+  var delayed = pilgrims.filter(function(p) { return p.checkInStatus === 'delayed'; }).length;
+  var early = pilgrims.filter(function(p) { return p.arrivalStatus === 'early'; }).length;
+  var late = pilgrims.filter(function(p) { return p.arrivalStatus === 'late'; }).length;
+  var noshow = pilgrims.filter(function(p) { return p.arrivalStatus === 'noshow'; }).length;
+  var effective = total - noshow;
+  var pct = effective > 0 ? Math.round((arrived / effective) * 100) : 0;
+  
+  document.getElementById('checkinStats').innerHTML = 
+    statCard('الإجمالي', total, '#6ee7b7', '#064e3b') +
+    statCard('وصلوا ✓', arrived, '#34d399', '#065f46') +
+    statCard('لم يصلوا', pending, '#fbbf24', '#78350f') +
+    statCard('متأخرون', delayed, '#f87171', '#7f1d1d') +
+    statCard('وصول مبكر', early, '#c084fc', '#4c1d95') +
+    statCard('متأخر عن العقد', late, '#fb923c', '#7c2d12') +
+    (noshow > 0 ? statCard('No Show', noshow, '#94a3b8', '#1e293b') : '') +
+    statCard('نسبة Check-in', pct + '%', '#6ee7b7', '#064e3b');
+}
+
+function renderNoShowAlert() {
+  var container = document.getElementById('noShowAlert');
+  var noshow = state.filteredPilgrims.filter(function(p) { return p.arrivalStatus === 'noshow'; });
+  
+  if (noshow.length === 0) {
+    container.style.display = 'none';
+    return;
+  }
+  
+  container.style.display = '';
+  var html = '<div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:10px 14px">';
+  html += '<div onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'\':\'none\';this.querySelector(\'span:last-child\').textContent=this.nextElementSibling.style.display===\'none\'?\'التفاصيل ▼\':\'إخفاء ▲\'" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer">';
+  html += '<span class="alert-title" style="margin:0;color:#94a3b8">🚫 No Show — ' + noshow.length + ' حاج (وصول بعد انتهاء عقد المدينة — مستحق تعويض)</span>';
+  html += '<span style="color:#94a3b8;font-size:12px;font-weight:600">التفاصيل ▼</span>';
+  html += '</div>';
+  html += '<div style="display:none;margin-top:8px;display:flex;flex-direction:column;gap:6px">';
+  noshow.forEach(function(p) {
+    html += '<div style="background:#0f172a;border-radius:8px;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">' +
+      '<span style="font-weight:600;color:#e2e8f0;font-size:12px">' + p.name + '</span>' +
+      '<span style="font-size:11px;color:#94a3b8">مجموعة #' + p.groupNumber + ' | ' + p.nationality + '</span>' +
+      '<span style="font-size:11px;color:#94a3b8">عقد: ' + p.hotelCheckIn + ' → ' + p.hotelCheckOut + '</span>' +
+      '<span style="font-size:11px;color:#f97316">وصول: ' + p.arrivalDate + '</span>' +
+      '<span style="background:#334155;color:#94a3b8;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700">NO SHOW</span>' +
+    '</div>';
+  });
+  html += '</div></div>';
+  container.innerHTML = html;
+}
+
+function renderExpectedArrivals() {
+  var container = document.getElementById('expectedArrivals');
+  var today = getTodayStr();
+  
+  var flights = {};
+  state.filteredPilgrims.forEach(function(p) {
+    if (p.arrivalDate === today && p.arrivalFlight && p.phase === 'first' && p.arrivalStatus !== 'noshow') {
+      if (!flights[p.arrivalFlight]) {
+        flights[p.arrivalFlight] = { flight: p.arrivalFlight, from: p.arrivalCity, time: p.arrivalTime, expected: p.expectedArrival, count: 0 };
+      }
+      flights[p.arrivalFlight].count++;
+    }
+  });
+  
+  var flightArr = Object.values(flights);
+  if (flightArr.length === 0) { container.style.display = 'none'; return; }
+  
+  container.style.display = '';
+  var html = '<div class="section-title">✈️ الوصول المتوقع اليوم — ' + today + '</div>';
+  html += '<div style="display:flex;gap:12px;flex-wrap:wrap">';
+  
+  flightArr.forEach(function(f) {
+    html += '<div class="flight-card">' +
+      '<div style="display:flex;justify-content:space-between;margin-bottom:6px">' +
+        '<span class="flight-number">' + f.flight + '</span>' +
+        '<span class="flight-count">' + f.count + ' حجاج</span>' +
+      '</div>' +
+      '<div style="font-size:11px;color:#94a3b8">من: ' + f.from + '</div>' +
+      '<div style="font-size:11px;color:#94a3b8">هبوط: ' + f.time + '</div>' +
+      (f.expected ? '<div class="flight-expected">⏰ الوصول المتوقع: ' + f.expected + '</div>' : '') +
+    '</div>';
+  });
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+function renderEarlyArrivalAlert() {
+  var container = document.getElementById('earlyArrivalAlert');
+  
+  var early = state.filteredPilgrims.filter(function(p) { return p.arrivalStatus === 'early'; })
+    .sort(function(a, b) { return (b.earlyHours || 0) - (a.earlyHours || 0); });
+  var late = state.filteredPilgrims.filter(function(p) { return p.arrivalStatus === 'late'; })
+    .sort(function(a, b) { return (b.lateDays || 0) - (a.lateDays || 0); });
+
+  if (early.length === 0 && late.length === 0) { container.style.display = 'none'; return; }
+  
+  container.style.display = '';
+  var html = '';
+  
+  if (early.length > 0) {
+    html += '<div style="background:#1e1b4b;border:1px solid #4c1d95;border-radius:10px;padding:10px 14px;margin-bottom:10px">';
+    html += '<div onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'\':\'none\';this.querySelector(\'span:last-child\').textContent=this.nextElementSibling.style.display===\'none\'?\'التفاصيل ▼\':\'إخفاء ▲\'" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer">';
+    html += '<span class="alert-title" style="margin:0">⚠ وصول مبكر (قبل تسليم الغرف) — ' + early.length + ' حاج</span>';
+    html += '<span style="color:#c084fc;font-size:12px;font-weight:600">التفاصيل ▼</span>';
+    html += '</div>';
+    html += '<div style="display:none;margin-top:8px;display:flex;flex-direction:column;gap:6px">';
+    early.forEach(function(p) {
+      html += '<div style="background:#0f172a;border-radius:8px;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">' +
+        '<span style="font-weight:600;color:#e2e8f0;font-size:12px">' + p.name + '</span>' +
+        '<span style="font-size:11px;color:#94a3b8">' + p.packageName + '</span>' +
+        '<span style="font-size:11px;color:#94a3b8">✈️ ' + (p.arrivalFlight || '-') + ' | ⏰ متوقع: ' + (p.expectedArrival || '-') + '</span>' +
+        '<span class="badge-early">' + p.earlyHours + ' ساعة انتظار</span>' +
+      '</div>';
+    });
+    html += '</div></div>';
+  }
+  
+  if (late.length > 0) {
+    html += '<div style="background:#431407;border:1px solid #7c2d12;border-radius:10px;padding:10px 14px">';
+    html += '<div onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'\':\'none\';this.querySelector(\'span:last-child\').textContent=this.nextElementSibling.style.display===\'none\'?\'التفاصيل ▼\':\'إخفاء ▲\'" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer">';
+    var compensationCount = late.filter(function(p) { return (p.lateDays || 0) >= 1; }).length;
+    html += '<span class="alert-title" style="margin:0;color:#f97316">🔴 وصول متأخر عن بداية العقد — ' + late.length + ' حاج' + (compensationCount > 0 ? ' (⚠ ' + compensationCount + ' مستحق تعويض)' : '') + '</span>';
+    html += '<span style="color:#fb923c;font-size:12px;font-weight:600">التفاصيل ▼</span>';
+    html += '</div>';
+    html += '<div style="display:none;margin-top:8px;display:flex;flex-direction:column;gap:6px">';
+    late.forEach(function(p) {
+      html += '<div style="background:#0f172a;border-radius:8px;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">' +
+        '<span style="font-weight:600;color:#e2e8f0;font-size:12px">' + p.name + '</span>' +
+        '<span style="font-size:11px;color:#94a3b8">' + p.packageName + ' | مجموعة #' + p.groupNumber + '</span>' +
+        '<span style="font-size:11px;color:#f97316">عقد: ' + p.hotelCheckIn + ' | وصول: ' + p.arrivalDate + '</span>' +
+        '<span class="badge-late">' + p.lateDays + (p.lateDays === 1 ? ' يوم' : ' أيام') + ' تأخر</span>' +
+        ((p.lateDays || 0) >= 1 ? '<span style="background:#7c2d12;color:#fbbf24;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700">💰 مستحق تعويض</span>' : '') +
+      '</div>';
+    });
+    html += '</div></div>';
+  }
+  
+  container.innerHTML = html;
+}
+
+function renderPilgrimsList() {
+  var container = document.getElementById('pilgrimsList');
+  
+  if (state.filteredPilgrims.length === 0) {
+    container.innerHTML = '<div style="text-align:center;padding:40px;color:#64748b">لا توجد بيانات — اختر فندقاً</div>';
+    return;
+  }
+  
+  var html = '';
+  state.filteredPilgrims.forEach(function(p) {
+    var cardClass = 'pilgrim-card';
+    if (p.arrivalStatus === 'early') cardClass += ' early-arrival';
+    if (p.arrivalStatus === 'late') cardClass += ' late-arrival';
+    if (p.arrivalStatus === 'noshow') cardClass += ' noshow';
+    if (p.checkInStatus === 'delayed') cardClass += ' delayed';
+    
+    html += '<div class="' + cardClass + '" data-booking="' + p.bookingId + '">';
+    
+    html += '<div class="pilgrim-header">';
+    html += '<div>';
+    html += '<span class="pilgrim-name">' + p.name + '</span>';
+    if (p.hotelCity === 'Makkah Shifting') html += '<span style="background:#f59e0b;color:#000;padding:1px 6px;border-radius:4px;font-size:9px;font-weight:700;margin-right:4px">🔄 انتقالي</span>';
+    html += '<span class="pilgrim-group">#' + p.groupNumber + '</span>';
+    html += '</div>';
+    html += '<div style="display:flex;gap:4px;flex-wrap:wrap">';
+    if (p.arrivalStatus === 'noshow') html += '<span style="background:#334155;color:#94a3b8;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700">NO SHOW</span>';
+    if (p.arrivalStatus === 'early') html += '<span class="badge-early">⚠ وصول مبكر ' + p.earlyHours + ' ساعة انتظار</span>';
+    if (p.arrivalStatus === 'late') html += '<span class="badge-late">🔴 تأخر ' + p.lateDays + (p.lateDays === 1 ? ' يوم' : ' أيام') + '</span>';
+    html += statusBadge(p.checkInStatus);
+    html += '</div>';
+    html += '</div>';
+    
+    html += '<div class="pilgrim-details">';
+    html += '<div>📄 ' + p.passport + '</div>';
+    html += '<div>' + (p.gender === 'Male' ? '👨' : '👩') + ' ' + p.nationality + '</div>';
+    if (p.roomGroupId) html += '<div>🔑 غرفة: <span style="font-family:monospace;color:#60a5fa;font-weight:700">' + p.roomGroupId + '</span>' + (p.roomNumber ? ' → <span style="color:#f59e0b;font-weight:700">' + p.roomNumber + '</span>' : '') + ' <span onclick="showRoommates(\'' + p.roomGroupId + '\')" style="color:#c084fc;cursor:pointer;font-size:10px;text-decoration:underline">👥 زملاء الغرفة</span></div>';
+    html += '<div>✈️ ' + (p.arrivalFlight || '-') + ' | ' + (p.arrivalTime || '-') + '</div>';
+    html += '<div>📅 ' + p.hotelCheckIn + ' إلى ' + p.hotelCheckOut + (p.hotelCity === 'Makkah Shifting' ? ' <span style="color:#f59e0b;font-weight:700">(انتقالي)</span>' : '') + '</div>';
+    html += '<div>' + (p.tourGuide ? '🎯 ' + p.tourGuide : '🎯 بدون مرشد') + '</div>';
+    if (p.expectedArrival) html += '<div>⏰ متوقع: ' + p.expectedArrival + '</div>';
+    html += '<div>📱 ' + (p.groupLeader || '-') + ' | ' + (p.leaderPhone || '-') + '</div>';
+    html += '</div>';
+    
+    if (p.arrivalStatus === 'noshow') {
+      html += '<div style="background:#1e293b;padding:8px 12px;border-radius:8px;text-align:center;color:#94a3b8;font-size:11px;font-weight:700">🚫 No Show — مستحق تعويض</div>';
+    } else if (p.checkInStatus !== 'arrived') {
+      html += '<div class="pilgrim-actions">';
+      html += '<input type="checkbox" class="checkin-checkbox" data-booking="' + p.bookingId + '" style="width:18px;height:18px">';
+      html += '<input type="text" class="room-input" id="room-' + p.bookingId + '" placeholder="رقم الغرفة" value="' + (p.roomNumber || '') + '">';
+      html += '<button class="btn-checkin" onclick="singleCheckIn(\'' + p.bookingId + '\')">✓ تسجيل دخول</button>';
+      html += '</div>';
+    } else {
+      html += '<div class="room-assigned">🔑 غرفة: ' + (p.roomNumber || 'غير محدد') + '</div>';
+    }
+    
+    html += '</div>';
+  });
+  
+  container.innerHTML = html;
+}
+
+function singleCheckIn(bookingId) {
+  var roomInput = document.getElementById('room-' + bookingId);
+  var roomNumber = roomInput ? roomInput.value.trim() : '';
+  var cityCode = getHotelCityCode();
+  
+  showLoading(true);
+  google.script.run
+    .withSuccessHandler(function(result) {
+      showToast('تم تسجيل الوصول ✓ — ' + result.timestamp);
+      loadPilgrims();
+    })
+    .withFailureHandler(function(err) {
+      showToast('خطأ: ' + err.message, true);
+      showLoading(false);
+    })
+    .performCheckIn(bookingId, state.currentHotel, cityCode, roomNumber);
+}
+
+function bulkCheckInSelected() {
+  var checkboxes = document.querySelectorAll('.checkin-checkbox:checked');
+  if (checkboxes.length === 0) { showToast('اختر حجاج أولاً للتسجيل الجماعي', true); return; }
+  
+  var bookingIds = [];
+  var roomNumbers = [];
+  
+  checkboxes.forEach(function(cb) {
+    var bid = cb.getAttribute('data-booking');
+    bookingIds.push(bid);
+    var roomInput = document.getElementById('room-' + bid);
+    roomNumbers.push(roomInput ? roomInput.value.trim() : '');
+  });
+  
+  var cityCode = getHotelCityCode();
+  showLoading(true);
+  google.script.run
+    .withSuccessHandler(function(results) {
+      showToast('تم تسجيل وصول ' + results.length + ' حاج ✓');
+      loadPilgrims();
+    })
+    .withFailureHandler(function(err) {
+      showToast('خطأ: ' + err.message, true);
+      showLoading(false);
+    })
+    .bulkCheckIn(bookingIds, state.currentHotel, cityCode, roomNumbers);
+}
+
+// ============================================================
+// FILTERS — CHECK-IN TAB
+// ============================================================
+
+function getEffectiveArrivalDate_(p) {
+  // phase first  → تاريخ الرحلة الجوية (يصل مباشرة من المطار)
+  // phase last/middle → تاريخ دخول الفندق (يصل بالحافلة/القطار من مدينة أخرى)
+  if (p.phase === 'first') return p.arrivalDate || '';
+  return p.hotelCheckIn || '';
+}
+
+function populateDateFilter() {
+  var dates = {};
+  state.pilgrims.forEach(function(p) {
+    if (p.arrivalStatus === 'noshow') return;
+    var d = getEffectiveArrivalDate_(p);
+    if (d) dates[d] = (dates[d] || 0) + 1;
+  });
+
+  var select = document.getElementById('dateFilter');
+  select.innerHTML = '<option value="">كل أيام الوصول</option>';
+  Object.keys(dates).sort().forEach(function(d) {
+    select.innerHTML += '<option value="' + d + '">' + d + ' (' + dates[d] + ' حاج)</option>';
+  });
+}
+
+function populateFlightFilter() {
+  var flights = {};
+  state.pilgrims.forEach(function(p) {
+    if (p.arrivalFlight) flights[p.arrivalFlight] = true;
+  });
+  
+  var select = document.getElementById('flightFilter');
+  select.innerHTML = '<option value="">كل الرحلات</option>';
+  Object.keys(flights).sort().forEach(function(f) {
+    select.innerHTML += '<option value="' + f + '">' + f + '</option>';
+  });
+}
+
+function applyCheckinFilters() {
+  var search = document.getElementById('searchInput').value.toLowerCase().trim();
+  var dateVal = document.getElementById('dateFilter').value;
+  var statusVal = document.getElementById('statusFilter').value;
+  var flightVal = document.getElementById('flightFilter').value;
+  
+  state.filteredPilgrims = state.pilgrims.filter(function(p) {
+    if (search && !(p.name || '').toLowerCase().includes(search) && !(p.passport || '').toLowerCase().includes(search)
+        && !(String(p.bookingId || '')).toLowerCase().includes(search)
+        && !(String(p.groupNumber || '')).toLowerCase().includes(search)
+        && !(p.packageName || '').toLowerCase().includes(search)
+        && !(p.arrivalFlight || '').toLowerCase().includes(search)) return false;
+    if (dateVal && getEffectiveArrivalDate_(p) !== dateVal) return false;
+    if (statusVal === 'noshow' && p.arrivalStatus !== 'noshow') return false;
+    if (statusVal && statusVal !== 'noshow' && p.checkInStatus !== statusVal) return false;
+    if (flightVal && p.arrivalFlight !== flightVal) return false;
+    return true;
+  });
+  
+  // Update everything with filtered data
+  renderCheckinStats(state.filteredPilgrims);
+  renderNoShowAlert();
+  renderExpectedArrivals();
+  renderEarlyArrivalAlert();
+  renderPilgrimsList();
+}
+
+function clearCheckinFilters() {
+  document.getElementById('searchInput').value = '';
+  document.getElementById('dateFilter').value = '';
+  document.getElementById('statusFilter').value = '';
+  document.getElementById('flightFilter').value = '';
+  
+  state.filteredPilgrims = state.pilgrims.slice();
+  renderCheckinTab();
+}
+
+// ============================================================
+// ROOMMATES: عرض زملاء الغرفة
+// ============================================================
+
+function showRoommates(roomGroupId) {
+  google.script.run
+    .withSuccessHandler(function(mates) {
+      if (!mates || mates.length === 0) {
+        showToast('لا يوجد زملاء في هذه الغرفة');
+        return;
+      }
+      var html = '👥 زملاء الغرفة (' + roomGroupId + '):\n\n';
+      mates.forEach(function(m) {
+        var icon = m.status === 'arrived' ? '✅' : '⏳';
+        html += icon + ' ' + m.name + ' — ' + m.passport + ' (' + (m.gender === 'Male' ? 'ذكر' : 'أنثى') + ')\n';
+      });
+      alert(html);
+    })
+    .withFailureHandler(function(err) {
+      showToast('خطأ: ' + err.message, true);
+    })
+    .getRoommates(roomGroupId, state.currentHotel);
+}
+
+// ============================================================
+// FILTERS — DEPARTURES TAB
+// ============================================================
+
+</script>

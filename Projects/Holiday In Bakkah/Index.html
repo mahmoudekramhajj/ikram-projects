@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Holiday In Bakkah</title>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <?!= include('Styles'); ?>
+</head>
+<body>
+  <header class="header">
+    <div class="header-content">
+      <div class="logo-section">
+        <img src="https://drive.google.com/uc?export=view&id=1nk4smqgD1XFEibopp782KfflDsFanyjn" alt="Logo" class="logo" onerror="this.style.display='none'">
+        <div class="brand-text">
+          <div class="brand-name-ar" id="brandNameAr">هوليداي إن بكة</div>
+          <div class="brand-name-en">Holiday In Bakkah</div>
+          <div class="brand-tagline" id="brandTagline">لحجاج الخارج</div>
+        </div>
+      </div>
+      <nav class="nav-tabs">
+        <button class="nav-tab active" data-tab="packages" id="tabPackages">الباقات</button>
+        <button class="nav-tab" data-tab="flights" id="tabFlights">الطيران</button>
+        <button class="nav-tab" data-tab="hotels" id="tabHotels">الفنادق</button>
+      </nav>
+      <div class="lang-toggle">
+        <button class="lang-btn active" data-lang="ar">العربية</button>
+        <button class="lang-btn" data-lang="en">English</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="stats-bar">
+      <div class="stat-card highlight">
+        <div class="stat-icon">👥</div>
+        <div class="stat-info">
+          <div class="stat-value" id="remainingPilgrims">0</div>
+          <div class="stat-label" id="lblRemPilgrims">حجاج متبقين</div>
+        </div>
+      </div>
+      <div class="stat-card highlight">
+        <div class="stat-icon">🎫</div>
+        <div class="stat-info">
+          <div class="stat-value" id="remainingTickets">0</div>
+          <div class="stat-label" id="lblRemTickets">تذاكر متبقية</div>
+        </div>
+      </div>
+      <div class="stat-card highlight">
+        <div class="stat-icon">📊</div>
+        <div class="stat-info">
+          <div class="stat-value" id="registrationRate">0%</div>
+          <div class="stat-label" id="lblRegRate">نسبة التسجيل</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">📦</div>
+        <div class="stat-info">
+          <div class="stat-value" id="totalPackages">0</div>
+          <div class="stat-label" id="lblTotalPkg">إجمالي الباقات</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">✅</div>
+        <div class="stat-info">
+          <div class="stat-value" id="availablePackages">0</div>
+          <div class="stat-label" id="lblAvailPkg">باقات متاحة</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">✈️</div>
+        <div class="stat-info">
+          <div class="stat-value" id="totalFlights">0</div>
+          <div class="stat-label" id="lblFlights">رحلات الطيران</div>
+        </div>
+      </div>
+    </div>
+
+    <section class="search-section">
+      <div class="search-header">
+        <h2 class="search-title" id="searchTitle">⚙️ خيارات البحث</h2>
+        <label class="show-sold-out">
+          <input type="checkbox" id="showSoldOut" onchange="applyFilters()">
+          <span id="lblShowSold">إظهار المباع بالكامل</span>
+        </label>
+      </div>
+      <div class="search-grid" id="searchFilters"></div>
+      <div class="search-actions">
+        <button class="btn btn-primary" onclick="applyFilters()" id="btnSearch">🔍 بحث</button>
+        <button class="btn btn-secondary" onclick="clearFilters()" id="btnClear">🗑️ مسح</button>
+        <button class="btn btn-whatsapp" onclick="shareResults('whatsapp')">📱 <span id="btnWA">واتساب</span></button>
+        <button class="btn btn-telegram" onclick="shareResults('telegram')">✈️ <span id="btnTG">تليجرام</span></button>
+      </div>
+    </section>
+
+    <div class="results-info">
+      <span class="results-count" id="resultsCount">تم العثور على 0 نتيجة</span>
+      <span class="auto-refresh"><span class="dot"></span> <span id="lblRefresh">تحديث تلقائي كل 30 ثانية</span></span>
+    </div>
+
+    <div id="contentArea">
+      <div class="loading">
+        <div class="spinner"></div>
+        <p id="lblLoading">جاري تحميل البيانات...</p>
+      </div>
+    </div>
+  </main>
+
+  <?!= include('Scripts_Core'); ?>
+  <?!= include('Scripts_Packages'); ?>
+  <?!= include('Scripts_Flights'); ?>
+  <?!= include('Scripts_Hotels'); ?>
+</body>
+</html>
