@@ -36,23 +36,76 @@ node refresh.js
 
 | التطبيق | الوصف |
 |---|---|
-| **Ikram1** | النظام الرئيسي (إنتاج) — باقات + فنادق + رحلات v5 |
-| **Ikram2** | النظام الرئيسي (نسخة ثانية/تطوير) |
-| **IkramAgent** | وكيل ذكي متعدد القنوات (Telegram + WhatsApp) — يدعم AR/EN/FR |
-| **IkramHajjBot** | بوت تيليغرام لمتابعة رحلة الحاج |
+| **Ikram** | النظام الرئيسي — باقات + فنادق + رحلات v5 (45 deployment، آخرها V 20.2) |
+| **IkramAgent** | وكيل ذكي متعدد القنوات (Telegram + WhatsApp) — AR/EN/FR — ⏸️ مؤجّل للعام القادم |
+| **IkramHajjBot** | بوت تيليغرام لمتابعة رحلة الحاج (مفعّل) |
 | **Pilgrim App** | تطبيق الحاج |
 | **Guide App** | تطبيق المرشد السياحي |
-| **TourGuide Manager** | إدارة المرشدين |
+| **TourGuide Manager** | إدارة المرشدين (فارغ تقريباً — 3KB) |
 | **Reception Airport** | استقبال المطار |
 | **Airport Search** | بحث في بيانات المطار |
 | **Hotel Management** | إدارة الفنادق |
-| **GDS** | نظام التوزيع العالمي للرحلات |
+| **GDS** | إكمال بيانات رحلات B2C من AeroDataBox API |
 | **B2C Sync** | مزامنة بيانات B2C |
 | **Mina Camp Search** | بحث في مخيمات منى |
 | **Sales Operations Report** | تقارير المبيعات |
-| **Holiday In Bakkah** | باقات العطل في مكة |
+| **Holiday In Bakkah** | باقات العطل في مكة (Spreadsheet منفصل) |
 | **SheetData** | أدوات تصدير البيانات (Node.js + Google Sheets API) |
 | **PNR Target Countries Sync** | مزامنة PNR للدول المستهدفة |
+
+---
+
+## خريطة تفاعل المشاريع
+
+### الشيتات المركزية ومن يستخدمها
+
+| الشيت | يقرأ منه | يكتب فيه |
+|---|---|---|
+| **رحلة الحاج** (6000 صف) | Airport Search, IkramHajjBot, Pilgrim App, Guide App | Reception Airport |
+| **الباقات** (69 عمود) | Ikram, IkramAgent, IkramHajjBot, Hotel Management, Pilgrim App, Holiday In Bakkah | Ikram |
+| **الطيران** (103 عمود) | Ikram, IkramAgent, GDS, B2C Sync, Sales Report, Holiday In Bakkah | Ikram, GDS, B2C Sync, PNR Sync |
+| **الفنادق** | Ikram, Hotel Management, Holiday In Bakkah | — |
+| **مخيم مني** | Mina Camp Search | Ikram (Minacamp.js) |
+| **Tour Guide** | Guide App, Ikram (Minacamp.js, TourGuide_Manager.js) | TourGuide Manager |
+| **BotSessions** | IkramHajjBot | IkramHajjBot |
+
+### APIs الخارجية
+
+| API | المشاريع | الاستخدام |
+|---|---|---|
+| **AeroDataBox** (RapidAPI) | Ikram, Hotel Management, GDS | جلب بيانات الرحلات الجوية |
+| **Telegram Bot API** | IkramHajjBot, IkramAgent | بوتات الدردشة |
+| **Twilio WhatsApp** | IkramAgent | واتساب |
+| **Claude AI** | IkramAgent | الرد على لغات غير مدعومة |
+| **Google Drive API** | Airport Search, GDS | تصدير Excel/PDF |
+
+### تصنيف التطبيقات
+
+**تطبيقات ويب (8):**
+| التطبيق | المستخدم |
+|---|---|
+| Ikram | الإدارة — لوحة تحكم الباقات والرحلات |
+| Airport Search | موظفي المطار — بحث وتصدير |
+| Hotel Management | موظفي الفنادق — توزيع غرف |
+| Pilgrim App | الحاج — عرض بياناته |
+| Guide App | المرشد — عرض مجموعته |
+| Reception Airport | موظفي الاستقبال — تأكيد وصول |
+| Mina Camp Search | الموظفين الميدانيين — بحث خيام |
+| Sales Report | الإدارة — تقارير مبيعات |
+
+**بوتات (2):**
+| البوت | الوظيفة |
+|---|---|
+| IkramHajjBot | بعد الحجز — الحاج يتابع رحلته عبر Telegram |
+| IkramAgent | قبل الحجز — العميل يبحث عن باقات (⏸️ مؤجّل) |
+
+**تعمل بالخلفية (4):**
+| المشروع | الوظيفة |
+|---|---|
+| GDS | إكمال بيانات رحلات B2C من API |
+| B2C Sync | مزامنة أسماء الحجاج |
+| PNR Sync | مزامنة الدول المستهدفة لكل PNR |
+| SheetData | تصدير JSON محلي (Node.js) |
 
 ---
 
@@ -260,7 +313,7 @@ node refresh.js
 
 ## الملفات الرئيسية في كل تطبيق
 - `appsscript.json` — إعدادات المشروع
-- `CompleteScript.js` — السكريبت الرئيسي (Ikram1/2)
+- `CompleteScript.js` — السكريبت الرئيسي (Ikram)
 - `AgentCore.js` — المحرك الرئيسي (IkramAgent)
 - `AgentConfig.js` — الإعدادات والرسائل (IkramAgent)
 - `DataFetcher.js` — جلب البيانات (IkramAgent)
@@ -289,7 +342,7 @@ node refresh.js
 
 ## آخر نقطة عمل
 
-- **التاريخ:** 2026-03-14
-- **المشروع:** إعداد Git + SESSION_LOG
-- **الحالة:** نسخ المشروع إلى مسار محلي، git init، أول commit (120 ملف)، إنشاء SESSION_LOG.md
-- **الخطوة التالية:** إنشاء repo على GitHub + تنفيذ نفس الإعداد على جهاز المكتب + تحديد المطلوب من أعمدة عقود السكن/التنقل
+- **التاريخ:** 2026-03-15
+- **المشروع:** هيكلة المشروع + خريطة التفاعل
+- **الحالة:** GitHub repo جاهز، حذف Ikram1 والإبقاء على Ikram، خريطة تفاعل المشاريع مضافة في CLAUDE.md، IkramAgent مؤجّل للعام القادم
+- **الخطوة التالية:** إعداد Git على المكتب (git clone) + إنشاء CLAUDE.md لـ Ikram و Hotel Management

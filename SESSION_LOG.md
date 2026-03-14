@@ -4,6 +4,28 @@
 
 ---
 
+## 2026-03-15 | جهاز البيت
+**ما تم:**
+- إنشاء repo على GitHub (private): `mahmoudekramhajj/ekram-aldyf`
+- تثبيت GitHub CLI + تسجيل الدخول
+- حذف Ikram1 (محذوف من Apps Script) + إعادة تسمية Ikram2 → Ikram
+- مراجعة شاملة لـ IkramAgent: كود كامل لكن غير مفعّل — مؤجّل للعام القادم (مرحلة بيع الباقات انتهت)
+- مقارنة IkramAgent (قبل الحجز) vs IkramHajjBot (بعد الحجز) — لا تكرار بينهم
+- إنشاء خريطة تفاعل المشاريع الكاملة وإضافتها في CLAUDE.md
+
+**الملفات المتأثرة:**
+- CLAUDE.md (خريطة التفاعل + تحديث جدول التطبيقات + حذف Ikram1/Ikram2)
+- SESSION_LOG.md (محدّث)
+- Projects/Ikram1/ (محذوف)
+- Projects/Ikram2/ → Projects/Ikram/ (أعيد تسميته)
+
+**الخطوة التالية:**
+- تنفيذ إعداد Git على جهاز المكتب (git clone)
+- إنشاء CLAUDE.md لـ Ikram و Hotel Management
+- نقاش دمج المشاريع الصغيرة
+
+---
+
 ## 2026-03-14 | جهاز البيت
 **ما تم:**
 - مراجعة شاملة لتحديثات المكتب (clasp pull لـ 17 مشروع + CLAUDE.md لـ Airport Search)
