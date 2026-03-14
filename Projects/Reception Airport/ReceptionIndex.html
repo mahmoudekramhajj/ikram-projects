@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>إكرام الضيف — تسجيل دخول الاستقبال</title>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Tajawal', sans-serif;
+      background: linear-gradient(135deg, #0D4A3A 0%, #1a6b52 50%, #0D4A3A 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .login-container {
+      background: #fff;
+      border-radius: 20px;
+      padding: 40px 30px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+
+    .logo-section {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .logo-icon {
+      width: 72px;
+      height: 72px;
+      background: linear-gradient(135deg, #0D4A3A, #1a6b52);
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+      font-size: 36px;
+    }
+
+    .logo-title {
+      font-size: 22px;
+      font-weight: 800;
+      color: #0D4A3A;
+      margin-bottom: 4px;
+    }
+
+    .logo-subtitle {
+      font-size: 14px;
+      color: #C8A84E;
+      font-weight: 500;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 14px;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 8px;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 14px 16px;
+      border: 2px solid #e0e0e0;
+      border-radius: 12px;
+      font-family: 'Tajawal', sans-serif;
+      font-size: 16px;
+      outline: none;
+      transition: border-color 0.3s;
+      direction: rtl;
+    }
+
+    .form-input:focus {
+      border-color: #0D4A3A;
+    }
+
+    .airport-cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .airport-card {
+      background: #f5f2eb;
+      border: 2px solid transparent;
+      border-radius: 14px;
+      padding: 20px 12px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .airport-card:hover {
+      border-color: #C8A84E;
+      transform: translateY(-2px);
+    }
+
+    .airport-card.selected {
+      border-color: #0D4A3A;
+      background: #E8F5E9;
+    }
+
+    .airport-card .icon {
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
+
+    .airport-card .name {
+      font-size: 14px;
+      font-weight: 700;
+      color: #333;
+    }
+
+    .hall-section {
+      display: none;
+      margin-bottom: 20px;
+    }
+
+    .hall-section.visible {
+      display: block;
+    }
+
+    .hall-options {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .hall-option {
+      background: #f5f2eb;
+      border: 2px solid transparent;
+      border-radius: 10px;
+      padding: 12px;
+      text-align: center;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.3s;
+    }
+
+    .hall-option:hover {
+      border-color: #C8A84E;
+    }
+
+    .hall-option.selected {
+      border-color: #0D4A3A;
+      background: #E8F5E9;
+    }
+
+    .btn-enter {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, #0D4A3A, #1a6b52);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-family: 'Tajawal', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s;
+      opacity: 0.4;
+      pointer-events: none;
+    }
+
+    .btn-enter.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .btn-enter.active:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(13, 74, 58, 0.4);
+    }
+
+    .error-msg {
+      color: #d32f2f;
+      font-size: 13px;
+      text-align: center;
+      margin-top: 12px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="login-container">
+    <div class="logo-section">
+      <div class="logo-icon">✈️</div>
+      <div class="logo-title">استقبال الحجاج</div>
+      <div class="logo-subtitle">شركة إكرام الضيف للسياحة</div>
+    </div>
+
+    <!-- اسم الموظف -->
+    <div class="form-group">
+      <label class="form-label">اسم الموظف</label>
+      <input type="text" class="form-input" id="staffName" placeholder="أدخل اسمك الكامل" autocomplete="off">
+    </div>
+
+    <!-- اختيار المطار -->
+    <div class="form-group">
+      <label class="form-label">المطار</label>
+      <div class="airport-cards">
+        <div class="airport-card" data-airport="madinah" onclick="selectAirport(this)">
+          <div class="icon">🕌</div>
+          <div class="name">المدينة المنورة</div>
+        </div>
+        <div class="airport-card" data-airport="jeddah" onclick="selectAirport(this)">
+          <div class="icon">🕋</div>
+          <div class="name">جدة</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- اختيار الصالة (جدة فقط) -->
+    <div class="hall-section" id="hallSection">
+      <label class="form-label">الصالة</label>
+      <div class="hall-options">
+        <div class="hall-option" data-hall="1" onclick="selectHall(this)">صالة 1</div>
+        <div class="hall-option" data-hall="N" onclick="selectHall(this)">الشمالية (N)</div>
+      </div>
+    </div>
+
+    <!-- زر الدخول -->
+    <button class="btn-enter" id="btnEnter" onclick="enter()">دخول ←</button>
+    <div class="error-msg" id="errorMsg"></div>
+  </div>
+
+  <script>
+    var selectedAirport = '';
+    var selectedHall = '';
+
+    function selectAirport(el) {
+      document.querySelectorAll('.airport-card').forEach(function(c) { c.classList.remove('selected'); });
+      el.classList.add('selected');
+      selectedAirport = el.getAttribute('data-airport');
+
+      // إظهار خيارات الصالة لجدة فقط
+      var hallSection = document.getElementById('hallSection');
+      if (selectedAirport === 'jeddah') {
+        hallSection.classList.add('visible');
+        selectedHall = ''; // إعادة تعيين
+        document.querySelectorAll('.hall-option').forEach(function(h) { h.classList.remove('selected'); });
+      } else {
+        hallSection.classList.remove('visible');
+        selectedHall = 'الرئيسية'; // المدينة لها صالة واحدة
+      }
+
+      checkReady();
+    }
+
+    function selectHall(el) {
+      document.querySelectorAll('.hall-option').forEach(function(h) { h.classList.remove('selected'); });
+      el.classList.add('selected');
+      selectedHall = el.getAttribute('data-hall');
+      checkReady();
+    }
+
+    function checkReady() {
+      var name = document.getElementById('staffName').value.trim();
+      var btn = document.getElementById('btnEnter');
+      var ready = name.length >= 2 && selectedAirport !== '' && selectedHall !== '';
+      btn.classList.toggle('active', ready);
+    }
+
+    // مراقبة حقل الاسم
+    document.getElementById('staffName').addEventListener('input', checkReady);
+
+    function enter() {
+      var name = document.getElementById('staffName').value.trim();
+      if (name.length < 2) {
+        showError('أدخل اسمك (حرفين على الأقل)');
+        return;
+      }
+      if (!selectedAirport) {
+        showError('اختر المطار');
+        return;
+      }
+      if (!selectedHall) {
+        showError('اختر الصالة');
+        return;
+      }
+
+      // حفظ في sessionStorage
+      var session = {
+        staffName: name,
+        airport: selectedAirport,
+        hall: selectedHall,
+        loginTime: new Date().toISOString()
+      };
+      sessionStorage.setItem('receptionSession', JSON.stringify(session));
+
+      // الانتقال للشاشة الرئيسية
+      google.script.run.withSuccessHandler(function(url) {
+        window.open(url + '?page=main', '_top');
+      }).getScriptUrl();
+    }
+
+    function showError(msg) {
+      var el = document.getElementById('errorMsg');
+      el.textContent = msg;
+      el.style.display = 'block';
+      setTimeout(function() { el.style.display = 'none'; }, 3000);
+    }
+
+    // التحقق من جلسة سابقة
+    (function checkExistingSession() {
+      var saved = sessionStorage.getItem('receptionSession');
+      if (saved) {
+        try {
+          var s = JSON.parse(saved);
+          var loginTime = new Date(s.loginTime);
+          var now = new Date();
+          var diffHours = (now - loginTime) / (1000 * 60 * 60);
+          if (diffHours < 1) {
+            // جلسة صالحة — الانتقال مباشرة
+            google.script.run.withSuccessHandler(function(url) {
+              window.open(url + '?page=main', '_top');
+            }).getScriptUrl();
+          } else {
+            sessionStorage.removeItem('receptionSession');
+          }
+        } catch(e) {
+          sessionStorage.removeItem('receptionSession');
+        }
+      }
+    })();
+  </script>
+
+</body>
+</html>

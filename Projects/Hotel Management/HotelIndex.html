@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>إدارة الفنادق | إكرام الضيف</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <?!= include('HotelStyles') ?>
+</head>
+<body>
+
+  <!-- ========== LOGIN SCREEN ========== -->
+  <div id="loginScreen" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:#0f172a;z-index:9999;justify-content:center;align-items:center;flex-direction:column">
+    <div style="text-align:center;padding:40px;background:#1e293b;border-radius:16px;border:1px solid #334155;max-width:400px">
+      <div style="font-size:48px;margin-bottom:16px">🏨</div>
+      <div style="font-size:18px;font-weight:700;color:#e2e8f0;margin-bottom:8px">إدارة الفنادق</div>
+      <div style="font-size:13px;color:#94a3b8;margin-bottom:24px">إكرام الضيف للسياحة | حج 1447هـ</div>
+      <div id="loginError" style="color:#f87171;font-size:14px;font-weight:600;padding:12px;background:#7f1d1d22;border-radius:8px"></div>
+    </div>
+  </div>
+
+  <!-- ========== HEADER ========== -->
+  <header id="appHeader">
+    <div class="header-right">
+      <div class="logo">🏨</div>
+      <div>
+        <div class="title">إدارة الفنادق</div>
+        <div class="subtitle">إكرام الضيف للسياحة | حج 1447</div>
+      </div>
+    </div>
+    <div class="header-left" style="display:flex;align-items:center;gap:8px">
+      <span id="currentUserName" style="font-size:11px;color:#94a3b8"></span>
+      <select id="roleSelector">
+        <option value="hotel">مسؤول الفندق</option>
+        <option value="ops">مشرف العمليات</option>
+        <option value="guide">المرشد</option>
+      </select>
+    </div>
+  </header>
+
+  <!-- ========== HOTEL SELECTOR ========== -->
+  <div id="hotelSelector">
+    <div class="city-toggle">
+      <button class="city-btn active" data-city="madinah" onclick="selectCity('madinah')">🕌 المدينة المنورة</button>
+      <button class="city-btn" data-city="makkah" onclick="selectCity('makkah')">🕋 مكة المكرمة</button>
+      
+    </div>
+    <select id="hotelDropdown" onchange="onHotelSelected()">
+      <option value="">— اختر الفندق —</option>
+    </select>
+  </div>
+
+  <!-- ========== HOTEL ACTIONS ========== -->
+  <div id="hotelActions" style="display:none;padding:0 16px;margin-bottom:8px;display:flex;gap:6px;align-items:center">
+    <button class="btn-primary" onclick="initHotelSheet()" style="background:#4c1d95;font-size:12px">📄 تهيئة شيت الفندق</button>
+    <button class="btn-primary" onclick="refreshData()" style="background:#065f46;font-size:12px" id="refreshBtn">🔄 تحديث البيانات</button>
+    <span id="lastRefreshTime" style="font-size:10px;color:#64748b;margin-right:8px"></span>
+  </div>
+
+  <!-- ========== TAB NAVIGATION ========== -->
+  <nav id="tabNav">
+    <button class="tab-btn active" data-tab="checkin" onclick="switchTab('checkin')">📋 الوصول و Check-in</button>
+    <button class="tab-btn" data-tab="rooming" onclick="switchTab('rooming')">🛏️ التجميع</button>
+    <button class="tab-btn" data-tab="departures" onclick="switchTab('departures')">🚌 المغادرات</button>
+    <button class="tab-btn" data-tab="inventory" onclick="switchTab('inventory')">📊 المخزون</button>
+    <button class="tab-btn" data-tab="dashboard" onclick="switchTab('dashboard')" id="dashboardTab" style="display:none">🎯 لوحة التحكم</button>
+  </nav>
+
+  <!-- ========== LOADING ========== -->
+  <div id="loadingOverlay" style="display:none">
+    <div class="spinner"></div>
+    <div class="loading-text">جاري تحميل البيانات...</div>
+  </div>
+
+  <!-- ========== TAB: CHECK-IN ========== -->
+  <div id="tab-checkin" class="tab-content active">
+    
+    <!-- Stats Bar -->
+    <div class="stats-bar" id="checkinStats"></div>
+
+    <!-- Search & Filters -->
+    <div class="filter-bar">
+      <input type="text" id="searchInput" placeholder="🔍 بحث بالاسم، الجواز، المجموعة، الباقة، الرحلة...">
+      <select id="dateFilter">
+        <option value="">كل التواريخ</option>
+      </select>
+      <select id="statusFilter">
+        <option value="">كل الحالات</option>
+        <option value="arrived">وصل ✓</option>
+        <option value="pending">لم يصل</option>
+        <option value="delayed">متأخر</option>
+        <option value="noshow">No Show</option>
+      </select>
+      <select id="flightFilter">
+        <option value="">كل الرحلات</option>
+      </select>
+      <button class="btn-primary" onclick="applyCheckinFilters()" style="background:#065f46">🔍 بحث</button>
+      <button class="btn-primary" onclick="clearCheckinFilters()" style="background:#334155">✕ مسح</button>
+      <button class="btn-primary" onclick="bulkCheckInSelected()">✓ Check-in جماعي</button>
+      <button class="btn-export" onclick="exportReport('pilgrims')">📥 تصدير Excel</button>
+    </div>
+
+    <!-- Expected Arrivals Today -->
+    <div id="expectedArrivals" class="section-card" style="display:none"></div>
+
+    <!-- No Show Alert (Madinah Only) -->
+    <div id="noShowAlert" class="alert-card" style="display:none"></div>
+
+    <!-- Early Arrival Alerts -->
+    <div id="earlyArrivalAlert" class="alert-card" style="display:none"></div>
+
+    <!-- Pilgrims List -->
+    <div id="pilgrimsList"></div>
+  </div>
+
+  <!-- ========== TAB: ROOMING ========== -->
+  <div id="tab-rooming" class="tab-content">
+    <div class="stats-bar" id="roomingStats"></div>
+    
+    <!-- Auto-assign button -->
+    <div class="filter-bar" id="roomingActions">
+      <button class="btn-primary" onclick="runAutoAssign()">🤖 تجميع تلقائي</button>
+      <button class="btn-primary" style="background:#0e4429" onclick="runOptimization()">💡 تحسين الغرف</button>
+      <button class="btn-primary" style="background:#7c2d12" onclick="clearAllRoomGroups()">🗑️ إعادة تعيين الكل</button>
+      <select id="guideFilter" onchange="applyGuideFilter()" style="background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:8px;padding:6px 12px;font-family:inherit;font-size:12px">
+        <option value="">🎯 كل المرشدين</option>
+      </select>
+    </div>
+
+    <!-- Optimization Results -->
+    <div id="optimizationResults" style="display:none"></div>
+
+    <!-- Confirmed Room Groups -->
+    <div id="confirmedGroups"></div>
+    
+    <!-- Incomplete Room Alert -->
+    <div id="incompleteRoomAlert" class="alert-card" style="display:none"></div>
+    
+    <!-- Ungrouped Shared Pilgrims -->
+    <div id="ungroupedPilgrims"></div>
+
+    <!-- Grouping Action Bar (manual) -->
+    <div id="groupingBar" class="action-bar" style="display:none">
+      <span id="groupingCount"></span>
+      <button class="btn-confirm" onclick="confirmRoomGroup()">🛏️ تأكيد التجميع</button>
+    </div>
+  </div>
+
+  <!-- ========== TAB: DEPARTURES ========== -->
+  <div id="tab-departures" class="tab-content">
+    <div class="stats-bar" id="departureStats"></div>
+    
+    <!-- Departure Filters -->
+    <div class="filter-bar">
+      <select id="departureDateFilter">
+        <option value="">كل التواريخ</option>
+      </select>
+      <button class="btn-primary" onclick="applyDepartureFilters()" style="background:#065f46">🔍 بحث</button>
+      <button class="btn-primary" onclick="clearDepartureFilters()" style="background:#334155">✕ مسح</button>
+      <button class="btn-export" onclick="exportReport('departures')">📥 تصدير Excel</button>
+    </div>
+
+    <div class="section-title" id="departureTitle"></div>
+    <div id="departuresList"></div>
+    <div class="section-title mt-20">📅 الأيام القادمة</div>
+    <div id="upcomingDepartures"></div>
+  </div>
+
+  <!-- ========== TAB: INVENTORY ========== -->
+  <div id="tab-inventory" class="tab-content">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <div class="section-title" id="inventoryTitle"></div>
+      <div style="display:flex;gap:6px">
+        <button class="btn-primary" onclick="generateRoomMappingUI()" style="background:#4c1d95;font-size:12px">🔑 توليد أرقام الغرف</button>
+        <button class="btn-export" onclick="exportReport('inventory')">📥 تصدير Excel</button>
+      </div>
+    </div>
+    <div id="inventoryFilters" style="display:none"></div>
+    <div id="inventoryTable"></div>
+    <div id="earlyArrivalInventory" style="display:none"></div>
+    
+    <!-- Room Mapping Section -->
+    <div class="section-title mt-20" id="roomMappingTitle" style="display:none">🔑 ربط أرقام الغرف</div>
+    <div id="roomMappingTable"></div>
+  </div>
+
+  <!-- ========== TAB: DASHBOARD ========== -->
+  <div id="tab-dashboard" class="tab-content">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+      <div class="section-title" style="margin-bottom:0">🎯 لوحة تحكم مشرف العمليات</div>
+      <div style="display:flex;gap:6px">
+        <button class="btn-export" onclick="exportReport('dashboard')">📥 تصدير Dashboard</button>
+        <button class="btn-export" style="background:#4c1d95;color:#c084fc;border-color:#7c3aed" onclick="exportReport('forecast')">📊 تقرير توقعي</button>
+        <button class="btn-primary" onclick="loadForecast()">📈 عرض التوقعات</button>
+      </div>
+    </div>
+    <div class="stats-bar" id="dashboardOverall"></div>
+    <div class="section-title mt-20">📊 حالة الفنادق</div>
+    <div id="hotelPerformance"></div>
+    <div id="allDelayed" class="alert-card mt-20"></div>
+    <div id="forecastSection" style="display:none">
+      <div class="section-title mt-20">📈 التقرير التوقعي — جميع الفنادق</div>
+      <div id="forecastContent"></div>
+    </div>
+  </div>
+
+  <!-- ========== FOOTER ========== -->
+  <footer>
+    إكرام الضيف للسياحة | نظام إدارة الفنادق | حج 1447هـ — 2026م
+  </footer>
+
+  <!-- ========== TOAST NOTIFICATION ========== -->
+  <div id="toast" class="toast"></div>
+
+  <?!= include('HotelScripts_Core') ?>
+  <?!= include('HotelScripts_Checkin') ?>
+  <?!= include('HotelScripts_Rooming') ?>
+  <?!= include('HotelScripts_Operations') ?>
+</body>
+</html>

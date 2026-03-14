@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+  <?!= include('PilgrimStyles'); ?>
+</head>
+<body class="ltr">
+
+<!-- Password Screen -->
+<div class="password-overlay" id="passwordOverlay">
+  <div class="password-box">
+    <h3 id="passwordTitle">🔐 Enter Password</h3>
+    <input type="password" id="passwordInput" placeholder="****" onkeypress="if(event.key==='Enter')submitPassword()">
+    <div class="password-error" id="passwordError">Incorrect password</div>
+    <div class="password-actions">
+      <button class="btn btn-primary" onclick="submitPassword()" id="passwordSubmitBtn">Enter</button>
+    </div>
+  </div>
+</div>
+
+<!-- Header -->
+<header class="header">
+  <select class="lang-select" id="langSelect" onchange="changeLang(this.value)">
+    <option value="ar">العربية</option>
+    <option value="en" selected>English</option>
+  </select>
+  <div class="header-content">
+    <img src="https://image2url.com/r2/default/images/1770118638761-1c568098-574a-4971-b8e9-012f75d987f0.jpeg" alt="Logo" class="header-logo">
+    <div class="header-text">
+      <h1 id="headerTitle">🕋 Ikram AlDyf for Hajj</h1>
+      <p id="headerSubtitle">Pilgrim Search System</p>
+    </div>
+  </div>
+</header>
+
+<!-- Tabs -->
+<div class="tabs-bar">
+  <button class="tab-btn active" id="tabSearch" onclick="switchTab('search')">🔍 <span id="lblTabSearch">Search</span></button>
+  <button class="tab-btn" id="tabStats" onclick="switchTab('stats')">📊 <span id="lblTabStats">Guide Stats</span></button>
+</div>
+
+<!-- Stats Bar -->
+<div class="stats-bar">
+  <div class="stat-item">
+    <div class="stat-value" id="statTotal">0</div>
+    <div class="stat-label" id="lblStatTotal">Total Pilgrims</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-value" id="statGroups">0</div>
+    <div class="stat-label" id="lblStatGroups">Groups</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-value" id="statCountries">0</div>
+    <div class="stat-label" id="lblStatCountries">Countries</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-value" id="statPackages">0</div>
+    <div class="stat-label" id="lblStatPackages">Packages</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-value" id="statB2B">0</div>
+    <div class="stat-label" id="lblStatB2B">B2B</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-value" id="statB2C">0</div>
+    <div class="stat-label" id="lblStatB2C">B2C</div>
+  </div>
+</div>
+
+<!-- Search Section -->
+<div class="search-section">
+  <div class="search-box">
+    <h2 class="search-title" id="searchTitle">🔍 Search Pilgrim</h2>
+    <div class="search-grid">
+      <div class="search-group">
+        <label id="lblName">👤 Name</label>
+        <input type="text" id="fName" oninput="doSearch()" placeholder="English or Arabic...">
+      </div>
+      <div class="search-group">
+        <label id="lblPassport">🛂 Passport</label>
+        <input type="text" id="fPassport" oninput="doSearch()">
+      </div>
+      <div class="search-group">
+        <label id="lblGroup">👨‍👩‍👧‍👦 Group No.</label>
+        <input type="text" id="fGroup" oninput="doSearch()">
+      </div>
+      <div class="search-group">
+        <label id="lblPackage">📦 Package</label>
+        <select id="fPackage" onchange="doSearch()"></select>
+      </div>
+      <div class="search-group">
+        <label id="lblCountry">🌍 Country</label>
+        <select id="fCountry" onchange="doSearch()"></select>
+      </div>
+      <div class="search-group">
+        <label id="lblContract">✈️ Contract</label>
+        <input type="text" id="fContract" oninput="doSearch()">
+      </div>
+      <div class="search-group">
+        <label id="lblGuide">🎯 Guide</label>
+        <select id="fGuide" onchange="doSearch()"></select>
+      </div>
+      <div class="search-group">
+        <label id="lblFlightType">🎫 Ticket Type</label>
+        <select id="fFlightType" onchange="doSearch()"></select>
+      </div>
+    </div>
+    <div class="search-actions">
+      <button class="btn btn-primary" onclick="doSearch()" id="btnSearch">🔍 Search</button>
+      <button class="btn btn-secondary" onclick="clearSearch()" id="btnClear">🔄 Clear</button>
+      <button class="btn btn-export" onclick="exportXLSX()" id="btnExport">📊 Export</button>
+    </div>
+  </div>
+
+  <!-- Results Bar -->
+  <div class="results-bar">
+    <div class="results-count">
+      <span id="txtFound">Found</span> <strong id="resultCount">0</strong> <span id="txtPilgrims">pilgrims</span>
+    </div>
+  </div>
+
+  <!-- Results Area -->
+  <div id="resultsArea">
+    <div class="loading">
+      <div class="spinner"></div>
+      <p>Loading...</p>
+    </div>
+  </div>
+</div>
+
+<!-- Guide Stats Section -->
+<div class="stats-section" id="statsSection" style="display:none">
+  <div class="search-section">
+    <div class="search-box">
+      <h2 class="search-title" id="statsTitle">📊 Guide Stats per Package</h2>
+      <div class="search-group" style="max-width:400px">
+        <label id="lblStatsFilter">🔍 Filter Package</label>
+        <input type="text" id="statsFilter" oninput="filterStats()" placeholder="...">
+      </div>
+    </div>
+    <div id="statsArea">
+      <div class="loading"><div class="spinner"></div><p>Loading...</p></div>
+    </div>
+  </div>
+</div>
+
+<?!= include('PilgrimScripts'); ?>
+
+</body>
+</html>

@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>إكرام الضيف — اختيار المطار</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #0D4A3A; --primary-light: #1A6B54; --primary-dark: #08332A;
+      --accent: #C8A84E; --accent-light: #E8D08E;
+      --bg: #F5F2EB; --bg-card: #FFFFFF;
+      --text: #1A1A1A; --text-secondary: #5A5A5A; --text-light: #8A8A8A;
+      --border: #E0DDD6;
+      --shadow: 0 2px 12px rgba(13,74,58,0.08);
+      --shadow-lg: 0 8px 32px rgba(13,74,58,0.12);
+      --radius: 16px; --radius-sm: 10px;
+      --transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+    }
+    *,*::before,*::after { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family:'Tajawal',sans-serif; background:var(--bg); color:var(--text);
+      min-height:100vh; min-height:100dvh; display:flex; flex-direction:column;
+      overflow-x:hidden; -webkit-font-smoothing:antialiased;
+    }
+    body::before {
+      content:''; position:fixed; top:0; left:0; right:0; bottom:0;
+      background: radial-gradient(ellipse at 20% 0%,rgba(13,74,58,0.06)0%,transparent 60%),
+                  radial-gradient(ellipse at 80% 100%,rgba(200,168,78,0.06)0%,transparent 60%);
+      pointer-events:none; z-index:0;
+    }
+
+    /* ─── Header ─── */
+    .header {
+      background: linear-gradient(135deg,var(--primary)0%,var(--primary-dark)100%);
+      padding:40px 20px 48px; text-align:center; position:relative; overflow:hidden;
+    }
+    .header::after {
+      content:''; position:absolute; bottom:-20px; left:-5%; right:-5%;
+      height:40px; background:var(--bg); border-radius:50% 50% 0 0;
+    }
+    .header-pattern {
+      position:absolute; top:0; left:0; right:0; bottom:0; opacity:0.05;
+      background-image:repeating-linear-gradient(45deg,transparent,transparent 20px,#fff 20px,#fff 21px),
+                        repeating-linear-gradient(-45deg,transparent,transparent 20px,#fff 20px,#fff 21px);
+    }
+    .logo-icon {
+      width:56px; height:56px; background:rgba(255,255,255,0.12);
+      border:2px solid rgba(200,168,78,0.4); border-radius:16px;
+      display:flex; align-items:center; justify-content:center;
+      margin:0 auto 16px; position:relative; z-index:1;
+    }
+    .logo-icon svg { width:30px; height:30px; fill:var(--accent); }
+    .header h1 { font-size:22px; font-weight:800; color:#fff; margin-bottom:6px; position:relative; z-index:1; letter-spacing:-0.3px; }
+    .header p { font-size:14px; color:rgba(255,255,255,0.65); font-weight:400; position:relative; z-index:1; }
+
+    /* ─── User Bar ─── */
+    .user-bar {
+      position:relative; z-index:1; margin-top:12px;
+      display:flex; align-items:center; justify-content:center; gap:10px;
+    }
+    .user-bar span { font-size:13px; color:rgba(255,255,255,0.7); }
+    .user-bar strong { color:#fff; }
+    .btn-logout {
+      background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.2);
+      color:#fff; padding:4px 14px; border-radius:8px; font-family:'Tajawal';
+      font-size:12px; font-weight:600; cursor:pointer; transition:var(--transition);
+    }
+    .btn-logout:active { background:rgba(255,255,255,0.2); }
+
+    /* ─── Content ─── */
+    .content {
+      flex:1; padding:24px 20px 32px; position:relative; z-index:1;
+      max-width:440px; width:100%; margin:0 auto;
+    }
+    .section-label {
+      font-size:13px; font-weight:700; color:var(--text-light);
+      text-transform:uppercase; letter-spacing:1.5px; margin-bottom:14px; padding-right:4px;
+    }
+
+    /* ─── Airport Cards ─── */
+    .airport-grid { display:flex; flex-direction:column; gap:12px; margin-bottom:24px; }
+    .airport-card {
+      background:var(--bg-card); border:2px solid var(--border); border-radius:var(--radius);
+      padding:20px; cursor:pointer; transition:var(--transition);
+      display:flex; align-items:center; gap:16px; position:relative;
+      -webkit-tap-highlight-color:transparent;
+    }
+    .airport-card:active { transform:scale(0.98); }
+    .airport-card.selected { border-color:var(--primary); background:rgba(13,74,58,0.03); box-shadow:var(--shadow); }
+    .airport-card.selected .check-mark { opacity:1; transform:scale(1); }
+    .airport-card.restricted { opacity:0.35; pointer-events:none; }
+    .airport-icon {
+      width:44px; height:44px; border-radius:12px; display:flex;
+      align-items:center; justify-content:center; flex-shrink:0;
+    }
+    .airport-icon svg { width:24px; height:24px; }
+    .airport-info { flex:1; }
+    .airport-name { font-size:16px; font-weight:700; color:var(--text); margin-bottom:2px; }
+    .airport-code { font-size:12px; color:var(--text-light); font-weight:500; direction:ltr; text-align:right; }
+    .check-mark {
+      width:28px; height:28px; background:var(--primary); border-radius:50%;
+      display:flex; align-items:center; justify-content:center;
+      opacity:0; transform:scale(0.5); transition:var(--transition);
+    }
+    .check-mark svg { width:16px; height:16px; fill:#fff; }
+
+    .airport-card[data-airport="Madinah"] .airport-icon { background:rgba(13,74,58,0.08); }
+    .airport-card[data-airport="Jeddah"] .airport-icon { background:rgba(21,101,192,0.08); }
+
+    /* ─── Hall Section ─── */
+    .hall-section {
+      max-height:0; overflow:hidden; opacity:0; transition:max-height 0.4s ease,opacity 0.3s ease,margin 0.3s ease;
+      margin-bottom:0;
+    }
+    .hall-section.visible { max-height:200px; opacity:1; margin-bottom:24px; }
+    .hall-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .hall-card {
+      background:var(--bg-card); border:2px solid var(--border); border-radius:var(--radius-sm);
+      padding:16px; text-align:center; cursor:pointer; transition:var(--transition);
+      -webkit-tap-highlight-color:transparent;
+    }
+    .hall-card:active { transform:scale(0.97); }
+    .hall-card.selected { border-color:var(--accent); background:rgba(200,168,78,0.06); }
+    .hall-number { font-size:24px; font-weight:800; color:var(--primary); margin-bottom:4px; }
+    .hall-label { font-size:12px; color:var(--text-light); font-weight:600; }
+    .hall-card.selected .hall-number { color:var(--accent); }
+
+    /* ─── Enter Button ─── */
+    .btn-enter {
+      width:100%; padding:16px 24px; background:var(--border); color:var(--text-light);
+      border:none; border-radius:var(--radius); font-family:'Tajawal',sans-serif;
+      font-size:16px; font-weight:700; cursor:not-allowed; transition:var(--transition);
+      display:flex; align-items:center; justify-content:center; gap:8px;
+      -webkit-tap-highlight-color:transparent;
+    }
+    .btn-enter.active {
+      background:linear-gradient(135deg,var(--primary)0%,var(--primary-light)100%);
+      color:#fff; cursor:pointer; box-shadow:0 4px 16px rgba(13,74,58,0.2);
+    }
+    .btn-enter.active:active { transform:scale(0.98); }
+    .btn-enter svg { width:18px; height:18px; fill:currentColor; transition:transform 0.3s ease; }
+    .btn-enter.active svg { transform:translateX(-4px); }
+
+    /* ─── Footer ─── */
+    .footer { text-align:center; padding:16px 20px 24px; }
+    .footer p { font-size:12px; color:var(--text-light); }
+    .footer .version {
+      display:inline-block; background:rgba(13,74,58,0.06); padding:2px 10px;
+      border-radius:20px; font-size:11px; color:var(--primary); font-weight:600; margin-top:6px;
+    }
+
+    /* ─── Loading ─── */
+    .loading-overlay {
+      position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(245,242,235,0.92);
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      z-index:100; opacity:0; pointer-events:none; transition:opacity 0.3s ease;
+    }
+    .loading-overlay.visible { opacity:1; pointer-events:all; }
+    .spinner {
+      width:36px; height:36px; border:3px solid var(--border);
+      border-top-color:var(--primary); border-radius:50%;
+      animation:spin 0.8s linear infinite;
+    }
+    @keyframes spin { to{transform:rotate(360deg)} }
+    .loading-text { margin-top:12px; font-size:14px; color:var(--text-secondary); font-weight:600; }
+  </style>
+</head>
+<body>
+
+  <!-- ── Header ── -->
+  <div class="header">
+    <div class="header-pattern"></div>
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg>
+    </div>
+    <h1>إكرام الضيف</h1>
+    <p>نظام بحث رحلات المطار</p>
+    <div class="user-bar">
+      <span>مرحباً، <strong id="displayUserName"></strong></span>
+      <button class="btn-logout" onclick="doLogout()">خروج</button>
+    </div>
+  </div>
+
+  <!-- ── Content ── -->
+  <div class="content">
+    <div class="section-label">اختر المطار</div>
+
+    <div class="airport-grid">
+      <div class="airport-card" data-airport="Madinah" onclick="selectAirport(this)">
+        <div class="airport-icon">
+          <svg viewBox="0 0 24 24" fill="#0D4A3A"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+        </div>
+        <div class="airport-info">
+          <div class="airport-name">مطار المدينة المنورة</div>
+          <div class="airport-code">MED — Prince Mohammad Bin Abdulaziz</div>
+        </div>
+        <div class="check-mark">
+          <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+        </div>
+      </div>
+
+      <div class="airport-card" data-airport="Jeddah" onclick="selectAirport(this)">
+        <div class="airport-icon">
+          <svg viewBox="0 0 24 24" fill="#1565C0"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+        </div>
+        <div class="airport-info">
+          <div class="airport-name">مطار جدة</div>
+          <div class="airport-code">JED — King Abdulaziz International</div>
+        </div>
+        <div class="check-mark">
+          <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hall Selection (Jeddah only) -->
+    <div class="hall-section" id="hallSection">
+      <div class="section-label">اختر الصالة</div>
+      <div class="hall-grid">
+        <div class="hall-card" data-hall="hall1" onclick="selectHall(this)">
+          <div class="hall-number">1</div>
+          <div class="hall-label">صالة رقم 1</div>
+        </div>
+        <div class="hall-card" data-hall="north" onclick="selectHall(this)">
+          <div class="hall-number">N</div>
+          <div class="hall-label">الصالة الشمالية</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Enter Button -->
+    <button class="btn-enter" id="btnEnter" onclick="enterSearch()">
+      <span>الدخول لشاشة البحث</span>
+      <svg viewBox="0 0 24 24"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/></svg>
+    </button>
+  </div>
+
+  <!-- ── Footer ── -->
+  <div class="footer">
+    <p>شركة إكرام الضيف للسياحة — موسم حج 1447</p>
+    <span class="version">v2.1</span>
+  </div>
+
+  <!-- ── Loading Overlay ── -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="spinner"></div>
+    <div class="loading-text">جاري التحميل...</div>
+  </div>
+
+  <script>
+    // ─── Auth (injected from server) ───
+    var AUTH = {
+      token: '<?= injectedToken ?>',
+      user: <?!= injectedUser ?>
+    };
+
+    // ─── State ───
+    var state = {
+      airport: '',
+      hall: ''
+    };
+
+    // ─── عرض اسم المستخدم ───
+    document.addEventListener('DOMContentLoaded', function() {
+      var nameEl = document.getElementById('displayUserName');
+      if (nameEl && AUTH.user) {
+        nameEl.textContent = AUTH.user.fullName || AUTH.user.username;
+      }
+      applyAirportRestriction();
+    });
+
+    // ─── تقييد المطارات حسب صلاحية المستخدم ───
+    function applyAirportRestriction() {
+      var userAirport = AUTH.user.airport;
+      if (userAirport === 'All') return;
+
+      var cards = document.querySelectorAll('.airport-card');
+      cards.forEach(function(card) {
+        var airport = card.getAttribute('data-airport');
+        if (airport !== userAirport) {
+          card.classList.add('restricted');
+          card.querySelector('.airport-name').textContent += ' (غير متاح)';
+        }
+      });
+
+      // اختيار المطار المسموح تلقائياً
+      var allowedCard = document.querySelector('[data-airport="' + userAirport + '"]');
+      if (allowedCard) selectAirport(allowedCard);
+    }
+
+    // ─── Airport Selection ───
+    function selectAirport(el) {
+      if (el.classList.contains('restricted')) return;
+
+      document.querySelectorAll('.airport-card').forEach(function(card) {
+        card.classList.remove('selected');
+      });
+      el.classList.add('selected');
+
+      state.airport = el.getAttribute('data-airport');
+      state.hall = '';
+
+      var hallSection = document.getElementById('hallSection');
+      if (state.airport === 'Jeddah') {
+        hallSection.classList.add('visible');
+        document.querySelectorAll('.hall-card').forEach(function(card) {
+          card.classList.remove('selected');
+        });
+
+        // تقييد الصالة حسب الصلاحية
+        if (AUTH.user.hall && AUTH.user.hall !== 'all') {
+          var allowedHall = document.querySelector('[data-hall="' + AUTH.user.hall + '"]');
+          if (allowedHall) {
+            selectHall(allowedHall);
+            // إخفاء الصالات الأخرى
+            document.querySelectorAll('.hall-card').forEach(function(card) {
+              if (card.getAttribute('data-hall') !== AUTH.user.hall) {
+                card.style.opacity = '0.3';
+                card.style.pointerEvents = 'none';
+              }
+            });
+          }
+        }
+
+        updateButton();
+      } else {
+        hallSection.classList.remove('visible');
+        updateButton();
+      }
+    }
+
+    // ─── Hall Selection ───
+    function selectHall(el) {
+      document.querySelectorAll('.hall-card').forEach(function(card) {
+        card.classList.remove('selected');
+      });
+      el.classList.add('selected');
+      state.hall = el.getAttribute('data-hall');
+      updateButton();
+    }
+
+    // ─── Update Button State ───
+    function updateButton() {
+      var btn = document.getElementById('btnEnter');
+      var ready = false;
+
+      if (state.airport === 'Madinah') {
+        ready = true;
+      } else if (state.airport === 'Jeddah' && state.hall !== '') {
+        ready = true;
+      }
+
+      if (ready) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    }
+
+    // ─── Navigate to Search (مع التوكن) ───
+    function enterSearch() {
+      var btn = document.getElementById('btnEnter');
+      if (!btn.classList.contains('active')) return;
+
+      document.getElementById('loadingOverlay').classList.add('visible');
+
+      google.script.run
+        .withSuccessHandler(function(url) {
+          var params = '?page=search&airport=' + encodeURIComponent(state.airport);
+          params += '&token=' + encodeURIComponent(AUTH.token);
+          if (state.hall) {
+            params += '&hall=' + encodeURIComponent(state.hall);
+          }
+          window.open(url + params, '_top');
+        })
+        .withFailureHandler(function(err) {
+          document.getElementById('loadingOverlay').classList.remove('visible');
+          alert('حدث خطأ في الاتصال. حاول مرة أخرى.');
+        })
+        .getScriptUrl();
+    }
+
+    // ─── تسجيل الخروج ───
+    function doLogout() {
+      google.script.run.logout(AUTH.token);
+      sessionStorage.clear();
+      google.script.run.withSuccessHandler(function(url) {
+        window.open(url + '?page=login', '_top');
+      }).getScriptUrl();
+    }
+  </script>
+
+</body>
+</html>

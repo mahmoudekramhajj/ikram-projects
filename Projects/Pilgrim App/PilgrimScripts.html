@@ -1,0 +1,635 @@
+<script>
+// ══════════════════════════════════════════════════════════════
+// PilgrimScripts.html - نظام البحث عن الحجاج
+// الإصدار 2.0
+// التعديلات: مواصلات من الباقة + تصدير XLSX
+// ══════════════════════════════════════════════════════════════
+
+var allPilgrims = [];
+var currentResults = [];
+var currentLang = 'en';
+var isAuthenticated = false;
+var allPkgStats = [];
+var currentTab = 'search';
+
+// ==================== التبويبات ====================
+function switchTab(tab) {
+  currentTab = tab;
+  document.getElementById('tabSearch').classList.toggle('active', tab === 'search');
+  document.getElementById('tabStats').classList.toggle('active', tab === 'stats');
+  document.getElementById('statsSection').style.display = tab === 'stats' ? 'block' : 'none';
+  document.querySelector('.stats-bar').style.display = tab === 'search' ? 'flex' : 'none';
+  document.querySelector('.search-section').style.display = tab === 'search' ? 'block' : 'none';
+  if (tab === 'stats' && allPkgStats.length === 0 && isAuthenticated) loadPkgStats();
+}
+
+// ==================== الترجمات ====================
+var T = {
+  ar: {
+    headerTitle: '🕋 شركة إكرام الضيف للسياحة',
+    headerSubtitle: 'نظام البحث عن الحجاج',
+    statTotal: 'إجمالي الحجاج',
+    statGroups: 'المجموعات',
+    statCountries: 'الدول',
+    statPackages: 'الباقات',
+    statB2B: 'B2B',
+    statB2C: 'B2C',
+    searchTitle: '🔍 البحث عن حاج',
+    lblName: '👤 الاسم',
+    lblPassport: '🛂 رقم الجواز',
+    lblGroup: '👨‍👩‍👧‍👦 رقم المجموعة',
+    lblPackage: '📦 الباقة',
+    lblCountry: '🌍 الدولة',
+    lblContract: '✈️ العقد',
+    lblGuide: '🎯 المرشد',
+    lblFlightType: '🎫 نوع التذكرة',
+    btnSearch: '🔍 بحث',
+    btnClear: '🔄 مسح',
+    btnExport: '📊 تصدير',
+    found: 'تم العثور على',
+    pilgrims: 'حاج',
+    all: 'الكل',
+    main: 'رئيسي',
+    familyMember: 'عضو عائلة',
+    passport: 'الجواز',
+    passportExpiry: 'انتهاء الجواز',
+    birthDate: 'تاريخ الميلاد',
+    email: 'البريد',
+    phone: 'الجوال',
+    country: 'الدولة',
+    nationality: 'الجنسية',
+    package: 'الباقة',
+    flightType: 'نوع التذكرة',
+    contract: 'العقد',
+    visa: 'التأشيرة',
+    ticket: 'التذكرة',
+    invoice: 'الفاتورة',
+    guide: 'المرشد',
+    local: 'داخل المملكة',
+    groupMembers: '👨‍👩‍👧‍👦 أفراد المجموعة',
+    arrival: '✈️ الوصول',
+    departure: '✈️ المغادرة',
+    transport: '🚌 النقل',
+    transportType: 'نوع التنقل',
+    noResults: 'لا توجد نتائج',
+    loading: 'جاري التحميل...',
+    passwordTitle: '🔐 أدخل كلمة السر',
+    passwordError: 'كلمة السر غير صحيحة',
+    passwordSubmit: 'دخول',
+    gender: 'الجنس',
+    serial: 'الرقم التسلسلي',
+    male: 'ذكر',
+    female: 'أنثى'
+  },
+  en: {
+    headerTitle: '🕋 Ikram AlDyf for Hajj',
+    headerSubtitle: 'Pilgrim Search System',
+    statTotal: 'Total Pilgrims',
+    statGroups: 'Groups',
+    statCountries: 'Countries',
+    statPackages: 'Packages',
+    statB2B: 'B2B',
+    statB2C: 'B2C',
+    searchTitle: '🔍 Search Pilgrim',
+    lblName: '👤 Name',
+    lblPassport: '🛂 Passport',
+    lblGroup: '👨‍👩‍👧‍👦 Group No.',
+    lblPackage: '📦 Package',
+    lblCountry: '🌍 Country',
+    lblContract: '✈️ Contract',
+    lblGuide: '🎯 Guide',
+    lblFlightType: '🎫 Ticket Type',
+    btnSearch: '🔍 Search',
+    btnClear: '🔄 Clear',
+    btnExport: '📊 Export',
+    found: 'Found',
+    pilgrims: 'pilgrims',
+    all: 'All',
+    main: 'Main',
+    familyMember: 'Family Member',
+    passport: 'Passport',
+    passportExpiry: 'Passport Expiry',
+    birthDate: 'Birth Date',
+    email: 'Email',
+    phone: 'Phone',
+    country: 'Country',
+    nationality: 'Nationality',
+    package: 'Package',
+    flightType: 'Ticket Type',
+    contract: 'Contract',
+    visa: 'Visa',
+    ticket: 'Ticket',
+    invoice: 'Invoice',
+    guide: 'Guide',
+    local: 'Local (KSA)',
+    groupMembers: '👨‍👩‍👧‍👦 Group Members',
+    arrival: '✈️ Arrival',
+    departure: '✈️ Departure',
+    transport: '🚌 Transport',
+    transportType: 'Transport Type',
+    noResults: 'No results found',
+    loading: 'Loading...',
+    passwordTitle: '🔐 Enter Password',
+    passwordError: 'Incorrect password',
+    passwordSubmit: 'Enter',
+    gender: 'Gender',
+    serial: 'Serial No.',
+    male: 'Male',
+    female: 'Female'
+  }
+};
+
+// ==================== التهيئة ====================
+document.addEventListener('DOMContentLoaded', function() {
+  showPasswordScreen();
+});
+
+function changeLang(lang) {
+  currentLang = lang;
+  document.body.className = lang === 'ar' ? 'rtl' : 'ltr';
+  document.documentElement.lang = lang;
+  document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+  updateUI();
+  populateFilters();
+  doSearch();
+}
+
+// ==================== المصادقة ====================
+function showPasswordScreen() {
+  document.getElementById('passwordOverlay').classList.remove('hidden');
+  document.getElementById('passwordInput').focus();
+}
+
+function submitPassword() {
+  var entered = document.getElementById('passwordInput').value;
+  google.script.run
+    .withSuccessHandler(function(correct) {
+      if (entered === correct) {
+        isAuthenticated = true;
+        document.getElementById('passwordOverlay').classList.add('hidden');
+        loadData();
+      } else {
+        document.getElementById('passwordError').style.display = 'block';
+        document.getElementById('passwordInput').value = '';
+        document.getElementById('passwordInput').focus();
+      }
+    })
+    .withFailureHandler(function() {
+      document.getElementById('passwordError').style.display = 'block';
+    })
+    .getPassword();
+}
+
+// ==================== تحميل البيانات ====================
+function loadData() {
+  document.getElementById('resultsArea').innerHTML =
+    '<div class="loading"><div class="spinner"></div><p>' + T[currentLang].loading + '</p></div>';
+
+  google.script.run
+    .withSuccessHandler(function(json) {
+      var data = JSON.parse(json);
+      if (!data.success) {
+        document.getElementById('resultsArea').innerHTML = '<div class="no-results">Error: ' + (data.error || 'Unknown') + '</div>';
+        return;
+      }
+      allPilgrims = data.pilgrims || [];
+      updateStats(data.stats);
+      populateFilters();
+      doSearch();
+    })
+    .withFailureHandler(function(err) {
+      document.getElementById('resultsArea').innerHTML = '<div class="no-results">Error loading data</div>';
+    })
+    .getAllPilgrims();
+}
+
+// ==================== الإحصائيات ====================
+function updateStats(stats) {
+  document.getElementById('statTotal').textContent = fmtN(stats.totalPilgrims || 0);
+  document.getElementById('statGroups').textContent = fmtN(stats.totalGroups || 0);
+  document.getElementById('statCountries').textContent = fmtN(stats.totalCountries || 0);
+  document.getElementById('statPackages').textContent = fmtN(stats.totalPackages || 0);
+  document.getElementById('statB2B').textContent = fmtN(stats.b2b || 0);
+  document.getElementById('statB2C').textContent = fmtN(stats.b2c || 0);
+}
+
+// ==================== الفلاتر ====================
+function populateFilters() {
+  updateDynamicFilters(allPilgrims);
+}
+
+function updateDynamicFilters(data) {
+  var t = T[currentLang];
+
+  // حفظ القيم الحالية
+  var selCountry    = gv('fCountry');
+  var selPackage    = gv('fPackage');
+  var selGuide      = gv('fGuide');
+  var selFlightType = gv('fFlightType');
+
+  // بناء القيم المتاحة من البيانات الحالية
+  var countries = [];
+  var packages  = [];
+  var guides    = [];
+  var flights   = [];
+  var seenC = {}, seenP = {}, seenG = {}, seenF = {};
+
+  for (var i = 0; i < data.length; i++) {
+    var p = data[i];
+    if (p.country    && !seenC[p.country])    { seenC[p.country] = true;    countries.push(p.country); }
+    if (p.guide      && !seenG[p.guide])      { seenG[p.guide] = true;      guides.push(p.guide); }
+    if (p.flightType && !seenF[p.flightType]) { seenF[p.flightType] = true; flights.push(p.flightType); }
+    if (p.packageNo  && !seenP[p.packageNo])  {
+      seenP[p.packageNo] = true;
+      packages.push({ no: p.packageNo, name: p.packageName });
+    }
+  }
+
+  countries.sort();
+  guides.sort();
+  flights.sort();
+  packages.sort(function(a, b) { return a.no - b.no; });
+
+  fillSelect('fCountry', countries, t.all, selCountry);
+  fillSelectPkg('fPackage', packages, t.all, selPackage);
+  fillSelect('fGuide', guides, t.all, selGuide);
+
+  var ftSelect = document.getElementById('fFlightType');
+  ftSelect.innerHTML = '<option value="">' + t.all + '</option>';
+  for (var f = 0; f < flights.length; f++) {
+    ftSelect.innerHTML += '<option value="' + flights[f] + '"' + (flights[f] === selFlightType ? ' selected' : '') + '>' + flights[f] + '</option>';
+  }
+}
+
+function fillSelect(id, arr, allText, selectedVal) {
+  var s = document.getElementById(id);
+  if (!s) return;
+  s.innerHTML = '<option value="">' + allText + '</option>';
+  for (var i = 0; i < arr.length; i++) {
+    s.innerHTML += '<option value="' + arr[i] + '"' + (arr[i] === selectedVal ? ' selected' : '') + '>' + arr[i] + '</option>';
+  }
+}
+
+function fillSelectPkg(id, arr, allText, selectedVal) {
+  var s = document.getElementById(id);
+  if (!s) return;
+  s.innerHTML = '<option value="">' + allText + '</option>';
+  for (var i = 0; i < arr.length; i++) {
+    var sel = String(arr[i].no) === String(selectedVal) ? ' selected' : '';
+    s.innerHTML += '<option value="' + arr[i].no + '"' + sel + '>' + arr[i].no + ' - ' + arr[i].name + '</option>';
+  }
+}
+
+// ==================== البحث ====================
+function doSearch() {
+  var filters = {
+    name:       gv('fName').toLowerCase(),
+    passport:   gv('fPassport').toUpperCase(),
+    group:      gv('fGroup'),
+    package:    gv('fPackage'),
+    country:    gv('fCountry'),
+    contract:   gv('fContract').toLowerCase(),
+    guide:      gv('fGuide'),
+    flightType: gv('fFlightType')
+  };
+
+  var results = allPilgrims.filter(function(p) {
+    if (filters.name) {
+      var fullEn = (p.firstNameEn + ' ' + p.lastNameEn).toLowerCase();
+      var fullAr = (p.firstNameAr + ' ' + p.lastNameAr).toLowerCase();
+      if (fullEn.indexOf(filters.name) === -1 && fullAr.indexOf(filters.name) === -1) return false;
+    }
+    if (filters.passport   && String(p.passport).toUpperCase().indexOf(filters.passport) === -1) return false;
+    if (filters.group      && String(p.groupNo) !== filters.group) return false;
+    if (filters.package    && String(p.packageNo) !== filters.package) return false;
+    if (filters.country    && p.country !== filters.country) return false;
+    if (filters.contract   && String(p.contractName).toLowerCase().indexOf(filters.contract) === -1) return false;
+    if (filters.guide      && p.guide !== filters.guide) return false;
+    if (filters.flightType && p.flightType !== filters.flightType) return false;
+    return true;
+  });
+
+  currentResults = results;
+
+  // تحديث الفلاتر الديناميكية بناءً على النتائج
+  updateDynamicFilters(results);
+
+  showResults(results);
+}
+
+function clearSearch() {
+  ['fName', 'fPassport', 'fGroup', 'fPackage', 'fCountry', 'fContract', 'fGuide', 'fFlightType'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  doSearch();
+}
+
+// ==================== عرض النتائج ====================
+function showResults(results) {
+  var t = T[currentLang];
+  document.getElementById('resultCount').textContent = results.length;
+
+  var area = document.getElementById('resultsArea');
+  if (results.length === 0) {
+    area.innerHTML = '<div class="no-results">😕 ' + t.noResults + '</div>';
+    return;
+  }
+
+  var html = '<div class="pilgrims-grid">';
+  var shown = {};
+
+  for (var i = 0; i < results.length; i++) {
+    var p = results[i];
+    if (shown[p.serial]) continue;
+
+    var groupMembers = allPilgrims.filter(function(g) { return g.groupNo === p.groupNo; });
+
+    for (var j = 0; j < groupMembers.length; j++) {
+      shown[groupMembers[j].serial] = true;
+    }
+
+    html += createPilgrimCard(p, groupMembers);
+  }
+
+  html += '</div>';
+  area.innerHTML = html;
+}
+
+function createPilgrimCard(p, groupMembers) {
+  var t = T[currentLang];
+  var isMain = p.pilgrimType === 'رئيسي';
+  var headerClass = isMain ? 'main' : 'member';
+  var fullName = p.firstNameEn + ' ' + p.lastNameEn;
+  var fullNameAr = (p.firstNameAr && p.lastNameAr) ? p.firstNameAr + ' ' + p.lastNameAr : '';
+  var typeText = isMain ? t.main : t.familyMember;
+  var genderText = p.gender === 'ذكر' ? (currentLang === 'ar' ? 'ذكر' : 'Male') : (currentLang === 'ar' ? 'أنثى' : 'Female');
+
+  var flightTag = p.flightType === 'B2B'
+    ? '<span class="info-tag tag-b2b">B2B</span>'
+    : '<span class="info-tag tag-b2c">B2C</span>';
+
+  var localTag = p.isLocal ? ' <span class="info-tag tag-local">' + t.local + '</span>' : '';
+
+  // Card header
+  var html = '<div class="pilgrim-card">' +
+    '<div class="pilgrim-card-header ' + headerClass + '">' +
+    '<div>' +
+    '<div class="pilgrim-name">' + fullName + '</div>' +
+    (fullNameAr ? '<div class="pilgrim-name-ar">' + fullNameAr + '</div>' : '') +
+    '<div class="pilgrim-serial">#' + p.serial + '</div>' +
+    '</div>' +
+    '<div style="text-align:center">' +
+    '<div class="pilgrim-type-badge">' + typeText + '</div>' +
+    '<div style="margin-top:4px">' + flightTag + localTag + '</div>' +
+    '</div>' +
+    '</div>';
+
+  // Card body
+  html += '<div class="pilgrim-card-body">';
+
+  // Basic info
+  html += infoRow('🛂 ' + t.passport, p.passport);
+  html += infoRow('📅 ' + t.passportExpiry, p.passportExpiry);
+  html += infoRow('🎂 ' + t.birthDate, p.birthDate);
+  html += infoRow('⚧ ' + t.gender, genderText);
+  html += infoRow('🌍 ' + t.country, p.country);
+  html += infoRow('🏳️ ' + t.nationality, p.nationality);
+  html += infoRow('📧 ' + t.email, p.email);
+  html += infoRow('📱 ' + t.phone, p.phone);
+  if (p.guide) html += infoRow('🎯 ' + t.guide, p.guide);
+  html += infoRow('🧾 ' + t.invoice, p.invoiceNo);
+  html += infoRow('📄 ' + t.visa, '<span class="info-tag tag-visa">' + p.visaStatus + '</span>');
+
+  // Package
+  html += '<div class="package-section">' +
+    '<div class="package-title">📦 ' + t.package + '</div>' +
+    '<div class="package-name">' + p.packageNo + ' - ' + p.packageName + '</div>' +
+    '</div>';
+
+  // Contract & Flight
+  html += infoRow('✈️ ' + t.contract, p.contractName);
+  if (p.ticketNo) {
+    var ticketHtml = p.ticketLink
+      ? '<a href="' + p.ticketLink + '" target="_blank" style="color:#1565c0">' + p.ticketNo + '</a>'
+      : p.ticketNo;
+    html += infoRow('🎫 ' + t.ticket, ticketHtml);
+  }
+
+  // Transport - من الباقة
+  if (p.transportType || p.arrivalTime || p.departureTime) {
+    html += '<div class="transport-section">' +
+      '<div class="transport-title">' + t.transport + '</div>';
+    if (p.transportType) {
+      html += '<div class="transport-row">' +
+        '<span class="transport-label">🚌 ' + t.transportType + '</span>' +
+        '<span class="transport-value">' + p.transportType + '</span></div>';
+    }
+    if (p.arrivalTime) {
+      html += '<div class="transport-row">' +
+        '<span class="transport-label">' + t.arrival + '</span>' +
+        '<span class="transport-value">' + p.arrivalTime + '</span></div>';
+    }
+    if (p.departureTime) {
+      html += '<div class="transport-row">' +
+        '<span class="transport-label">' + t.departure + '</span>' +
+        '<span class="transport-value">' + p.departureTime + '</span></div>';
+    }
+    html += '</div>';
+  }
+
+  // Group members
+  if (groupMembers.length > 1) {
+    html += '<div class="group-section">' +
+      '<div class="group-title">' + t.groupMembers + ' (' + groupMembers.length + ')</div>';
+    for (var i = 0; i < groupMembers.length; i++) {
+      var m = groupMembers[i];
+      var mIsMain = m.pilgrimType === 'رئيسي';
+      var mName = m.firstNameEn + ' ' + m.lastNameEn;
+      var mType = mIsMain ? t.main : t.familyMember;
+      html += '<div class="group-member ' + (mIsMain ? 'is-main' : '') + '">' +
+        '<span class="member-name">' + (mIsMain ? '👑 ' : '') + mName + '</span>' +
+        '<span class="member-info">' + mType + ' | ' + m.passport + '</span>' +
+        '</div>';
+    }
+    html += '</div>';
+  }
+
+  html += '</div></div>';
+  return html;
+}
+
+function infoRow(label, value) {
+  if (!value) return '';
+  return '<div class="info-row"><span class="info-label">' + label + '</span><span class="info-value">' + value + '</span></div>';
+}
+
+// ==================== إحصائية الباقات ====================
+function loadPkgStats() {
+  document.getElementById('statsArea').innerHTML =
+    '<div class="loading"><div class="spinner"></div><p>' + T[currentLang].loading + '</p></div>';
+  google.script.run
+    .withSuccessHandler(function(json) {
+      var data = JSON.parse(json);
+      if (!data.success) { document.getElementById('statsArea').innerHTML = '<div class="no-results">Error</div>'; return; }
+      allPkgStats = data.data || [];
+      renderPkgStats(allPkgStats);
+    })
+    .withFailureHandler(function() {
+      document.getElementById('statsArea').innerHTML = '<div class="no-results">Error loading stats</div>';
+    })
+    .getGuidePackageStats();
+}
+
+function filterStats() {
+  var q = document.getElementById('statsFilter').value.toLowerCase();
+  var filtered = q ? allPkgStats.filter(function(p) { return p.pkg.toLowerCase().indexOf(q) !== -1; }) : allPkgStats;
+  renderPkgStats(filtered);
+}
+
+function renderPkgStats(data) {
+  if (data.length === 0) {
+    document.getElementById('statsArea').innerHTML = '<div class="no-results">😕 ' + T[currentLang].noResults + '</div>';
+    return;
+  }
+  var html = '<div class="pkg-stats-grid">';
+  data.forEach(function(item) {
+    var maxCount = item.guides[0] ? item.guides[0].count : 1;
+    html += '<div class="pkg-card">';
+    html += '<div class="pkg-card-header"><span class="pkg-card-name">📦 ' + item.pkg + '</span><span class="pkg-card-total">' + item.total + ' حاج</span></div>';
+    item.guides.forEach(function(g) {
+      var pct = Math.round((g.count / maxCount) * 100);
+      html += '<div class="guide-row">' +
+        '<span class="guide-name">👤 ' + g.name + '</span>' +
+        '<div class="guide-bar-wrap"><div class="guide-bar" style="width:' + pct + '%"></div></div>' +
+        '<span class="guide-count">' + g.count + '</span>' +
+        '</div>';
+    });
+    html += '</div>';
+  });
+  html += '</div>';
+  document.getElementById('statsArea').innerHTML = html;
+}
+
+// ==================== تحديث الواجهة ====================
+function updateUI() {
+  var t = T[currentLang];
+  document.getElementById('headerTitle').textContent = t.headerTitle;
+  document.getElementById('headerSubtitle').textContent = t.headerSubtitle;
+  document.getElementById('lblStatTotal').textContent = t.statTotal;
+  document.getElementById('lblStatGroups').textContent = t.statGroups;
+  document.getElementById('lblStatCountries').textContent = t.statCountries;
+  document.getElementById('lblStatPackages').textContent = t.statPackages;
+  document.getElementById('lblStatB2B').textContent = t.statB2B;
+  document.getElementById('lblStatB2C').textContent = t.statB2C;
+  document.getElementById('searchTitle').textContent = t.searchTitle;
+  document.getElementById('lblName').textContent = t.lblName;
+  document.getElementById('lblPassport').textContent = t.lblPassport;
+  document.getElementById('lblGroup').textContent = t.lblGroup;
+  document.getElementById('lblPackage').textContent = t.lblPackage;
+  document.getElementById('lblCountry').textContent = t.lblCountry;
+  document.getElementById('lblContract').textContent = t.lblContract;
+  document.getElementById('lblGuide').textContent = t.lblGuide;
+  document.getElementById('lblFlightType').textContent = t.lblFlightType;
+  document.getElementById('btnSearch').textContent = t.btnSearch;
+  document.getElementById('btnClear').textContent = t.btnClear;
+  document.getElementById('btnExport').textContent = t.btnExport;
+  document.getElementById('txtFound').textContent = t.found;
+  document.getElementById('txtPilgrims').textContent = t.pilgrims;
+  document.getElementById('passwordTitle').textContent = t.passwordTitle;
+  document.getElementById('passwordError').textContent = t.passwordError;
+  document.getElementById('passwordSubmitBtn').textContent = t.passwordSubmit;
+  document.getElementById('lblTabSearch').textContent  = currentLang === 'ar' ? 'البحث' : 'Search';
+  document.getElementById('lblTabStats').textContent   = currentLang === 'ar' ? 'إحصائية المرشدين' : 'Guide Stats';
+  document.getElementById('statsTitle').textContent    = currentLang === 'ar' ? '📊 إحصائية المرشدين لكل باقة' : '📊 Guide Stats per Package';
+  document.getElementById('lblStatsFilter').textContent = currentLang === 'ar' ? '🔍 تصفية الباقة' : '🔍 Filter Package';
+}
+
+// ==================== تصدير XLSX ====================
+function exportXLSX() {
+  if (currentResults.length === 0) return;
+
+  // تحميل مكتبة SheetJS
+  var script = document.createElement('script');
+  script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+  script.onload = function() {
+    buildAndDownloadXLSX();
+  };
+  document.head.appendChild(script);
+}
+
+function buildAndDownloadXLSX() {
+  var t = T[currentLang];
+  var headers = [
+    'Serial', 'Group', 'Type', 'Name EN', 'Name AR', 'Passport', 'Gender',
+    'Birth Date', 'Country', 'Nationality', 'Phone', 'Email', 'Guide',
+    'Package', 'Contract', 'Flight Type', 'Transport', 'Arrival', 'Departure',
+    'Visa', 'Invoice', 'Ticket'
+  ];
+
+  var rows = [headers];
+  for (var i = 0; i < currentResults.length; i++) {
+    var p = currentResults[i];
+    rows.push([
+      p.serial,
+      p.groupNo,
+      p.pilgrimType,
+      p.firstNameEn + ' ' + p.lastNameEn,
+      p.firstNameAr + ' ' + p.lastNameAr,
+      p.passport,
+      p.gender,
+      p.birthDate,
+      p.country,
+      p.nationality,
+      p.phone,
+      p.email,
+      p.guide,
+      p.packageNo + ' - ' + p.packageName,
+      p.contractName,
+      p.flightType,
+      p.transportType,
+      p.arrivalTime,
+      p.departureTime,
+      p.visaStatus,
+      p.invoiceNo,
+      p.ticketNo
+    ]);
+  }
+
+  var wb = XLSX.utils.book_new();
+  var ws = XLSX.utils.aoa_to_sheet(rows);
+
+  // تعيين عرض الأعمدة
+  ws['!cols'] = [
+    { wch: 8 },   // Serial
+    { wch: 8 },   // Group
+    { wch: 12 },  // Type
+    { wch: 25 },  // Name EN
+    { wch: 25 },  // Name AR
+    { wch: 15 },  // Passport
+    { wch: 8 },   // Gender
+    { wch: 12 },  // Birth Date
+    { wch: 15 },  // Country
+    { wch: 15 },  // Nationality
+    { wch: 18 },  // Phone
+    { wch: 25 },  // Email
+    { wch: 20 },  // Guide
+    { wch: 30 },  // Package
+    { wch: 25 },  // Contract
+    { wch: 10 },  // Flight Type
+    { wch: 12 },  // Transport
+    { wch: 18 },  // Arrival
+    { wch: 18 },  // Departure
+    { wch: 12 },  // Visa
+    { wch: 18 },  // Invoice
+    { wch: 18 }   // Ticket
+  ];
+
+  XLSX.utils.book_append_sheet(wb, ws, 'Pilgrims');
+  XLSX.writeFile(wb, 'pilgrims_' + Date.now() + '.xlsx');
+}
+
+// ==================== دوال مساعدة ====================
+function gv(id) { var e = document.getElementById(id); return e ? e.value.trim() : ''; }
+function fmtN(n) { return Number(n).toLocaleString('en-US'); }
+</script>
