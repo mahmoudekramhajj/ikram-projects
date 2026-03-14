@@ -1,0 +1,20 @@
+# === ملفات حساسة ===
+credentials.json
+*.env
+.env.*
+
+# === Google Drive temp files ===
+.tmp.driveupload/
+
+# === Node.js ===
+node_modules/
+
+# === بيانات الشيتات (تُجلب بـ refresh.js) ===
+Projects/SheetData/sheets/
+
+# === ملفات مؤقتة ===
+*.tmp
+~$*
+Thumbs.db
+desktop.ini
+.DS_Store

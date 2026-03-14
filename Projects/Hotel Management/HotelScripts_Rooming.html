@@ -1,0 +1,448 @@
+<script>
+/**
+ * Hotel Management App — Rooming Scripts
+ * v3.0 — Room grouping, auto-assignment, optimization
+ */
+
+// ============================================================
+// RENDER: ROOMING TAB
+// ============================================================
+
+function renderRoomingTab() {
+  // Exclude No Show from rooming
+  var activePilgrims = state.pilgrims.filter(function(p) { return p.arrivalStatus !== 'noshow'; });
+  var shared = activePilgrims.filter(function(p) { return p.sharedBeds > 0; });
+  var complete = activePilgrims.filter(function(p) { return p.fullRooms > 0 && p.sharedBeds <= 0; });
+  var grouped = activePilgrims.filter(function(p) { return (p.sharedBeds > 0 || (p.fullRooms > 0 && p.sharedBeds <= 0)) && p.roomGroupId; });
+  var ungrouped = shared.filter(function(p) { return !p.roomGroupId; });
+  
+  var males = ungrouped.filter(function(p) { return p.gender === 'Male'; }).length;
+  var females = ungrouped.filter(function(p) { return p.gender === 'Female'; }).length;
+  
+  // Count guide pilgrims awaiting manual grouping
+  var guideUngrouped = ungrouped.filter(function(p) { return p.tourGuide && p.tourGuide.trim() !== ''; });
+  
+  document.getElementById('roomingStats').innerHTML =
+    statCard('حجاج مشتركون', shared.length, '#fbbf24', '#78350f') +
+    statCard('مجموعات مكتملة', complete.length, '#6ee7b7', '#064e3b') +
+    statCard('تم تجميعهم', grouped.length, '#6ee7b7', '#064e3b') +
+    statCard('بحاجة تجميع', ungrouped.length, '#f87171', '#7f1d1d') +
+    statCard('رجال', males, '#60a5fa', '#1e3a5f') +
+    statCard('نساء', females, '#f472b6', '#5b1a3a');
+  
+  // Render all grouped (complete + shared)
+  var allGrouped = activePilgrims.filter(function(p) { return p.roomGroupId; });
+  renderConfirmedGroups(allGrouped);
+  renderUngroupedPilgrims(ungrouped);
+  populateGuideFilter();
+}
+
+function renderConfirmedGroups(grouped) {
+  var container = document.getElementById('confirmedGroups');
+  if (grouped.length === 0) { container.innerHTML = ''; return; }
+  
+  var groups = {};
+  grouped.forEach(function(p) {
+    if (!groups[p.roomGroupId]) groups[p.roomGroupId] = [];
+    groups[p.roomGroupId].push(p);
+  });
+  
+  var html = '<div class="section-title" style="color:#6ee7b7">✅ غرف تم تجميعها (' + Object.keys(groups).length + ' غرفة)</div>';
+  
+  Object.keys(groups).forEach(function(gid) {
+    var members = groups[gid];
+    var capacity = members[0].capacity || 4;
+    var isIncomplete = members.length < capacity;
+    var hasOverflow = members.length > capacity;
+    var borderColor = hasOverflow ? 'rgba(239,68,68,0.5)' : isIncomplete ? 'rgba(251,191,36,0.3)' : 'rgba(110,231,183,0.2)';
+    
+    // Check mixed gender across different groups
+    var genders = {};
+    var groupNums = {};
+    members.forEach(function(p) { genders[p.gender] = true; groupNums[p.groupNumber] = true; });
+    var isMixedGender = Object.keys(genders).length > 1;
+    var isMultiGroup = Object.keys(groupNums).length > 1;
+    var hasGenderIssue = isMixedGender && isMultiGroup;
+    
+    html += '<div class="room-group" style="border-color:' + borderColor + '">';
+    html += '<div style="display:flex;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:6px">';
+    
+    var statusColor = hasOverflow ? '#ef4444' : isIncomplete ? '#fbbf24' : '#6ee7b7';
+    
+    // Show internal room ID prominently
+    var isInternalId = gid.length >= 7 && gid.indexOf('RG-') !== 0;
+    var idDisplay = isInternalId 
+      ? '<span style="font-family:monospace;background:#1e293b;padding:2px 8px;border-radius:4px;color:#38bdf8;font-size:13px;font-weight:700">' + gid + '</span> '
+      : '<span style="font-size:10px;color:#64748b">' + gid.substring(0, 15) + '</span> ';
+    
+    html += '<span style="font-weight:700;color:' + statusColor + '">' + idDisplay +
+      (members[0].roomType || 'غرفة') + ' — ' + members.length + '/' + capacity + ' أسرة</span>';
+    html += '<div style="display:flex;gap:6px">';
+    if (hasOverflow) html += '<span style="color:#ef4444;font-size:11px;font-weight:700">🚨 تجاوز السعة!</span>';
+    if (isIncomplete) html += '<span style="color:#fbbf24;font-size:11px;font-weight:700">⚠ غير مكتملة</span>';
+    if (hasGenderIssue) html += '<span style="color:#ef4444;font-size:11px;font-weight:700">⚠ خلط جنس!</span>';
+    html += '<button onclick="unassignGroup(\'' + gid + '\')" style="background:#7f1d1d;color:#fca5a5;border:none;border-radius:6px;padding:3px 10px;font-size:10px;cursor:pointer;font-family:inherit;font-weight:700">✕ فك</button>';
+    html += '</div></div>';
+    html += '<div style="display:flex;gap:6px;flex-wrap:wrap">';
+    members.forEach(function(p) {
+      var shiftBadge = (p.hotelCity === 'Makkah Shifting') ? ' <span style="background:#4c1d95;color:#c084fc;padding:1px 6px;border-radius:4px;font-size:9px">🔄 انتقالي</span>' : '';
+      html += '<span style="background:#0f172a;padding:4px 10px;border-radius:8px;font-size:11px;color:#e2e8f0">' +
+        (p.gender === 'Male' ? '👨' : '👩') + ' ' + p.name + ' (' + p.nationality + ') #' + p.groupNumber + shiftBadge +
+      '</span>';
+    });
+    html += '</div></div>';
+  });
+  
+  container.innerHTML = html;
+}
+
+function renderUngroupedPilgrims(ungrouped) {
+  var container = document.getElementById('ungroupedPilgrims');
+  if (ungrouped.length === 0) {
+    container.innerHTML = '<div style="text-align:center;padding:20px;color:#6ee7b7">✅ كل الحجاج المشتركين تم تجميعهم</div>';
+    return;
+  }
+  
+  var html = '<div class="section-title" style="color:#fbbf24">🛏️ حجاج بحاجة تجميع — اختر لتجميعهم في غرفة</div>';
+  
+  ['Male', 'Female'].forEach(function(gender) {
+    var gPilgrims = ungrouped.filter(function(p) { return p.gender === gender; });
+    if (gPilgrims.length === 0) return;
+    
+    html += '<div class="gender-section-title ' + (gender === 'Male' ? 'gender-male' : 'gender-female') + '">';
+    html += (gender === 'Male' ? '👨 رجال' : '👩 نساء') + ' (' + gPilgrims.length + ')';
+    html += '</div>';
+    
+    gPilgrims.forEach(function(p) {
+      var isSelected = state.selectedForRooming.indexOf(p.bookingId) >= 0;
+      html += '<div class="shared-pilgrim' + (isSelected ? ' selected' : '') + '" onclick="toggleRoomingSelection(\'' + p.bookingId + '\')">';
+      html += '<div>';
+      html += '<span style="font-weight:600;color:#e2e8f0;font-size:13px">' + p.name + '</span>';
+      html += '<span style="color:#64748b;font-size:11px;margin-right:8px">مجموعة #' + p.groupNumber + '</span>';
+      html += '</div>';
+      html += '<div style="display:flex;gap:6px;align-items:center">';
+      html += '<span style="font-size:11px;color:#94a3b8">🌍 ' + p.nationality + '</span>';
+      html += '<span style="font-size:11px;color:#94a3b8">🛏️ ' + (p.roomType || '-') + '</span>';
+      html += '<span style="font-size:11px;color:' + (p.tourGuide ? '#6ee7b7' : '#f87171') + '">' +
+        (p.tourGuide ? '🎯 ' + p.tourGuide : 'بدون مرشد') + '</span>';
+      html += '<div class="checkbox-icon">' + (isSelected ? '✓' : '') + '</div>';
+      html += '</div></div>';
+    });
+  });
+  
+  container.innerHTML = html;
+  updateGroupingBar();
+}
+
+function toggleRoomingSelection(bookingId) {
+  var idx = state.selectedForRooming.indexOf(bookingId);
+  if (idx >= 0) { state.selectedForRooming.splice(idx, 1); }
+  else { state.selectedForRooming.push(bookingId); }
+  
+  var activePilgrims = state.pilgrims.filter(function(p) { return p.arrivalStatus !== 'noshow'; });
+  var shared = activePilgrims.filter(function(p) { return p.sharedBeds > 0 && !p.roomGroupId; });
+  renderUngroupedPilgrims(shared);
+}
+
+function updateGroupingBar() {
+  var bar = document.getElementById('groupingBar');
+  var count = state.selectedForRooming.length;
+  if (count > 0) {
+    bar.style.display = '';
+    document.getElementById('groupingCount').textContent = 'تم اختيار ' + count + ' حجاج — جاهزون للتجميع في غرفة';
+  } else {
+    bar.style.display = 'none';
+  }
+}
+
+function confirmRoomGroup() {
+  if (state.selectedForRooming.length === 0) return;
+  showLoading(true);
+  var cityCode = getHotelCityCode();
+  
+  google.script.run
+    .withSuccessHandler(function(result) {
+      showToast('تم تجميع ' + result.count + ' حجاج في غرفة — ' + result.groupId);
+      state.selectedForRooming = [];
+      loadPilgrims();
+    })
+    .withFailureHandler(function(err) {
+      showToast('خطأ: ' + err.message, true);
+      showLoading(false);
+    })
+    .saveRoomGroup(state.selectedForRooming, state.currentHotel, cityCode, null);
+}
+
+// ============================================================
+// AUTO ASSIGN ROOMS
+// ============================================================
+
+function runAutoAssign() {
+  if (!state.currentHotel) { showToast('اختر فندقاً أولاً', true); return; }
+  showLoading(true);
+  var cityCode = getHotelCityCode();
+  
+  google.script.run
+    .withSuccessHandler(function(result) {
+      if (result.success) {
+        var msg = '✅ تجميع: ' + result.roomsCreated + ' غرفة | ' + result.totalAssigned + ' حاج';
+        if (result.incompleteRooms > 0) msg += ' | ⚠ ' + result.incompleteRooms + ' غير مكتملة';
+        if (result.debug) {
+          msg += ' | [مكتملة: ' + (result.debug.phase0_complete || 0) + 
+                 ' | مرشد: ' + (result.debug.phase1_guide || 0) + 
+                 ' | مشتركون: ' + result.debug.sharedPoolTotal + 
+                 ' | تم تعيين: ' + result.debug.assignmentMapSize + ']';
+        }
+        if (result.guideGroups && result.guideGroups.length > 0) {
+          msg += '\n⏳ ' + result.guideGroups.length + ' مجموعة بانتظار المرشد';
+        }
+        showToast(msg);
+        if (result.totalAssigned === 0 && result.debug && result.debug.sharedPoolTotal === 0 && result.debug.phase0_complete === 0) {
+          showToast('⚠ لا يوجد حجاج للتجميع — تأكد من بيانات Room Type Preview', true);
+        }
+      }
+      loadPilgrims();
+    })
+    .withFailureHandler(function(err) {
+      showToast('خطأ في التجميع: ' + err.message, true);
+      showLoading(false);
+    })
+    .autoAssignRooms(state.currentHotel, cityCode);
+}
+
+function unassignGroup(roomGroupId) {
+  showLoading(true);
+  google.script.run
+    .withSuccessHandler(function(result) {
+      showToast('تم فك تجميع الغرفة — ' + result.removed + ' حاج');
+      loadPilgrims();
+    })
+    .withFailureHandler(function(err) {
+      showToast('خطأ: ' + err.message, true);
+      showLoading(false);
+    })
+    .unassignRoomGroup(roomGroupId, state.currentHotel);
+}
+
+function clearAllRoomGroups() {
+  if (!state.currentHotel) return;
+  var grouped = state.pilgrims.filter(function(p) { return p.roomGroupId; });
+  if (grouped.length === 0) { showToast('لا توجد غرف مجمّعة', true); return; }
+  
+  if (!confirm('سيتم إعادة تعيين الأسرّة المشتركة فقط.\nالغرف الكاملة (Pre-Assignment) محمية.\n\nمتابعة؟')) return;
+  
+  showLoading(true);
+  google.script.run
+    .withSuccessHandler(function(result) {
+      showLoading(false);
+      if (result.success) {
+        showToast('✅ تم إعادة تعيين ' + result.cleared + ' سرير مشترك (محمي: ' + result.protected + ' غرفة كاملة)');
+        loadPilgrims();
+      } else {
+        showToast('خطأ: ' + result.error, true);
+      }
+    })
+    .withFailureHandler(function(err) {
+      showLoading(false);
+      showToast('خطأ: ' + err.message, true);
+    })
+    .clearSharedRoomGroups(state.currentHotel);
+}
+
+// ============================================================
+// OPTIMIZATION SUGGESTIONS
+// ============================================================
+
+function runOptimization() {
+  if (!state.currentHotel) { showToast('اختر فندقاً أولاً', true); return; }
+  showLoading(true);
+  var cityCode = getHotelCityCode();
+  
+  google.script.run
+    .withSuccessHandler(function(result) {
+      showLoading(false);
+      if (!result.suggestions || result.suggestions.length === 0) {
+        showToast('✅ لا توجد تحسينات متاحة — الغرف في أفضل حالة');
+        return;
+      }
+      showToast('💡 ' + result.suggestions.length + ' اقتراح تحسين — يمكن تحرير ' + result.potentialSavings + ' غرفة');
+      state.optimizationSuggestions = result.suggestions;
+      renderOptimizationSuggestions(result.suggestions);
+    })
+    .withFailureHandler(function(err) {
+      showToast('خطأ في التحسين: ' + err.message, true);
+      showLoading(false);
+    })
+    .getOptimizationSuggestions(state.currentHotel, cityCode);
+}
+
+function renderOptimizationSuggestions(suggestions) {
+  var container = document.getElementById('optimizationResults');
+  if (!container) return;
+  
+  var html = '<div class="section-title" style="color:#38bdf8">💡 اقتراحات التحسين (' + suggestions.length + ')</div>';
+  
+  suggestions.forEach(function(s, idx) {
+    html += '<div class="room-group" style="border-color:rgba(56,189,248,0.3);margin-bottom:12px">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">';
+    html += '<div>';
+    html += '<span style="font-family:monospace;color:#f87171;font-size:13px;font-weight:700">' + s.sourceRoom + '</span>';
+    html += '<span style="color:#94a3b8;font-size:11px"> (' + s.sourceCount + '/' + s.sourceCapacity + ') </span>';
+    html += '<span style="color:#fbbf24"> → </span>';
+    
+    if (s.targetRoom) {
+      html += '<span style="font-family:monospace;color:#6ee7b7;font-size:13px;font-weight:700">' + s.targetRoom + '</span>';
+      html += '<span style="color:#94a3b8;font-size:11px"> (' + s.targetCount + '/' + s.targetCapacity + ')</span>';
+    } else if (s.splitPlan) {
+      html += '<span style="color:#94a3b8;font-size:11px">توزيع على ' + s.splitPlan.length + ' غرف</span>';
+    }
+    html += '</div>';
+    html += '<button onclick="executeOptimizationItem(' + idx + ')" style="background:#065f46;color:#6ee7b7;border:none;border-radius:6px;padding:5px 14px;font-size:12px;cursor:pointer;font-family:inherit;font-weight:700">✓ تنفيذ</button>';
+    html += '</div>';
+    
+    // Show members being moved
+    html += '<div style="display:flex;gap:4px;flex-wrap:wrap">';
+    s.sourceMembers.forEach(function(m) {
+      html += '<span style="background:#1e293b;padding:3px 8px;border-radius:6px;font-size:10px;color:#e2e8f0">' +
+        (m.gender === 'Male' ? '👨' : '👩') + ' ' + m.name + ' #' + m.groupNumber + '</span>';
+    });
+    html += '</div>';
+    
+    html += '<div style="color:#38bdf8;font-size:11px;margin-top:6px">📌 ' + s.result + '</div>';
+    html += '</div>';
+  });
+  
+  container.innerHTML = html;
+  container.style.display = '';
+}
+
+function executeOptimizationItem(index) {
+  if (!state.optimizationSuggestions || !state.optimizationSuggestions[index]) {
+    // Re-fetch if not cached
+    showLoading(true);
+    var cityCode = getHotelCityCode();
+    google.script.run
+      .withSuccessHandler(function(result) {
+        if (result.suggestions && result.suggestions[index]) {
+          state.optimizationSuggestions = result.suggestions;
+          doExecuteOptimization(result.suggestions[index]);
+        }
+      })
+      .withFailureHandler(function(err) { showToast('خطأ: ' + err.message, true); showLoading(false); })
+      .getOptimizationSuggestions(state.currentHotel, cityCode);
+    return;
+  }
+  doExecuteOptimization(state.optimizationSuggestions[index]);
+}
+
+function doExecuteOptimization(suggestion) {
+  showLoading(true);
+  google.script.run
+    .withSuccessHandler(function(result) {
+      if (result.success) {
+        showToast('✅ تم نقل ' + result.changes + ' حاج — تحرير غرفة');
+        
+        // تتبع الغرفة المحررة
+        if (!state.releasedRooms) state.releasedRooms = [];
+        state.releasedRooms.push({
+          roomId: suggestion.sourceRoom,
+          roomType: suggestion.sourceType,
+          members: suggestion.sourceMembers.length,
+          target: suggestion.targetRoom || ('توزيع على ' + suggestion.splitPlan.length + ' غرف')
+        });
+        renderReleasedRooms();
+        
+        // إزالة الاقتراح المُنفذ فقط
+        if (state.optimizationSuggestions) {
+          state.optimizationSuggestions = state.optimizationSuggestions.filter(function(s) {
+            return s.sourceRoom !== suggestion.sourceRoom;
+          });
+          if (state.optimizationSuggestions.length > 0) {
+            renderOptimizationSuggestions(state.optimizationSuggestions);
+          } else {
+            document.getElementById('optimizationResults').innerHTML = '';
+            document.getElementById('optimizationResults').style.display = 'none';
+          }
+        }
+        loadPilgrims();
+      } else {
+        showToast('خطأ: ' + (result.error || 'غير معروف'), true);
+        showLoading(false);
+      }
+    })
+    .withFailureHandler(function(err) {
+      showToast('خطأ: ' + err.message, true);
+      showLoading(false);
+    })
+    .executeOptimization(state.currentHotel, suggestion);
+}
+
+function renderReleasedRooms() {
+  var container = document.getElementById('optimizationResults');
+  if (!state.releasedRooms || state.releasedRooms.length === 0) return;
+  
+  var html = '<div style="background:#064e3b;border:1px solid #6ee7b7;border-radius:12px;padding:14px;margin-bottom:12px">';
+  html += '<div style="font-weight:700;color:#6ee7b7;font-size:14px;margin-bottom:8px">🎉 غرف تم تحريرها — ' + state.releasedRooms.length + ' غرفة</div>';
+  html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px">';
+  
+  state.releasedRooms.forEach(function(r) {
+    html += '<div style="background:#0f172a;border-radius:8px;padding:10px;border:1px solid #334155">';
+    html += '<div style="font-family:monospace;color:#f87171;font-weight:700;font-size:13px">' + r.roomId + '</div>';
+    html += '<div style="font-size:11px;color:#94a3b8;margin-top:4px">' + r.roomType + ' | ' + r.members + ' حجاج → ' + r.target + '</div>';
+    html += '</div>';
+  });
+  
+  html += '</div>';
+  html += '<button onclick="clearReleasedRooms()" style="background:#7f1d1d;color:#fca5a5;border:none;border-radius:6px;padding:4px 12px;font-size:11px;cursor:pointer;font-family:inherit;margin-top:6px">✕ مسح التقرير</button>';
+  html += '</div>';
+  
+  // إضافة قبل اقتراحات التحسين
+  var existing = container.innerHTML;
+  container.innerHTML = html + existing;
+  container.style.display = '';
+}
+
+function clearReleasedRooms() {
+  state.releasedRooms = [];
+  document.getElementById('optimizationResults').innerHTML = '';
+  document.getElementById('optimizationResults').style.display = 'none';
+}
+// ============================================================
+// GUIDE FILTER FOR ROOMING
+// ============================================================
+
+function populateGuideFilter() {
+  var guides = {};
+  state.pilgrims.forEach(function(p) {
+    if (p.tourGuide && p.tourGuide.trim()) guides[p.tourGuide.trim()] = true;
+  });
+  
+  var select = document.getElementById('guideFilter');
+  var current = select.value;
+  select.innerHTML = '<option value="">🎯 كل المرشدين</option>';
+  
+  Object.keys(guides).sort().forEach(function(g) {
+    var opt = document.createElement('option');
+    opt.value = g;
+    opt.textContent = '🎯 ' + g;
+    select.appendChild(opt);
+  });
+  
+  select.value = current || '';
+}
+
+function applyGuideFilter() {
+  var guide = document.getElementById('guideFilter').value;
+  var activePilgrims = state.pilgrims.filter(function(p) { return p.arrivalStatus !== 'noshow'; });
+  
+  if (guide) {
+    activePilgrims = activePilgrims.filter(function(p) { return p.tourGuide && p.tourGuide.trim() === guide; });
+  }
+  
+  var allGrouped = activePilgrims.filter(function(p) { return p.roomGroupId; });
+  var ungrouped = activePilgrims.filter(function(p) { return p.sharedBeds > 0 && !p.roomGroupId; });
+  
+  renderConfirmedGroups(allGrouped);
+  renderUngroupedPilgrims(ungrouped);
+}
+</script>

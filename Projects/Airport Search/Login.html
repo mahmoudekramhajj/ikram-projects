@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>تسجيل الدخول — إكرام الضيف</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #0D4A3A; --primary-light: #1A6B54; --primary-dark: #08332A;
+      --accent: #C8A84E; --accent-light: #E8D08E;
+      --bg: #F5F2EB; --bg-card: #FFFFFF;
+      --text: #1A1A1A; --text-secondary: #5A5A5A; --text-light: #8A8A8A;
+      --border: #E0DDD6; --warning: #E65100;
+      --radius: 16px; --radius-sm: 10px;
+      --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family:'Tajawal',sans-serif; background:var(--bg); color:var(--text);
+      min-height:100vh; min-height:100dvh; display:flex; flex-direction:column;
+      align-items:center; justify-content:center; -webkit-font-smoothing:antialiased;
+    }
+    body::before {
+      content:''; position:fixed; top:0; left:0; right:0; bottom:0;
+      background: radial-gradient(ellipse at 20% 0%,rgba(13,74,58,0.06)0%,transparent 60%),
+                  radial-gradient(ellipse at 80% 100%,rgba(200,168,78,0.06)0%,transparent 60%);
+      pointer-events:none; z-index:0;
+    }
+    .login-container { width:100%; max-width:400px; padding:24px; position:relative; z-index:1; }
+    .login-header { text-align:center; margin-bottom:32px; }
+    .logo-icon {
+      width:64px; height:64px; background:var(--primary); border:2px solid var(--accent);
+      border-radius:18px; display:flex; align-items:center; justify-content:center;
+      margin:0 auto 16px; box-shadow:0 4px 16px rgba(13,74,58,0.2);
+    }
+    .logo-icon svg { width:32px; height:32px; fill:var(--accent); }
+    .login-header h1 { font-size:24px; font-weight:800; color:var(--primary); margin-bottom:4px; }
+    .login-header p { font-size:14px; color:var(--text-light); }
+    .login-card {
+      background:var(--bg-card); border-radius:var(--radius);
+      border:1.5px solid var(--border); padding:28px 24px;
+      box-shadow:0 4px 20px rgba(13,74,58,0.08);
+    }
+    .form-group { margin-bottom:18px; }
+    .form-label { display:block; font-size:13px; font-weight:700; color:var(--text-secondary); margin-bottom:6px; }
+    .form-input {
+      width:100%; padding:13px 14px; border:1.5px solid var(--border);
+      border-radius:var(--radius-sm); font-family:'Tajawal',sans-serif;
+      font-size:15px; font-weight:500; color:var(--text); background:var(--bg);
+      transition:var(--transition); outline:none;
+    }
+    .form-input:focus { border-color:var(--primary); background:#fff; box-shadow:0 0 0 3px rgba(13,74,58,0.08); }
+    .form-input::placeholder { color:var(--text-light); }
+    .form-input.ltr { direction:ltr; text-align:left; }
+    .btn-login {
+      width:100%; padding:14px; background:linear-gradient(135deg,var(--primary)0%,var(--primary-light)100%);
+      color:#fff; border:none; border-radius:var(--radius-sm); font-family:'Tajawal',sans-serif;
+      font-size:16px; font-weight:700; cursor:pointer; transition:var(--transition);
+      display:flex; align-items:center; justify-content:center; gap:8px;
+      box-shadow:0 4px 16px rgba(13,74,58,0.2); margin-top:4px;
+      -webkit-tap-highlight-color:transparent;
+    }
+    .btn-login:active { transform:scale(0.98); }
+    .btn-login:disabled { opacity:0.6; pointer-events:none; }
+    .btn-login svg { width:18px; height:18px; fill:currentColor; }
+    .error-box {
+      display:none; background:rgba(230,81,0,0.08); color:var(--warning);
+      padding:10px 14px; border-radius:8px; font-size:13px; font-weight:600;
+      text-align:center; margin-bottom:16px;
+    }
+    .error-box.visible { display:block; animation:shake 0.4s ease; }
+    @keyframes shake { 20%,60%{transform:translateX(-4px)} 40%,80%{transform:translateX(4px)} }
+    .mini-spinner {
+      width:18px; height:18px; border:2px solid rgba(255,255,255,0.3);
+      border-top-color:#fff; border-radius:50%; animation:spin 0.8s linear infinite; display:inline-block;
+    }
+    @keyframes spin { to{transform:rotate(360deg)} }
+    .login-footer { text-align:center; margin-top:24px; }
+    .login-footer p { font-size:12px; color:var(--text-light); }
+    .login-footer .version {
+      display:inline-block; background:rgba(13,74,58,0.06); padding:2px 10px;
+      border-radius:20px; font-size:11px; color:var(--primary); font-weight:600; margin-top:6px;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <div class="login-header">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg>
+      </div>
+      <h1>إكرام الضيف</h1>
+      <p>نظام بحث رحلات المطار</p>
+    </div>
+
+    <div class="login-card">
+      <div class="error-box" id="errorBox"></div>
+
+      <div class="form-group">
+        <label class="form-label">اسم المستخدم</label>
+        <input class="form-input ltr" id="inputUsername" type="text" placeholder="username" autocomplete="username" autofocus>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">كلمة المرور</label>
+        <input class="form-input ltr" id="inputPassword" type="password" placeholder="••••••••" autocomplete="current-password">
+      </div>
+
+      <button class="btn-login" id="btnLogin" onclick="doLogin()">
+        <svg viewBox="0 0 24 24"><path d="M11 7L9.6 8.4l2.6 2.6H2v2h10.2l-2.6 2.6L11 17l5-5-5-5zm9 12h-8v2h8c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-8v2h8v14z"/></svg>
+        <span>تسجيل الدخول</span>
+      </button>
+    </div>
+
+    <div class="login-footer">
+      <p>شركة إكرام الضيف للسياحة — موسم حج 1447</p>
+      <span class="version">v2.1</span>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('inputUsername').addEventListener('keypress', function(e) { if (e.key === 'Enter') document.getElementById('inputPassword').focus(); });
+    document.getElementById('inputPassword').addEventListener('keypress', function(e) { if (e.key === 'Enter') doLogin(); });
+
+    function doLogin() {
+      var username = document.getElementById('inputUsername').value.trim();
+      var password = document.getElementById('inputPassword').value;
+      var errorBox = document.getElementById('errorBox');
+      var btn = document.getElementById('btnLogin');
+
+      errorBox.classList.remove('visible');
+
+      if (!username || !password) {
+        showError('أدخل اسم المستخدم وكلمة المرور');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = '<div class="mini-spinner"></div><span>جارٍ التحقق...</span>';
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          if (result.success) {
+            sessionStorage.setItem('auth_token', result.token);
+            sessionStorage.setItem('auth_user', JSON.stringify(result.user));
+
+            google.script.run
+              .withSuccessHandler(function(url) {
+                var fullUrl = url + '?token=' + encodeURIComponent(result.token);
+                document.querySelector('.login-card').innerHTML = 
+                  '<div style="text-align:center;padding:40px 20px;">' +
+                  '<div style="font-size:48px;margin-bottom:16px;">✅</div>' +
+                  '<div style="font-size:18px;font-weight:700;color:#2E7D32;margin-bottom:24px;">تم تسجيل الدخول بنجاح</div>' +
+                  '<a href="' + fullUrl + '" target="_top" style="display:block;padding:16px;background:#0D4A3A;color:#fff;border-radius:12px;font-size:16px;font-weight:700;text-decoration:none;font-family:Tajawal;">الدخول للنظام</a>' +
+                  '</div>';
+              })
+              .getScriptUrl();
+          } else {
+            resetBtn();
+            showError(result.error || 'فشل تسجيل الدخول');
+          }
+        })
+        .withFailureHandler(function(err) {
+          resetBtn();
+          showError('خطأ في الاتصال — حاول مرة أخرى');
+        })
+        .validateLogin(username, password);
+    }
+
+    function showError(msg) {
+      var box = document.getElementById('errorBox');
+      box.textContent = msg;
+      box.classList.add('visible');
+    }
+
+    function resetBtn() {
+      var btn = document.getElementById('btnLogin');
+      btn.disabled = false;
+      btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M11 7L9.6 8.4l2.6 2.6H2v2h10.2l-2.6 2.6L11 17l5-5-5-5zm9 12h-8v2h8c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-8v2h8v14z"/></svg><span>تسجيل الدخول</span>';
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+<script>
+/* ══════════════════════════════════════
+   Scripts_Hotels.html
+   عرض تبويب الفنادق
+   ══════════════════════════════════════ */
+
+function renderHotels(container) {
+  var hotels = allData.hotels.slice();
+  var city = getFilterValue('filterHotelCity');
+  var name = getFilterValue('filterName').toLowerCase();
+
+  hotels = hotels.filter(function(h) {
+    if (city && h.city !== city) return false;
+    if (name) {
+      var nAr = (h.nameAr || '').toLowerCase();
+      var nEn = (h.nameEn || '').toLowerCase();
+      if (nAr.indexOf(name) < 0 && nEn.indexOf(name) < 0) return false;
+    }
+    return true;
+  });
+
+  filteredData = hotels;
+  document.getElementById('resultsCount').textContent = t('found') + ' ' + hotels.length + ' ' + t('hotel');
+
+  if (hotels.length === 0) {
+    container.innerHTML = '<div class="empty-state"><div class="empty-icon">🏨</div><h3>' + t('noHotels') + '</h3></div>';
+    return;
+  }
+
+  var h = '<div class="cards-grid">';
+  hotels.forEach(function(ht) {
+    var displayName = (currentLang === 'en' && ht.nameEn) ? ht.nameEn : ht.nameAr;
+    h += '<div class="package-card" style="padding:15px">';
+    h += '<h3 style="margin-bottom:5px">' + displayName + '</h3>';
+    if (currentLang === 'ar' && ht.nameEn) h += '<div style="color:var(--text-light);font-size:0.85rem">' + ht.nameEn + '</div>';
+    h += '<span class="city-badge ' + getCityClass(ht.city) + '" style="margin-top:10px;display:inline-block">' + getCityName(ht.city) + '</span>';
+    if (ht.mapLink) h += '<a href="' + ht.mapLink + '" target="_blank" style="display:block;margin-top:10px;color:var(--primary)">' + t('viewMap') + ' ' + t('hotelName') + '</a>';
+    h += '</div>';
+  });
+  h += '</div>';
+  container.innerHTML = h;
+}
+</script>

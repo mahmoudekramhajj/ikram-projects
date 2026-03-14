@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <?!= include('SalesStyles'); ?>
+</head>
+<body class="ltr">
+
+<!-- Header -->
+<header class="report-header">
+  <select class="lang-toggle" id="langSelect" onchange="changeLang(this.value)">
+    <option value="ar">العربية</option>
+    <option value="en" selected>English</option>
+  </select>
+  <div class="header-inner">
+    <img src="https://image2url.com/r2/default/images/1770118638761-1c568098-574a-4971-b8e9-012f75d987f0.jpeg" alt="Logo" class="header-logo">
+    <div>
+      <h1 id="headerTitle">Sales & Operations Report</h1>
+      <p id="headerSub">Ikram AlDyf for Hajj</p>
+    </div>
+  </div>
+</header>
+
+<!-- KPI Cards -->
+<section class="kpi-strip">
+  <div class="kpi-card">
+    <div class="kpi-icon">📋</div>
+    <div class="kpi-value" id="kpiPnrs">0</div>
+    <div class="kpi-label" id="kpiPnrsLabel">Total PNRs</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-icon">👥</div>
+    <div class="kpi-value" id="kpiPax">0</div>
+    <div class="kpi-label" id="kpiPaxLabel">Total PAX</div>
+  </div>
+  <div class="kpi-card kpi-sold">
+    <div class="kpi-icon">✅</div>
+    <div class="kpi-value" id="kpiSold">0</div>
+    <div class="kpi-label" id="kpiSoldLabel">Sold</div>
+  </div>
+  <div class="kpi-card kpi-remaining">
+    <div class="kpi-icon">📊</div>
+    <div class="kpi-value" id="kpiRemaining">0</div>
+    <div class="kpi-label" id="kpiRemainingLabel">Remaining</div>
+  </div>
+  <div class="kpi-card kpi-pct">
+    <div class="kpi-icon">🎯</div>
+    <div class="kpi-value" id="kpiPct">0%</div>
+    <div class="kpi-label" id="kpiPctLabel">Sales %</div>
+  </div>
+</section>
+
+<!-- Filters -->
+<section class="filters-bar">
+  <div class="filters-inner">
+    <div class="filter-item">
+      <label id="lblFilterCountry">Country</label>
+      <select id="fCountry" onchange="applyFilters()"></select>
+    </div>
+    <div class="filter-item">
+      <label id="lblFilterAirline">Airline</label>
+      <select id="fAirline" onchange="applyFilters()"></select>
+    </div>
+    <div class="filter-item">
+      <label id="lblFilterSupplier">Supplier</label>
+      <select id="fSupplier" onchange="applyFilters()"></select>
+    </div>
+    <div class="filter-actions">
+      <button class="btn-filter" onclick="applyFilters()" id="btnApply">Apply</button>
+      <button class="btn-clear" onclick="clearFilters()" id="btnClear">Clear</button>
+      <button class="btn-export" onclick="exportAllExcel()" id="btnExport">📊 Excel</button>
+      <button class="btn-print" onclick="window.print()" id="btnPrint">🖨️ Print</button>
+    </div>
+  </div>
+</section>
+
+<!-- Main Content -->
+<main class="main-content">
+  
+  <!-- Loading -->
+  <div id="loadingArea" class="loading-box">
+    <div class="spinner"></div>
+    <p id="txtLoading">Loading data...</p>
+  </div>
+  
+  <!-- Tables Section -->
+  <div id="contentArea" style="display:none;">
+    
+    <!-- Countries Table -->
+    <section class="report-section">
+      <div class="section-header">
+        <h2 id="titleCountries">🌍 By Country</h2>
+        <span class="section-count" id="countCountries"></span>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table" id="tableCountries">
+          <thead>
+            <tr>
+              <th id="thCountry">Country</th>
+              <th id="thPnrs1">PNRs</th>
+              <th id="thPax1">PAX</th>
+              <th id="thSold1">Sold</th>
+              <th id="thRemaining1">Remaining</th>
+              <th id="thPct1">Sales %</th>
+              <th id="thBar1">Progress</th>
+            </tr>
+          </thead>
+          <tbody id="tbodyCountries"></tbody>
+          <tfoot id="tfootCountries"></tfoot>
+        </table>
+      </div>
+    </section>
+    
+    <!-- Airlines Table -->
+    <section class="report-section">
+      <div class="section-header">
+        <h2 id="titleAirlines">✈️ By Airline</h2>
+        <span class="section-count" id="countAirlines"></span>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table" id="tableAirlines">
+          <thead>
+            <tr>
+              <th id="thAirline">Airline</th>
+              <th id="thPnrs2">PNRs</th>
+              <th id="thPax2">PAX</th>
+              <th id="thSold2">Sold</th>
+              <th id="thRemaining2">Remaining</th>
+              <th id="thPct2">Sales %</th>
+              <th id="thBar2">Progress</th>
+            </tr>
+          </thead>
+          <tbody id="tbodyAirlines"></tbody>
+          <tfoot id="tfootAirlines"></tfoot>
+        </table>
+      </div>
+    </section>
+    
+    <!-- Suppliers Table -->
+    <section class="report-section">
+      <div class="section-header">
+        <h2 id="titleSuppliers">🤝 By Supplier</h2>
+        <span class="section-count" id="countSuppliers"></span>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table" id="tableSuppliers">
+          <thead>
+            <tr>
+              <th id="thSupplier">Supplier</th>
+              <th id="thPnrs3">PNRs</th>
+              <th id="thPax3">PAX</th>
+              <th id="thSold3">Sold</th>
+              <th id="thRemaining3">Remaining</th>
+              <th id="thPct3">Sales %</th>
+              <th id="thBar3">Progress</th>
+              <th id="thCountries3">Countries</th>
+            </tr>
+          </thead>
+          <tbody id="tbodySuppliers"></tbody>
+          <tfoot id="tfootSuppliers"></tfoot>
+        </table>
+      </div>
+    </section>
+    
+    <!-- Charts Section -->
+    <section class="report-section charts-section">
+      <div class="section-header">
+        <h2 id="titleCharts">📈 Visual Analytics</h2>
+      </div>
+      <div class="charts-grid">
+        <div class="chart-box">
+          <h3 id="chartTitleCountry">Sales by Country</h3>
+          <canvas id="chartCountry"></canvas>
+        </div>
+        <div class="chart-box">
+          <h3 id="chartTitleAirline">Sales by Airline</h3>
+          <canvas id="chartAirline"></canvas>
+        </div>
+        <div class="chart-box chart-full">
+          <h3 id="chartTitleSupplier">Sales % by Supplier</h3>
+          <canvas id="chartSupplier"></canvas>
+        </div>
+      </div>
+    </section>
+    
+    <!-- PNR Details Table -->
+    <section class="report-section">
+      <div class="section-header">
+        <h2 id="titlePnrDetails">📋 PNR Details</h2>
+        <span class="section-count" id="countPnrs"></span>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table" id="tablePnrDetails">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th id="thPnr4">PNR</th>
+              <th id="thCountry4">Country</th>
+              <th id="thCity4">City</th>
+              <th id="thAirline4">Airline</th>
+              <th id="thSupplier4">Supplier</th>
+              <th id="thPax4">PAX</th>
+              <th id="thSold4">Sold</th>
+              <th id="thRemaining4">Remaining</th>
+              <th id="thPct4">Sales %</th>
+            </tr>
+          </thead>
+          <tbody id="tbodyPnrDetails"></tbody>
+          <tfoot id="tfootPnrDetails"></tfoot>
+        </table>
+      </div>
+    </section>
+    
+  </div>
+</main>
+
+<!-- Footer -->
+<footer class="report-footer">
+  <div class="footer-inner">
+    <span id="footerText">Ikram AlDyf for Hajj - Sales Report v1.0</span>
+    <span class="auto-refresh-indicator">
+      <span class="pulse-dot"></span>
+      <span id="footerRefresh">Auto-refresh 30s</span>
+    </span>
+    <span id="footerTimestamp"></span>
+  </div>
+</footer>
+
+<?!= include('SalesStyles'); ?>
+<?!= include('SalesScripts'); ?>
+
+</body>
+</html>

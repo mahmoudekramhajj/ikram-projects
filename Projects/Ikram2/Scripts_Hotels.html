@@ -1,0 +1,372 @@
+<script>
+// ══════════════════════════════════════════════════════════════
+// Scripts_Hotels.html - منطق الفنادق والمشاركة والتصدير
+// الإصدار 26.0 - بعد التقسيم
+// ══════════════════════════════════════════════════════════════
+
+// ==================== فلاتر الفنادق ====================
+function initHotelsFilters() { 
+  updateHotelCitySelect(); 
+  updateHotelNameSelect(); 
+}
+
+function updateHotelCitySelect() {
+  var t = T[currentLang];
+  var s = document.getElementById('fHotelCity');
+  if (s) {
+    s.innerHTML = '<option value="">' + t.all + '</option>' +
+      '<option value="Mak">' + t.makkah + '</option>' +
+      '<option value="Med">' + t.madinah + '</option>';
+  }
+}
+
+function updateHotelNameSelect() {
+  var t = T[currentLang];
+  var s = document.getElementById('fHotelName');
+  var city = gv('fHotelCity');
+  var names = [];
+  
+  for (var i = 0; i < allHotels.length; i++) {
+    var h = allHotels[i];
+    if (city && String(h.city || '').trim() !== city) continue;
+    var name = currentLang === 'ar' ? h.nameAr : h.nameEn;
+    name = String(name || '').trim();
+    if (name && names.indexOf(name) === -1) names.push(name);
+  }
+  
+  fillSelect('fHotelName', names.sort(), t.all);
+}
+
+function onHotelCityChange() { 
+  updateHotelNameSelect(); 
+  doHotelsSearch(); 
+}
+
+function clearHotelsFilters() { 
+  ['fHotelCity', 'fHotelName', 'fHotelPackage'].forEach(function(id) { 
+    sv(id, ''); 
+  }); 
+  updateHotelNameSelect(); 
+  doHotelsSearch(); 
+}
+
+// ==================== البحث في الفنادق ====================
+function doHotelsSearch() {
+  var cityFilter = gv('fHotelCity');
+  var hotelFilter = gv('fHotelName');
+  var pkgSearch = gv('fHotelPackage').toLowerCase();
+  
+  var hotelsData = {};
+  
+  for (var i = 0; i < allPackages.length; i++) {
+    var p = allPackages[i];
+    var pkgName = currentLang === 'ar' ? p.name : p.nameEn;
+    
+    // فلتر اسم الباقة
+    if (pkgSearch && String(pkgName || '').toLowerCase().indexOf(pkgSearch) === -1) continue;
+    
+    var hotels = [
+      { city: p.hotel1City, name: p.hotel1Name, nameEn: p.hotel1NameEn },
+      { city: p.hotel2City, name: p.hotel2Name, nameEn: p.hotel2NameEn },
+      { city: p.hotel3City, name: p.hotel3Name, nameEn: p.hotel3NameEn }
+    ];
+    
+    for (var j = 0; j < hotels.length; j++) {
+      var h = hotels[j];
+      if (!h.name) continue;
+      
+      var hCity = String(h.city || '').trim();
+      
+      // فلتر المدينة
+      if (cityFilter && hCity !== cityFilter) continue;
+      
+      var displayName = currentLang === 'ar' ? (h.name || h.nameEn) : (h.nameEn || h.name);
+      displayName = String(displayName || '').trim();
+      
+      // فلتر اسم الفندق
+      if (hotelFilter && displayName !== hotelFilter) continue;
+      
+      var key = h.name + '|' + hCity;
+      if (!hotelsData[key]) {
+        hotelsData[key] = { 
+          name: h.name, 
+          nameEn: h.nameEn, 
+          city: hCity, 
+          totalBeds: 0, 
+          soldBeds: 0, 
+          remainingBeds: 0, 
+          packages: [] 
+        };
+      }
+      
+      hotelsData[key].totalBeds += p.capacity || 0;
+      hotelsData[key].soldBeds += p.salesCount || 0;
+      hotelsData[key].remainingBeds += p.remaining || 0;
+      hotelsData[key].packages.push({ 
+        name: p.name, 
+        nameEn: p.nameEn, 
+        remaining: p.remaining, 
+        isSoldOut: p.isSoldOut 
+      });
+    }
+  }
+  
+  currentHotelsResults = hotelsData;
+  showHotelsResults(hotelsData);
+}
+
+// ==================== عرض نتائج الفنادق ====================
+function showHotelsResults(hotelsData) {
+  var t = T[currentLang];
+  var area = document.getElementById('hotelsResultsArea');
+  
+  var mak = [], med = [];
+  for (var key in hotelsData) { 
+    var h = hotelsData[key]; 
+    if (h.city === 'Mak') mak.push(h); 
+    else if (h.city === 'Med') med.push(h); 
+  }
+  
+  if (mak.length === 0 && med.length === 0) { 
+    area.innerHTML = '<div class="no-results">😕 ' + t.noResults + '</div>'; 
+    return; 
+  }
+  
+  var html = '';
+  
+  // فنادق مكة
+  if (mak.length > 0) { 
+    html += '<div class="city-section">' +
+      '<div class="city-title makkah">' + t.hotelsInMakkah + ' (' + mak.length + ')</div>' +
+      '<div class="hotel-grid">'; 
+    for (var i = 0; i < mak.length; i++) {
+      html += createHotelCard(mak[i], 'makkah'); 
+    }
+    html += '</div></div>'; 
+  }
+  
+  // فنادق المدينة
+  if (med.length > 0) { 
+    html += '<div class="city-section">' +
+      '<div class="city-title madinah">' + t.hotelsInMadinah + ' (' + med.length + ')</div>' +
+      '<div class="hotel-grid">'; 
+    for (var j = 0; j < med.length; j++) {
+      html += createHotelCard(med[j], 'madinah'); 
+    }
+    html += '</div></div>'; 
+  }
+  
+  area.innerHTML = html;
+}
+
+// ==================== بطاقة الفندق ====================
+function createHotelCard(h, cityClass) {
+  var t = T[currentLang];
+  var name = currentLang === 'ar' ? (h.name || h.nameEn) : (h.nameEn || h.name);
+  var name2 = currentLang === 'ar' ? h.nameEn : h.name;
+  
+  // الباقات المرتبطة
+  var pkgsHtml = '<div class="hotel-linked-packages">' +
+    '<div class="pnr-linked-title">📦 ' + t.linkedPackages + ' (' + h.packages.length + ')</div>';
+  
+  for (var i = 0; i < h.packages.length; i++) {
+    var pkg = h.packages[i];
+    var pn = currentLang === 'ar' ? pkg.name : pkg.nameEn;
+    var status = pkg.isSoldOut ? 'sold' : (pkg.remaining < 10 ? 'low' : 'available');
+    var statusText = pkg.isSoldOut ? t.soldOut : (pkg.remaining < 10 ? t.remaining + ': ' + pkg.remaining : t.available);
+    
+    pkgsHtml += '<div class="linked-pkg-item">' +
+      '<span class="linked-pkg-name">' + pn + '</span>' +
+      '<span class="linked-pkg-status ' + status + '">' + statusText + '</span>' +
+      '</div>';
+  }
+  pkgsHtml += '</div>';
+  
+  // رابط الموقع
+  var mapLink = getHotelMapLink(h.name, h.nameEn);
+  var mapBtn = mapLink ? '<a href="' + mapLink + '" target="_blank" class="hotel-location">📍 ' + t.location + '</a>' : '';
+  
+  return '<div class="hotel-card">' +
+    '<div class="hotel-card-header ' + cityClass + '">' +
+    '<div>' +
+    '<div class="hotel-card-name">' + name + '</div>' +
+    (name2 ? '<div class="hotel-card-name-en">' + name2 + '</div>' : '') +
+    '</div>' + mapBtn +
+    '</div>' +
+    '<div class="hotel-card-body">' +
+    '<div class="hotel-stats">' +
+    '<div class="hotel-stat">' +
+    '<div class="hotel-stat-value">' + fmtN(h.totalBeds) + '</div>' +
+    '<div class="hotel-stat-label">' + t.totalBeds + '</div>' +
+    '</div>' +
+    '<div class="hotel-stat">' +
+    '<div class="hotel-stat-value" style="color:#dc3545">' + fmtN(h.soldBeds) + '</div>' +
+    '<div class="hotel-stat-label">' + t.soldBeds + '</div>' +
+    '</div>' +
+    '<div class="hotel-stat">' +
+    '<div class="hotel-stat-value">' + fmtN(h.remainingBeds) + '</div>' +
+    '<div class="hotel-stat-label">' + t.remainingBeds + '</div>' +
+    '</div>' +
+    '</div>' + pkgsHtml +
+    '</div></div>';
+}
+
+// ==================== المشاركة ====================
+function shareWA(n, pp, link, cap, rem) {
+  var t = T[currentLang];
+  var name = decodeURIComponent(n);
+  var txt = t.whatsappCompany + '\n━━━━━━━━━━━━━━━━━\n' +
+    '📦 ' + name + '\n' +
+    t.capacity + ': ' + cap + ' | ' + t.remaining + ': ' + rem;
+  
+  if (pp > 0) txt += '\n💰 ' + fmtN(pp) + ' ' + t.sar;
+  
+  if (link) { 
+    var dl = decodeURIComponent(link); 
+    if (dl) txt += '\n🔗 ' + dl; 
+  }
+  
+  txt += '\n━━━━━━━━━━━━━━━━━\n' + t.whatsappContact;
+  window.open('https://wa.me/?text=' + encodeURIComponent(txt), '_blank');
+}
+
+function shareEm(n, pp, link) {
+  var t = T[currentLang];
+  var name = decodeURIComponent(n);
+  var body = t.whatsappCompany + '\n\n📦 ' + name;
+  
+  if (pp > 0) body += '\n💰 ' + fmtN(pp) + ' ' + t.sar;
+  
+  if (link) { 
+    var dl = decodeURIComponent(link); 
+    if (dl) body += '\n🔗 ' + dl; 
+  }
+  
+  body += '\n\n' + t.whatsappContact;
+  window.open('mailto:?subject=' + encodeURIComponent(name) + '&body=' + encodeURIComponent(body), '_blank');
+}
+
+function shareAllResults() {
+  var t = T[currentLang];
+  if (currentResults.length === 0) return;
+  
+  var txt = t.whatsappCompany + '\n━━━━━━━━━━━━━━━━━\n' + 
+    currentResults.length + ' ' + t.packages + '\n━━━━━━━━━━━━━━━━━\n\n';
+  
+  for (var i = 0; i < Math.min(currentResults.length, 10); i++) { 
+    var p = currentResults[i]; 
+    txt += '📦 ' + (currentLang === 'ar' ? p.name : p.nameEn) + '\n   ' + 
+      t.remaining + ': ' + p.remaining + '\n\n'; 
+  }
+  
+  txt += t.whatsappContact;
+  window.open('https://wa.me/?text=' + encodeURIComponent(txt), '_blank');
+}
+
+function shareFlightsResults() {
+  var t = T[currentLang];
+  if (currentFlightsResults.length === 0) return;
+  
+  var txt = t.whatsappCompany + '\n━━━━━━━━━━━━━━━━━\n' + 
+    currentFlightsResults.length + ' PNR\n━━━━━━━━━━━━━━━━━\n\n';
+  
+  for (var i = 0; i < Math.min(currentFlightsResults.length, 10); i++) { 
+    var f = currentFlightsResults[i]; 
+    txt += '✈️ ' + f.pnr + ' | ' + f.country + ' | ' + f.city + '\n   ' + 
+      t.remaining + ': ' + f.remaining + '\n\n'; 
+  }
+  
+  txt += t.whatsappContact;
+  window.open('https://wa.me/?text=' + encodeURIComponent(txt), '_blank');
+}
+
+function shareHotelsResults() {
+  var t = T[currentLang];
+  var txt = t.whatsappCompany + '\n━━━━━━━━━━━━━━━━━\n' + 
+    t.hotels + '\n━━━━━━━━━━━━━━━━━\n\n';
+  
+  var count = 0;
+  for (var key in currentHotelsResults) { 
+    if (count >= 10) break; 
+    var h = currentHotelsResults[key]; 
+    txt += '🏨 ' + (currentLang === 'ar' ? (h.name || h.nameEn) : (h.nameEn || h.name)) + '\n   ' + 
+      t.remaining + ': ' + h.remainingBeds + '\n\n'; 
+    count++; 
+  }
+  
+  txt += t.whatsappContact;
+  window.open('https://wa.me/?text=' + encodeURIComponent(txt), '_blank');
+}
+
+// ==================== التصدير ====================
+function exportExcel() {
+  if (currentResults.length === 0) return;
+  
+  var csv = '\uFEFF' + 'Name,Price,Capacity,Sold,Remaining\n';
+  for (var i = 0; i < currentResults.length; i++) { 
+    var p = currentResults[i]; 
+    csv += '"' + (currentLang === 'ar' ? p.name : p.nameEn) + '",' + 
+      (p.price || 0) + ',' + (p.capacity || 0) + ',' + 
+      (p.salesCount || 0) + ',' + (p.remaining || 0) + '\n'; 
+  }
+  
+  var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  var link = document.createElement('a'); 
+  link.href = URL.createObjectURL(blob); 
+  link.download = 'packages.csv'; 
+  link.click();
+}
+
+function exportFlightsExcel() {
+  if (currentFlightsResults.length === 0) return;
+  
+  var csv = '\uFEFF' + 'PNR,Country,City,Airline,Capacity,Sold,Remaining\n';
+  for (var i = 0; i < currentFlightsResults.length; i++) { 
+    var f = currentFlightsResults[i]; 
+    csv += '"' + f.pnr + '","' + f.country + '","' + f.city + '","' + f.airline + '",' + 
+      (f.pax || 0) + ',' + (f.salesCount || 0) + ',' + (f.remaining || 0) + '\n'; 
+  }
+  
+  var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  var link = document.createElement('a'); 
+  link.href = URL.createObjectURL(blob); 
+  link.download = 'flights.csv'; 
+  link.click();
+}
+
+function exportHotelsExcel() {
+  var csv = '\uFEFF' + 'Hotel,City,Total,Sold,Remaining\n';
+  for (var key in currentHotelsResults) { 
+    var h = currentHotelsResults[key]; 
+    csv += '"' + (currentLang === 'ar' ? (h.name || h.nameEn) : (h.nameEn || h.name)) + '",' +
+      '"' + (h.city === 'Mak' ? 'Makkah' : 'Madinah') + '",' + 
+      (h.totalBeds || 0) + ',' + (h.soldBeds || 0) + ',' + (h.remainingBeds || 0) + '\n'; 
+  }
+  
+  var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  var link = document.createElement('a'); 
+  link.href = URL.createObjectURL(blob); 
+  link.download = 'hotels.csv'; 
+  link.click();
+}
+
+function printResults() { 
+  window.print(); 
+}
+
+function copyLink(link) {
+  var t = T[currentLang];
+  var dl = decodeURIComponent(link);
+  
+  if (!dl) { 
+    alert(t.noLink); 
+    return; 
+  }
+  
+  navigator.clipboard.writeText(dl).then(function() { 
+    alert(t.linkCopied); 
+  }).catch(function() { 
+    alert(t.linkCopied); 
+  });
+}
+</script>

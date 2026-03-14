@@ -1,0 +1,247 @@
+<script>
+// ══════════════════════════════════════════════════════════════
+// Scripts_Flights.html - منطق الطيران وبطاقات PNR
+// الإصدار 27.0 - الدول المستهدفة + إخفاء الباقات المكتملة
+// ══════════════════════════════════════════════════════════════
+
+// ==================== فلاتر الطيران ====================
+function initFlightsFilters() {
+  var t = T[currentLang];
+  fillSelect('fFlightCountry', getUnique(allFlights, 'country'), t.all);
+  fillSelect('fFlightCity', getUnique(allFlights, 'city'), t.all);
+  fillSelect('fFlightAirline', getUnique(allFlights, 'airline'), t.all);
+  fillSelect('fFlightTargetCountry', getAllTargetCountries(), t.all);
+}
+
+function onFlightCountryChange() {
+  var c = gv('fFlightCountry');
+  var t = T[currentLang];
+  var f = c ? allFlights.filter(function(x) { 
+    return String(x.country || '').trim() === c; 
+  }) : allFlights;
+  
+  fillSelect('fFlightCity', getUnique(f, 'city'), t.all);
+  fillSelect('fFlightAirline', getUnique(f, 'airline'), t.all);
+  doFlightsSearch();
+}
+
+function clearFlightsFilters() {
+  ['fFlightCountry', 'fFlightCity', 'fFlightAirline', 'fFlightPNR', 'fFlightPackage', 'fFlightTargetCountry'].forEach(function(id) { 
+    sv(id, ''); 
+  });
+  sc('showSoldOutFlights', false);
+  onFlightCountryChange();
+}
+
+// ==================== البحث في الطيران ====================
+function doFlightsSearch() {
+  var show = gc('showSoldOutFlights');
+  var f = { 
+    country: gv('fFlightCountry'), 
+    city: gv('fFlightCity'), 
+    airline: gv('fFlightAirline'), 
+    pnr: gv('fFlightPNR').toUpperCase(), 
+    pkgName: gv('fFlightPackage').toLowerCase(),
+    targetCountry: gv('fFlightTargetCountry')
+  };
+  
+  var r = allFlights.filter(function(fl) {
+    // فلتر المباع
+    if (!show && fl.isSoldOut) return false;
+    
+    // فلتر الدولة
+    if (f.country && String(fl.country || '').trim() !== f.country) return false;
+    
+    // فلتر المدينة
+    if (f.city && String(fl.city || '').trim() !== f.city) return false;
+    
+    // فلتر الطيران
+    if (f.airline && String(fl.airline || '').trim() !== f.airline) return false;
+    
+    // فلتر PNR
+    if (f.pnr && String(fl.pnr || '').toUpperCase().indexOf(f.pnr) === -1) return false;
+    
+    // فلتر الدولة المستهدفة
+    if (f.targetCountry) {
+      if (!fl.targetCountries || fl.targetCountries.length === 0) return false;
+      var hasTarget = fl.targetCountries.some(function(tc) {
+        return String(tc).trim() === f.targetCountry;
+      });
+      if (!hasTarget) return false;
+    }
+    
+    // فلتر اسم الباقة
+    if (f.pkgName) {
+      var linkedPkgs = allPackages.filter(function(p) { 
+        return fl.linkedNusk && fl.linkedNusk.indexOf(Number(p.nuskNo)) !== -1; 
+      });
+      var hasMatch = linkedPkgs.some(function(p) { 
+        var name = currentLang === 'ar' ? p.name : p.nameEn; 
+        return String(name || '').toLowerCase().indexOf(f.pkgName) !== -1; 
+      });
+      if (!hasMatch) return false;
+    }
+    
+    return true;
+  });
+  
+  currentFlightsResults = r;
+  showFlightsResults(r);
+}
+
+// ==================== عرض نتائج الطيران ====================
+function showFlightsResults(flights) {
+  var t = T[currentLang];
+  document.getElementById('flightsResultCount').textContent = flights.length;
+  var area = document.getElementById('flightsResultsArea');
+  
+  if (flights.length === 0) { 
+    area.innerHTML = '<div class="no-results">😕 ' + t.noResults + '</div>'; 
+    return; 
+  }
+  
+  var html = '<div class="pnr-grid">';
+  for (var i = 0; i < flights.length; i++) {
+    html += createPNRCard(flights[i]);
+  }
+  html += '</div>';
+  area.innerHTML = html;
+}
+
+// ==================== بطاقة PNR ====================
+function createPNRCard(fl) {
+  var t = T[currentLang];
+  var sp = fl.salesPercent || 0;
+  var pc = getProgressClass(sp);
+  var cInfo = getCountryInfo(fl.country);
+  
+  // الباقات المرتبطة — إخفاء الباقات المكتملة
+  var linkedPkgs = allPackages.filter(function(p) { 
+    return fl.linkedNusk && fl.linkedNusk.indexOf(Number(p.nuskNo)) !== -1 && !p.isSoldOut; 
+  });
+  
+  // تحديد نوع الرحلة (مباشر/ترانزيت)
+  var isDirect = !fl.flight1No && fl.flight2No;
+  
+  // الدول المستهدفة
+  var targetHtml = '';
+  if (fl.targetCountries && fl.targetCountries.length > 0) {
+    targetHtml = '<div class="target-countries">' +
+      '<div class="target-countries-title">🎯 ' + t.targetCountries + '</div>' +
+      '<div class="target-countries-list">';
+    for (var tc = 0; tc < fl.targetCountries.length; tc++) {
+      targetHtml += '<span class="target-country-tag">' + fl.targetCountries[tc] + '</span>';
+    }
+    targetHtml += '</div></div>';
+  }
+  
+  // تفاصيل الرحلات
+  var flightDetailsHtml = '';
+  
+  if (isDirect) {
+    // رحلة مباشرة
+    if (fl.flight2No && fl.flight2From) {
+      flightDetailsHtml += '<div class="flight-detail">' +
+        '<div class="flight-detail-header">✈️ ' + t.departure + ' (' + t.direct + ')</div>' +
+        '<div class="flight-route-detail">' +
+        '<div class="flight-point"><div class="flight-point-code">' + fl.flight2From + '</div></div>' +
+        '<div class="flight-arrow">→</div>' +
+        '<div class="flight-point"><div class="flight-point-code">' + fl.flight2To + '</div></div>' +
+        '</div></div>';
+    }
+    if (fl.flight3No && fl.flight3From) {
+      flightDetailsHtml += '<div class="flight-detail">' +
+        '<div class="flight-detail-header">✈️ ' + t.returnFlight + '</div>' +
+        '<div class="flight-route-detail">' +
+        '<div class="flight-point"><div class="flight-point-code">' + fl.flight3From + '</div></div>' +
+        '<div class="flight-arrow">→</div>' +
+        '<div class="flight-point"><div class="flight-point-code">' + fl.flight3To + '</div></div>' +
+        '</div></div>';
+    }
+  } else {
+    // رحلة ترانزيت
+    if (fl.flight1No) {
+      flightDetailsHtml += '<div class="flight-detail">' +
+        '<div class="flight-detail-header">✈️ ' + t.departure + ' 1</div>' +
+        '<div class="flight-route-detail">' +
+        '<div class="flight-point"><div class="flight-point-code">' + (fl.flight1From || '-') + '</div></div>' +
+        '<div class="flight-arrow">→</div>' +
+        '<div class="flight-point"><div class="flight-point-code">' + (fl.flight1To || '-') + '</div></div>' +
+        '</div></div>';
+    }
+    if (fl.flight2No) {
+      flightDetailsHtml += '<div class="flight-detail">' +
+        '<div class="flight-detail-header">✈️ ' + t.departure + ' 2</div>' +
+        '<div class="flight-route-detail">' +
+        '<div class="flight-point"><div class="flight-point-code">' + (fl.flight2From || '-') + '</div></div>' +
+        '<div class="flight-arrow">→</div>' +
+        '<div class="flight-point"><div class="flight-point-code">' + (fl.flight2To || '-') + '</div></div>' +
+        '</div></div>';
+    }
+    if (fl.flight3No) {
+      flightDetailsHtml += '<div class="flight-detail">' +
+        '<div class="flight-detail-header">✈️ ' + t.returnFlight + ' 1</div>' +
+        '<div class="flight-route-detail">' +
+        '<div class="flight-point"><div class="flight-point-code">' + (fl.flight3From || '-') + '</div></div>' +
+        '<div class="flight-arrow">→</div>' +
+        '<div class="flight-point"><div class="flight-point-code">' + (fl.flight3To || '-') + '</div></div>' +
+        '</div></div>';
+    }
+    if (fl.flight4No) {
+      flightDetailsHtml += '<div class="flight-detail">' +
+        '<div class="flight-detail-header">✈️ ' + t.returnFlight + ' 2</div>' +
+        '<div class="flight-route-detail">' +
+        '<div class="flight-point"><div class="flight-point-code">' + (fl.flight4From || '-') + '</div></div>' +
+        '<div class="flight-arrow">→</div>' +
+        '<div class="flight-point"><div class="flight-point-code">' + (fl.flight4To || '-') + '</div></div>' +
+        '</div></div>';
+    }
+  }
+  
+  // الباقات المرتبطة (بدون المكتملة)
+  var linkedHtml = '';
+  if (linkedPkgs.length > 0) {
+    linkedHtml = '<div class="pnr-linked-packages">' +
+      '<div class="pnr-linked-title">📦 ' + t.linkedPackages + ' (' + linkedPkgs.length + ')</div>';
+    
+    for (var i = 0; i < linkedPkgs.length; i++) {
+      var lp = linkedPkgs[i];
+      var lpName = currentLang === 'ar' ? lp.name : lp.nameEn;
+      var status = lp.remaining < 10 ? 'low' : 'available';
+      var statusText = lp.remaining < 10 ? t.remaining + ': ' + lp.remaining : t.available;
+      
+      linkedHtml += '<div class="linked-pkg-item">' +
+        '<span class="linked-pkg-name">' + lpName + '</span>' +
+        '<span class="linked-pkg-status ' + status + '">' + statusText + '</span>' +
+        '</div>';
+    }
+    linkedHtml += '</div>';
+  }
+  
+  return '<div class="pnr-card">' +
+    '<div class="pnr-header ' + cInfo.color + '">' +
+    '<div class="pnr-info">' +
+    '<span class="pnr-code">' + fl.pnr + '</span>' +
+    '<span class="pnr-country"><span class="country-flag">' + cInfo.flag + '</span> ' + fl.country + ' - ' + fl.city + '</span>' +
+    '<span>✈️ ' + fl.airline + '</span>' +
+    '</div>' +
+    '<span class="pnr-price">' + fmtN(fl.priceNusk || 0) + ' ' + t.sar + '</span>' +
+    '</div>' +
+    '<div class="pnr-body">' +
+    targetHtml +
+    flightDetailsHtml +
+    '<div class="sales-section">' +
+    '<div class="sales-header">' +
+    '<span class="sales-title">📊 ' + t.sales + '</span>' +
+    '<span class="sales-percent">' + Math.round(sp) + '%</span>' +
+    '</div>' +
+    '<div class="progress-bar"><div class="progress-fill ' + pc + '" style="width:' + Math.min(sp, 100) + '%"></div></div>' +
+    '<div class="sales-stats">' +
+    '<span>' + t.capacity + ': ' + fl.pax + '</span>' +
+    '<span>' + t.sold + ': ' + fl.salesCount + '</span>' +
+    '<span>' + t.remaining + ': ' + fl.remaining + '</span>' +
+    '</div></div>' +
+    linkedHtml +
+    '</div></div>';
+}
+</script>
