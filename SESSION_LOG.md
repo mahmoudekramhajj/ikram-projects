@@ -4,6 +4,22 @@
 
 ---
 
+## 2026-03-17 | جهاز البيت
+**ما تم:**
+- مراجعة حالة المشروع واستئناف من جلسة 2026-03-15
+- حفظ رؤية 2027 في ذاكرة Claude (نظام متكامل من التعاقد إلى إقفال الحسابات)
+- تحديث فهرس الذاكرة MEMORY.md
+
+**الملفات المتأثرة:**
+- ذاكرة Claude: project_ikram_vision.md (جديد) + MEMORY.md (محدّث)
+
+**الخطوة التالية:**
+- إعداد Git على جهاز المكتب (git clone)
+- إنشاء CLAUDE.md لـ Ikram و Hotel Management
+- نقاش دمج المشاريع الصغيرة (TourGuide Manager، GDS، B2C Sync، PNR Sync)
+
+---
+
 ## 2026-03-15 | جهاز البيت
 **ما تم:**
 - إنشاء repo على GitHub (private): `mahmoudekramhajj/ekram-aldyf`
