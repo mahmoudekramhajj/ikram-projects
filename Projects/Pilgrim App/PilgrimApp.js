@@ -225,6 +225,7 @@ function getAllPilgrims() {
         ticketNo: cleanStr(row[24]),
         ticketLink: cleanStr(row[25]),
         invoiceNo: cleanStr(row[26]),
+        camp: cleanStr(row[27]),
         transportType: transportMap[packageNo] || '',
         arrivalTime: fmtDateTime(row[28]),
         departureTime: fmtDateTime(row[30]),
@@ -255,26 +256,45 @@ function calcStats(pilgrims) {
   var groups = {};
   var countries = {};
   var packages = {};
+  var nationalities = {};
+  var camps = {};
+  var transports = {};
   var b2b = 0, b2c = 0, local = 0;
+  var male = 0, female = 0;
   var guides = {};
 
   for (var i = 0; i < pilgrims.length; i++) {
     var p = pilgrims[i];
     groups[p.groupNo] = true;
-    
+
     if (p.country) {
       countries[p.country] = (countries[p.country] || 0) + 1;
     }
-    
+
     if (p.packageNo) {
       packages[p.packageNo] = (packages[p.packageNo] || 0) + 1;
     }
-    
+
+    if (p.nationality) {
+      nationalities[p.nationality] = (nationalities[p.nationality] || 0) + 1;
+    }
+
+    if (p.camp) {
+      camps[p.camp] = (camps[p.camp] || 0) + 1;
+    }
+
+    if (p.transportType) {
+      transports[p.transportType] = (transports[p.transportType] || 0) + 1;
+    }
+
     if (p.flightType === 'B2B') b2b++;
     else if (p.flightType === 'B2C') b2c++;
-    
+
     if (p.isLocal) local++;
-    
+
+    if (p.gender === 'ذكر') male++;
+    else if (p.gender === 'انثى' || p.gender === 'أنثى') female++;
+
     if (p.guide) {
       guides[p.guide] = (guides[p.guide] || 0) + 1;
     }
@@ -285,9 +305,14 @@ function calcStats(pilgrims) {
     totalGroups: Object.keys(groups).length,
     totalCountries: Object.keys(countries).length,
     totalPackages: Object.keys(packages).length,
+    totalNationalities: Object.keys(nationalities).length,
+    totalCamps: Object.keys(camps).length,
+    totalTransports: Object.keys(transports).length,
     b2b: b2b,
     b2c: b2c,
     local: local,
+    male: male,
+    female: female,
     totalGuides: Object.keys(guides).length
   };
 }
