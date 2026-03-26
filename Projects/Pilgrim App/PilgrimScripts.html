@@ -45,7 +45,8 @@ var T = {
     lblFlightType: '🎫 نوع التذكرة',
     btnSearch: '🔍 بحث',
     btnClear: '🔄 مسح',
-    btnExport: '📊 تصدير',
+    btnExport: '📊 تصدير Excel',
+    btnExportImg: '📷 تصدير إحصائيات',
     found: 'تم العثور على',
     pilgrims: 'حاج',
     all: 'الكل',
@@ -79,7 +80,22 @@ var T = {
     gender: 'الجنس',
     serial: 'الرقم التسلسلي',
     male: 'ذكر',
-    female: 'أنثى'
+    female: 'أنثى',
+    statMale: 'ذكور',
+    statFemale: 'إناث',
+    statNationalities: 'الجنسيات',
+    statCamps: 'المخيمات',
+    statTransports: 'التنقل',
+    lblGender: '⚧ الجنس',
+    lblNationality: '🏳️ الجنسية',
+    lblCamp: '🏕️ المخيم',
+    lblTransport: '🚌 التنقل',
+    camp: 'المخيم',
+    groupPilgrims: 'الحجاج',
+    groupGender: 'الجنس',
+    groupTickets: 'التذاكر',
+    groupGeo: 'الجغرافيا',
+    groupField: 'الميدان'
   },
   en: {
     headerTitle: '🕋 Ikram AlDyf for Hajj',
@@ -101,7 +117,6 @@ var T = {
     lblFlightType: '🎫 Ticket Type',
     btnSearch: '🔍 Search',
     btnClear: '🔄 Clear',
-    btnExport: '📊 Export',
     found: 'Found',
     pilgrims: 'pilgrims',
     all: 'All',
@@ -135,7 +150,24 @@ var T = {
     gender: 'Gender',
     serial: 'Serial No.',
     male: 'Male',
-    female: 'Female'
+    female: 'Female',
+    statMale: 'Male',
+    statFemale: 'Female',
+    statNationalities: 'Nationalities',
+    statCamps: 'Camps',
+    statTransports: 'Transport',
+    lblGender: '⚧ Gender',
+    lblNationality: '🏳️ Nationality',
+    lblCamp: '🏕️ Camp',
+    lblTransport: '🚌 Transport',
+    camp: 'Camp',
+    btnExport: '📊 Export Excel',
+    btnExportImg: '📷 Export Stats',
+    groupPilgrims: 'Pilgrims',
+    groupGender: 'Gender',
+    groupTickets: 'Tickets',
+    groupGeo: 'Geography',
+    groupField: 'Field'
   }
 };
 
@@ -205,12 +237,79 @@ function loadData() {
 
 // ==================== الإحصائيات ====================
 function updateStats(stats) {
-  document.getElementById('statTotal').textContent = fmtN(stats.totalPilgrims || 0);
-  document.getElementById('statGroups').textContent = fmtN(stats.totalGroups || 0);
-  document.getElementById('statCountries').textContent = fmtN(stats.totalCountries || 0);
-  document.getElementById('statPackages').textContent = fmtN(stats.totalPackages || 0);
-  document.getElementById('statB2B').textContent = fmtN(stats.b2b || 0);
-  document.getElementById('statB2C').textContent = fmtN(stats.b2c || 0);
+  animateStat('statTotal', stats.totalPilgrims || 0);
+  animateStat('statGroups', stats.totalGroups || 0);
+  animateStat('statCountries', stats.totalCountries || 0);
+  animateStat('statPackages', stats.totalPackages || 0);
+  animateStat('statB2B', stats.b2b || 0);
+  animateStat('statB2C', stats.b2c || 0);
+  animateStat('statMale', stats.male || 0);
+  animateStat('statFemale', stats.female || 0);
+  animateStat('statNationalities', stats.totalNationalities || 0);
+  animateStat('statCamps', stats.totalCamps || 0);
+  animateStat('statTransports', stats.totalTransports || 0);
+
+  // تحديث أشرطة النسب
+  var total = (stats.male || 0) + (stats.female || 0);
+  if (total > 0) {
+    document.getElementById('barMale').style.width = Math.round((stats.male / total) * 100) + '%';
+    document.getElementById('barFemale').style.width = Math.round((stats.female / total) * 100) + '%';
+  } else {
+    document.getElementById('barMale').style.width = '0%';
+    document.getElementById('barFemale').style.width = '0%';
+  }
+  var totalTickets = (stats.b2b || 0) + (stats.b2c || 0);
+  if (totalTickets > 0) {
+    document.getElementById('barB2B').style.width = Math.round((stats.b2b / totalTickets) * 100) + '%';
+    document.getElementById('barB2C').style.width = Math.round((stats.b2c / totalTickets) * 100) + '%';
+  } else {
+    document.getElementById('barB2B').style.width = '0%';
+    document.getElementById('barB2C').style.width = '0%';
+  }
+}
+
+function animateStat(id, newVal) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  var formatted = fmtN(newVal);
+  if (el.textContent !== formatted) {
+    el.textContent = formatted;
+    el.classList.add('animating');
+    setTimeout(function() { el.classList.remove('animating'); }, 300);
+  }
+}
+
+// حساب الإحصائيات من نتائج البحث (client-side)
+function calcStatsClient(pilgrims) {
+  var groups = {}, countries = {}, packages = {};
+  var nationalities = {}, camps = {}, transports = {};
+  var b2b = 0, b2c = 0, male = 0, female = 0;
+
+  for (var i = 0; i < pilgrims.length; i++) {
+    var p = pilgrims[i];
+    if (p.groupNo) groups[p.groupNo] = true;
+    if (p.country) countries[p.country] = true;
+    if (p.packageNo) packages[p.packageNo] = true;
+    if (p.nationality) nationalities[p.nationality] = true;
+    if (p.camp) camps[p.camp] = true;
+    if (p.transportType) transports[p.transportType] = true;
+    if (p.flightType === 'B2B') b2b++;
+    else if (p.flightType === 'B2C') b2c++;
+    if (p.gender === 'ذكر') male++;
+    else if (p.gender === 'انثى' || p.gender === 'أنثى') female++;
+  }
+
+  return {
+    totalPilgrims: pilgrims.length,
+    totalGroups: Object.keys(groups).length,
+    totalCountries: Object.keys(countries).length,
+    totalPackages: Object.keys(packages).length,
+    totalNationalities: Object.keys(nationalities).length,
+    totalCamps: Object.keys(camps).length,
+    totalTransports: Object.keys(transports).length,
+    b2b: b2b, b2c: b2c,
+    male: male, female: female
+  };
 }
 
 // ==================== الفلاتر ====================
@@ -226,20 +325,27 @@ function updateDynamicFilters(data) {
   var selPackage    = gv('fPackage');
   var selGuide      = gv('fGuide');
   var selFlightType = gv('fFlightType');
+  var selGender     = gv('fGender');
+  var selNationality = gv('fNationality');
+  var selCamp       = gv('fCamp');
+  var selTransport  = gv('fTransport');
 
   // بناء القيم المتاحة من البيانات الحالية
-  var countries = [];
-  var packages  = [];
-  var guides    = [];
-  var flights   = [];
+  var countries = [], packages = [], guides = [], flights = [];
+  var genders = [], nationalities = [], camps = [], transports = [];
   var seenC = {}, seenP = {}, seenG = {}, seenF = {};
+  var seenGn = {}, seenNat = {}, seenCamp = {}, seenTr = {};
 
   for (var i = 0; i < data.length; i++) {
     var p = data[i];
-    if (p.country    && !seenC[p.country])    { seenC[p.country] = true;    countries.push(p.country); }
-    if (p.guide      && !seenG[p.guide])      { seenG[p.guide] = true;      guides.push(p.guide); }
-    if (p.flightType && !seenF[p.flightType]) { seenF[p.flightType] = true; flights.push(p.flightType); }
-    if (p.packageNo  && !seenP[p.packageNo])  {
+    if (p.country       && !seenC[p.country])       { seenC[p.country] = true;       countries.push(p.country); }
+    if (p.guide         && !seenG[p.guide])          { seenG[p.guide] = true;         guides.push(p.guide); }
+    if (p.flightType    && !seenF[p.flightType])     { seenF[p.flightType] = true;    flights.push(p.flightType); }
+    if (p.gender        && !seenGn[p.gender])        { seenGn[p.gender] = true;       genders.push(p.gender); }
+    if (p.nationality   && !seenNat[p.nationality])  { seenNat[p.nationality] = true; nationalities.push(p.nationality); }
+    if (p.camp          && !seenCamp[p.camp])        { seenCamp[p.camp] = true;       camps.push(p.camp); }
+    if (p.transportType && !seenTr[p.transportType]) { seenTr[p.transportType] = true; transports.push(p.transportType); }
+    if (p.packageNo     && !seenP[p.packageNo])      {
       seenP[p.packageNo] = true;
       packages.push({ no: p.packageNo, name: p.packageName });
     }
@@ -248,49 +354,84 @@ function updateDynamicFilters(data) {
   countries.sort();
   guides.sort();
   flights.sort();
+  genders.sort();
+  nationalities.sort();
+  camps.sort();
+  transports.sort();
   packages.sort(function(a, b) { return a.no - b.no; });
 
   fillSelect('fCountry', countries, t.all, selCountry);
   fillSelectPkg('fPackage', packages, t.all, selPackage);
   fillSelect('fGuide', guides, t.all, selGuide);
+  fillSelect('fGender', genders, t.all, selGender);
+  fillSelect('fNationality', nationalities, t.all, selNationality);
+  fillSelect('fCamp', camps, t.all, selCamp);
+  fillSelect('fTransport', transports, t.all, selTransport);
 
   var ftSelect = document.getElementById('fFlightType');
-  ftSelect.innerHTML = '<option value="">' + t.all + '</option>';
+  ftSelect.innerHTML = '';
+  var ftAll = document.createElement('option');
+  ftAll.value = '';
+  ftAll.textContent = t.all;
+  ftSelect.appendChild(ftAll);
   for (var f = 0; f < flights.length; f++) {
-    ftSelect.innerHTML += '<option value="' + flights[f] + '"' + (flights[f] === selFlightType ? ' selected' : '') + '>' + flights[f] + '</option>';
+    var ftOpt = document.createElement('option');
+    ftOpt.setAttribute('value', flights[f]);
+    ftOpt.textContent = flights[f];
+    if (flights[f] === selFlightType) ftOpt.selected = true;
+    ftSelect.appendChild(ftOpt);
   }
 }
 
 function fillSelect(id, arr, allText, selectedVal) {
   var s = document.getElementById(id);
   if (!s) return;
-  s.innerHTML = '<option value="">' + allText + '</option>';
+  s.innerHTML = '';
+  var allOpt = document.createElement('option');
+  allOpt.value = '';
+  allOpt.textContent = allText;
+  s.appendChild(allOpt);
   for (var i = 0; i < arr.length; i++) {
-    s.innerHTML += '<option value="' + arr[i] + '"' + (arr[i] === selectedVal ? ' selected' : '') + '>' + arr[i] + '</option>';
+    var opt = document.createElement('option');
+    opt.setAttribute('value', arr[i]);
+    opt.textContent = arr[i];
+    if (arr[i] === selectedVal) opt.selected = true;
+    s.appendChild(opt);
   }
 }
 
 function fillSelectPkg(id, arr, allText, selectedVal) {
   var s = document.getElementById(id);
   if (!s) return;
-  s.innerHTML = '<option value="">' + allText + '</option>';
+  s.innerHTML = '';
+  var allOpt = document.createElement('option');
+  allOpt.value = '';
+  allOpt.textContent = allText;
+  s.appendChild(allOpt);
   for (var i = 0; i < arr.length; i++) {
-    var sel = String(arr[i].no) === String(selectedVal) ? ' selected' : '';
-    s.innerHTML += '<option value="' + arr[i].no + '"' + sel + '>' + arr[i].no + ' - ' + arr[i].name + '</option>';
+    var opt = document.createElement('option');
+    opt.setAttribute('value', arr[i].no);
+    opt.textContent = arr[i].no + ' - ' + arr[i].name;
+    if (String(arr[i].no) === String(selectedVal)) opt.selected = true;
+    s.appendChild(opt);
   }
 }
 
 // ==================== البحث ====================
 function doSearch() {
   var filters = {
-    name:       gv('fName').toLowerCase(),
-    passport:   gv('fPassport').toUpperCase(),
-    group:      gv('fGroup'),
-    package:    gv('fPackage'),
-    country:    gv('fCountry'),
-    contract:   gv('fContract').toLowerCase(),
-    guide:      gv('fGuide'),
-    flightType: gv('fFlightType')
+    name:        gv('fName').toLowerCase(),
+    passport:    gv('fPassport').toUpperCase(),
+    group:       gv('fGroup'),
+    package:     gv('fPackage'),
+    country:     gv('fCountry'),
+    contract:    gv('fContract').toLowerCase(),
+    guide:       gv('fGuide'),
+    flightType:  gv('fFlightType'),
+    gender:      gv('fGender'),
+    nationality: gv('fNationality'),
+    camp:        gv('fCamp'),
+    transport:   gv('fTransport')
   };
 
   var results = allPilgrims.filter(function(p) {
@@ -299,17 +440,24 @@ function doSearch() {
       var fullAr = (p.firstNameAr + ' ' + p.lastNameAr).toLowerCase();
       if (fullEn.indexOf(filters.name) === -1 && fullAr.indexOf(filters.name) === -1) return false;
     }
-    if (filters.passport   && String(p.passport).toUpperCase().indexOf(filters.passport) === -1) return false;
-    if (filters.group      && String(p.groupNo) !== filters.group) return false;
-    if (filters.package    && String(p.packageNo) !== filters.package) return false;
-    if (filters.country    && p.country !== filters.country) return false;
-    if (filters.contract   && String(p.contractName).toLowerCase().indexOf(filters.contract) === -1) return false;
-    if (filters.guide      && p.guide !== filters.guide) return false;
-    if (filters.flightType && p.flightType !== filters.flightType) return false;
+    if (filters.passport    && String(p.passport).toUpperCase().indexOf(filters.passport) === -1) return false;
+    if (filters.group       && String(p.groupNo) !== filters.group) return false;
+    if (filters.package     && String(p.packageNo) !== filters.package) return false;
+    if (filters.country     && p.country !== filters.country) return false;
+    if (filters.contract    && String(p.contractName).toLowerCase().indexOf(filters.contract) === -1) return false;
+    if (filters.guide       && p.guide !== filters.guide) return false;
+    if (filters.flightType  && p.flightType !== filters.flightType) return false;
+    if (filters.gender      && p.gender !== filters.gender) return false;
+    if (filters.nationality && p.nationality !== filters.nationality) return false;
+    if (filters.camp        && p.camp !== filters.camp) return false;
+    if (filters.transport   && p.transportType !== filters.transport) return false;
     return true;
   });
 
   currentResults = results;
+
+  // تحديث الإحصائيات بناءً على النتائج المفلترة
+  updateStats(calcStatsClient(results));
 
   // تحديث الفلاتر الديناميكية بناءً على النتائج
   updateDynamicFilters(results);
@@ -318,7 +466,7 @@ function doSearch() {
 }
 
 function clearSearch() {
-  ['fName', 'fPassport', 'fGroup', 'fPackage', 'fCountry', 'fContract', 'fGuide', 'fFlightType'].forEach(function(id) {
+  ['fName', 'fPassport', 'fGroup', 'fPackage', 'fCountry', 'fContract', 'fGuide', 'fFlightType', 'fGender', 'fNationality', 'fCamp', 'fTransport'].forEach(function(id) {
     var el = document.getElementById(id);
     if (el) el.value = '';
   });
@@ -400,6 +548,9 @@ function createPilgrimCard(p, groupMembers) {
   if (p.guide) html += infoRow('🎯 ' + t.guide, p.guide);
   html += infoRow('🧾 ' + t.invoice, p.invoiceNo);
   html += infoRow('📄 ' + t.visa, '<span class="info-tag tag-visa">' + p.visaStatus + '</span>');
+
+  // Camp
+  if (p.camp) html += infoRow('🏕️ ' + t.camp, p.camp);
 
   // Package
   html += '<div class="package-section">' +
@@ -531,9 +682,24 @@ function updateUI() {
   document.getElementById('lblContract').textContent = t.lblContract;
   document.getElementById('lblGuide').textContent = t.lblGuide;
   document.getElementById('lblFlightType').textContent = t.lblFlightType;
+  document.getElementById('lblStatMale').textContent = t.statMale;
+  document.getElementById('lblStatFemale').textContent = t.statFemale;
+  document.getElementById('lblStatNationalities').textContent = t.statNationalities;
+  document.getElementById('lblStatCamps').textContent = t.statCamps;
+  document.getElementById('lblStatTransports').textContent = t.statTransports;
+  document.getElementById('lblGender').textContent = t.lblGender;
+  document.getElementById('lblNationality').textContent = t.lblNationality;
+  document.getElementById('lblCamp').textContent = t.lblCamp;
+  document.getElementById('lblTransport').textContent = t.lblTransport;
   document.getElementById('btnSearch').textContent = t.btnSearch;
   document.getElementById('btnClear').textContent = t.btnClear;
   document.getElementById('btnExport').textContent = t.btnExport;
+  document.getElementById('btnExportImg').textContent = t.btnExportImg;
+  document.getElementById('lblGroupPilgrims').textContent = t.groupPilgrims;
+  document.getElementById('lblGroupGender').textContent = t.groupGender;
+  document.getElementById('lblGroupTickets').textContent = t.groupTickets;
+  document.getElementById('lblGroupGeo').textContent = t.groupGeo;
+  document.getElementById('lblGroupField').textContent = t.groupField;
   document.getElementById('txtFound').textContent = t.found;
   document.getElementById('txtPilgrims').textContent = t.pilgrims;
   document.getElementById('passwordTitle').textContent = t.passwordTitle;
@@ -563,7 +729,7 @@ function buildAndDownloadXLSX() {
   var headers = [
     'Serial', 'Group', 'Type', 'Name EN', 'Name AR', 'Passport', 'Gender',
     'Birth Date', 'Country', 'Nationality', 'Phone', 'Email', 'Guide',
-    'Package', 'Contract', 'Flight Type', 'Transport', 'Arrival', 'Departure',
+    'Package', 'Contract', 'Flight Type', 'Camp', 'Transport', 'Arrival', 'Departure',
     'Visa', 'Invoice', 'Ticket'
   ];
 
@@ -587,6 +753,7 @@ function buildAndDownloadXLSX() {
       p.packageNo + ' - ' + p.packageName,
       p.contractName,
       p.flightType,
+      p.camp,
       p.transportType,
       p.arrivalTime,
       p.departureTime,
@@ -617,7 +784,8 @@ function buildAndDownloadXLSX() {
     { wch: 30 },  // Package
     { wch: 25 },  // Contract
     { wch: 10 },  // Flight Type
-    { wch: 12 },  // Transport
+    { wch: 20 },  // Camp
+    { wch: 15 },  // Transport
     { wch: 18 },  // Arrival
     { wch: 18 },  // Departure
     { wch: 12 },  // Visa
@@ -627,6 +795,373 @@ function buildAndDownloadXLSX() {
 
   XLSX.utils.book_append_sheet(wb, ws, 'Pilgrims');
   XLSX.writeFile(wb, 'pilgrims_' + Date.now() + '.xlsx');
+}
+
+// ==================== تصدير الإحصائيات كصورة ====================
+function exportStatsImage() {
+  var statsBar = document.querySelector('.stats-bar');
+  if (!statsBar) return;
+
+  // تحميل html2canvas إذا لم تكن محملة
+  if (typeof html2canvas === 'undefined') {
+    var script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+    script.onload = function() { captureStats(); };
+    document.head.appendChild(script);
+  } else {
+    captureStats();
+  }
+}
+
+function captureStats() {
+  var t = T[currentLang];
+  var dir = currentLang === 'ar' ? 'rtl' : 'ltr';
+
+  // جمع البيانات
+  var maleVal = parseInt(document.getElementById('statMale').textContent.replace(/,/g,'')) || 0;
+  var femaleVal = parseInt(document.getElementById('statFemale').textContent.replace(/,/g,'')) || 0;
+  var b2bVal = parseInt(document.getElementById('statB2B').textContent.replace(/,/g,'')) || 0;
+  var b2cVal = parseInt(document.getElementById('statB2C').textContent.replace(/,/g,'')) || 0;
+  var genderTotal = maleVal + femaleVal;
+  var ticketTotal = b2bVal + b2cVal;
+  var malePct = genderTotal > 0 ? Math.round((maleVal / genderTotal) * 100) : 0;
+  var femalePct = genderTotal > 0 ? 100 - malePct : 0;
+  var b2bPct = ticketTotal > 0 ? Math.round((b2bVal / ticketTotal) * 100) : 0;
+  var b2cPct = ticketTotal > 0 ? 100 - b2bPct : 0;
+
+  // جمع الفلاتر المفعّلة
+  var activeFilters = [];
+  var filterMap = [
+    { id: 'fName', label: t.lblName },
+    { id: 'fPassport', label: t.lblPassport },
+    { id: 'fGroup', label: t.lblGroup },
+    { id: 'fPackage', label: t.lblPackage, isSelect: true },
+    { id: 'fCountry', label: t.lblCountry, isSelect: true },
+    { id: 'fContract', label: t.lblContract },
+    { id: 'fGuide', label: t.lblGuide, isSelect: true },
+    { id: 'fFlightType', label: t.lblFlightType, isSelect: true },
+    { id: 'fGender', label: t.lblGender, isSelect: true },
+    { id: 'fNationality', label: t.lblNationality, isSelect: true },
+    { id: 'fCamp', label: t.lblCamp, isSelect: true },
+    { id: 'fTransport', label: t.lblTransport, isSelect: true }
+  ];
+  for (var fi = 0; fi < filterMap.length; fi++) {
+    var fEl = document.getElementById(filterMap[fi].id);
+    if (fEl && fEl.value.trim()) {
+      var displayVal = fEl.value.trim();
+      if (filterMap[fi].isSelect && fEl.selectedIndex > 0) {
+        displayVal = fEl.options[fEl.selectedIndex].textContent;
+      }
+      activeFilters.push({
+        label: filterMap[fi].label.replace(/[^\u0600-\u06FFa-zA-Z\s.]/g, '').trim(),
+        value: displayVal
+      });
+    }
+  }
+  var hasFilters = activeFilters.length > 0;
+  var filterRowH = hasFilters ? 55 + Math.ceil(activeFilters.length / 3) * 42 : 0;
+
+  // رسم Canvas مباشرة
+  var W = 900, H = 520 + filterRowH;
+  var canvas = document.createElement('canvas');
+  canvas.width = W * 2; canvas.height = H * 2;
+  var ctx = canvas.getContext('2d');
+  ctx.scale(2, 2);
+
+  // خلفية متدرجة
+  var bgGrad = ctx.createLinearGradient(0, 0, W, H);
+  bgGrad.addColorStop(0, '#0d1b2a');
+  bgGrad.addColorStop(1, '#1b2838');
+  ctx.fillStyle = bgGrad;
+  roundRect(ctx, 0, 0, W, H, 16, true);
+
+  // نمط زخرفي علوي
+  ctx.fillStyle = 'rgba(255,255,255,0.03)';
+  for (var ci = 0; ci < 5; ci++) {
+    ctx.beginPath();
+    ctx.arc(W * 0.15 + ci * 180, -30, 120 + ci * 20, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // الهيدر
+  var hGrad = ctx.createLinearGradient(30, 20, W - 30, 80);
+  hGrad.addColorStop(0, '#1565c0');
+  hGrad.addColorStop(1, '#0d47a1');
+  ctx.fillStyle = hGrad;
+  roundRect(ctx, 30, 20, W - 60, 70, 12, true);
+
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 22px Cairo, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(t.headerTitle.replace(/[^\u0600-\u06FFa-zA-Z\s]/g, '').trim(), W / 2, 52);
+  ctx.font = '14px Cairo, sans-serif';
+  ctx.globalAlpha = 0.85;
+  ctx.fillText(t.headerSubtitle, W / 2, 74);
+  ctx.globalAlpha = 1;
+
+  // === شريط الفلاتر ===
+  var filterEndY = 100;
+  var isRTL = currentLang === 'ar';
+  if (hasFilters) {
+    var fBarY = 105;
+    var tagH = 32, tagGap = 10, tagPadX = 16;
+    var tagsPerRow = 3;
+    var tagAreaW = W - 60;
+    var tagW = (tagAreaW - (tagsPerRow - 1) * tagGap) / tagsPerRow;
+    var numRows = Math.ceil(activeFilters.length / tagsPerRow);
+    var fBarH = 50 + numRows * (tagH + tagGap);
+
+    // خلفية بتدرج أحمر داكن
+    var fGrad = ctx.createLinearGradient(30, fBarY, W - 30, fBarY + fBarH);
+    fGrad.addColorStop(0, '#b71c1c');
+    fGrad.addColorStop(1, '#c62828');
+    ctx.fillStyle = fGrad;
+    roundRect(ctx, 30, fBarY, tagAreaW, fBarH, 12, true);
+
+    // حدود مضيئة
+    ctx.strokeStyle = 'rgba(255,205,210,0.4)';
+    ctx.lineWidth = 1.5;
+    roundRect(ctx, 30, fBarY, tagAreaW, fBarH, 12, false, true);
+
+    // العنوان
+    var filterTitle = isRTL ? 'الفلاتر المطبّقة' : 'Applied Filters';
+    ctx.font = 'bold 14px Cairo, sans-serif';
+    ctx.textAlign = isRTL ? 'right' : 'left';
+    var titleX = isRTL ? W - 60 : 52;
+    ctx.fillStyle = '#ffcdd2';
+    ctx.fillText('⚙  ' + filterTitle, titleX, fBarY + 22);
+
+    // خط فاصل
+    ctx.strokeStyle = 'rgba(255,205,210,0.3)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(50, fBarY + 32);
+    ctx.lineTo(W - 50, fBarY + 32);
+    ctx.stroke();
+
+    // رسم التاغات
+    var tagStartY = fBarY + 42;
+    for (var af = 0; af < activeFilters.length; af++) {
+      var col = af % tagsPerRow;
+      var row = Math.floor(af / tagsPerRow);
+
+      // حساب الموقع (RTL أو LTR)
+      var tX;
+      if (isRTL) {
+        tX = (W - 30) - tagAreaW + (tagsPerRow - 1 - col) * (tagW + tagGap);
+      } else {
+        tX = 30 + col * (tagW + tagGap);
+      }
+      var tY = tagStartY + row * (tagH + tagGap);
+
+      // خلفية التاغ
+      ctx.fillStyle = 'rgba(0,0,0,0.25)';
+      roundRect(ctx, tX, tY, tagW, tagH, 8, true);
+      ctx.strokeStyle = 'rgba(255,205,210,0.25)';
+      ctx.lineWidth = 1;
+      roundRect(ctx, tX, tY, tagW, tagH, 8, false, true);
+
+      // نقطة ملونة
+      ctx.fillStyle = '#ff8a80';
+      ctx.beginPath();
+      var dotX = isRTL ? tX + tagW - 14 : tX + 14;
+      ctx.arc(dotX, tY + tagH / 2, 4, 0, Math.PI * 2);
+      ctx.fill();
+
+      // اسم الفلتر (label)
+      ctx.fillStyle = '#ffcdd2';
+      ctx.font = '10px Cairo, sans-serif';
+      ctx.textAlign = isRTL ? 'right' : 'left';
+      var lblX = isRTL ? dotX - 12 : dotX + 12;
+      ctx.fillText(activeFilters[af].label, lblX, tY + 13);
+
+      // القيمة (value)
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 13px Cairo, sans-serif';
+      ctx.fillText(activeFilters[af].value, lblX, tY + 27, tagW - 40);
+    }
+
+    filterEndY = fBarY + fBarH + 10;
+  }
+
+  // === الصف الأول: 3 بطاقات رئيسية ===
+  var row1Y = filterEndY + 10;
+  var cardW = 260, cardH = 100, gap = 20;
+  var startX = (W - (3 * cardW + 2 * gap)) / 2;
+
+  var mainCards = [
+    { icon: '🕌', val: document.getElementById('statTotal').textContent, lbl: t.statTotal, color: '#1565c0' },
+    { icon: '👥', val: document.getElementById('statGroups').textContent, lbl: t.statGroups, color: '#5c6bc0' },
+    { icon: '📦', val: document.getElementById('statPackages').textContent, lbl: t.statPackages, color: '#7b1fa2' }
+  ];
+
+  for (var mc = 0; mc < mainCards.length; mc++) {
+    var cx = startX + mc * (cardW + gap);
+    drawStatCard(ctx, cx, row1Y, cardW, cardH, mainCards[mc]);
+  }
+
+  // === الصف الثاني: الجنس + التذاكر ===
+  var row2Y = row1Y + cardH + 20;
+  var halfW = (W - 60 - gap) / 2;
+
+  // بطاقة الجنس
+  drawBarCard(ctx, 30, row2Y, halfW, 130, t.groupGender, '#7b1fa2',
+    [{ lbl: t.statMale, val: maleVal, pct: malePct, color: '#5c6bc0' },
+     { lbl: t.statFemale, val: femaleVal, pct: femalePct, color: '#ec407a' }]);
+
+  // بطاقة التذاكر
+  drawBarCard(ctx, 30 + halfW + gap, row2Y, halfW, 130, t.groupTickets, '#2e7d32',
+    [{ lbl: 'B2B', val: b2bVal, pct: b2bPct, color: '#2e7d32' },
+     { lbl: 'B2C', val: b2cVal, pct: b2cPct, color: '#f57c00' }]);
+
+  // === الصف الثالث: الجغرافيا + الميدان ===
+  var row3Y = row2Y + 130 + 20;
+
+  // بطاقة الجغرافيا
+  var geoCards = [
+    { icon: '🌍', val: document.getElementById('statCountries').textContent, lbl: t.statCountries },
+    { icon: '🏳️', val: document.getElementById('statNationalities').textContent, lbl: t.statNationalities }
+  ];
+  drawDoubleCard(ctx, 30, row3Y, halfW, 90, t.groupGeo, '#e65100', geoCards);
+
+  // بطاقة الميدان
+  var fieldCards = [
+    { icon: '🏕️', val: document.getElementById('statCamps').textContent, lbl: t.statCamps },
+    { icon: '🚌', val: document.getElementById('statTransports').textContent, lbl: t.statTransports }
+  ];
+  drawDoubleCard(ctx, 30 + halfW + gap, row3Y, halfW, 90, t.groupField, '#c62828', fieldCards);
+
+  // الفوتر
+  ctx.fillStyle = 'rgba(255,255,255,0.3)';
+  ctx.font = '11px Cairo, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('Ikram AlDyf  •  ' + new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }), W / 2, H - 12);
+
+  // تحميل
+  var link = document.createElement('a');
+  link.download = 'pilgrim_stats_' + Date.now() + '.png';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+}
+
+// === دوال رسم مساعدة ===
+function roundRect(ctx, x, y, w, h, r, fill, stroke) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+  if (fill) ctx.fill();
+  if (stroke) ctx.stroke();
+}
+
+function drawStatCard(ctx, x, y, w, h, data) {
+  // خلفية البطاقة
+  ctx.fillStyle = 'rgba(255,255,255,0.07)';
+  roundRect(ctx, x, y, w, h, 10, true);
+
+  // شريط علوي ملون
+  ctx.fillStyle = data.color;
+  roundRect(ctx, x, y, w, 4, 2, true);
+
+  // الأيقونة
+  ctx.font = '28px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(data.icon, x + 40, y + 50);
+
+  // الرقم
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 32px Cairo, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(data.val, x + w / 2 + 15, y + 50);
+
+  // التسمية
+  ctx.fillStyle = 'rgba(255,255,255,0.6)';
+  ctx.font = '12px Cairo, sans-serif';
+  ctx.fillText(data.lbl, x + w / 2, y + 75);
+}
+
+function drawBarCard(ctx, x, y, w, h, title, titleColor, items) {
+  ctx.fillStyle = 'rgba(255,255,255,0.07)';
+  roundRect(ctx, x, y, w, h, 10, true);
+
+  // شريط علوي
+  ctx.fillStyle = titleColor;
+  roundRect(ctx, x, y, w, 4, 2, true);
+
+  // العنوان
+  ctx.fillStyle = titleColor;
+  ctx.font = 'bold 11px Cairo, sans-serif';
+  ctx.textAlign = 'start';
+  ctx.fillText(title.toUpperCase(), x + 16, y + 24);
+
+  // العناصر
+  var itemY = y + 45;
+  for (var i = 0; i < items.length; i++) {
+    var it = items[i];
+    // التسمية والرقم
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.font = '12px Cairo, sans-serif';
+    ctx.textAlign = 'start';
+    ctx.fillText(it.lbl, x + 16, itemY);
+
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 18px Cairo, sans-serif';
+    ctx.textAlign = 'start';
+    ctx.fillText(fmtN(it.val), x + 80, itemY + 2);
+
+    // النسبة
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.font = '11px Cairo, sans-serif';
+    ctx.fillText(it.pct + '%', x + 140, itemY);
+
+    // شريط النسبة
+    var barX = x + 170, barW = w - 200, barH = 8;
+    ctx.fillStyle = 'rgba(255,255,255,0.1)';
+    roundRect(ctx, barX, itemY - 8, barW, barH, 4, true);
+    ctx.fillStyle = it.color;
+    var fillW = Math.max(barW * it.pct / 100, 4);
+    roundRect(ctx, barX, itemY - 8, fillW, barH, 4, true);
+
+    itemY += 35;
+  }
+}
+
+function drawDoubleCard(ctx, x, y, w, h, title, titleColor, items) {
+  ctx.fillStyle = 'rgba(255,255,255,0.07)';
+  roundRect(ctx, x, y, w, h, 10, true);
+
+  ctx.fillStyle = titleColor;
+  roundRect(ctx, x, y, w, 4, 2, true);
+
+  ctx.fillStyle = titleColor;
+  ctx.font = 'bold 11px Cairo, sans-serif';
+  ctx.textAlign = 'start';
+  ctx.fillText(title.toUpperCase(), x + 16, y + 24);
+
+  var halfW = (w - 16) / 2;
+  for (var i = 0; i < items.length; i++) {
+    var it = items[i];
+    var ix = x + 16 + i * halfW;
+
+    ctx.font = '22px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(it.icon, ix + halfW / 2, y + 50);
+
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 22px Cairo, sans-serif';
+    ctx.fillText(it.val, ix + halfW / 2, y + 72);
+
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.font = '10px Cairo, sans-serif';
+    ctx.fillText(it.lbl, ix + halfW / 2, y + 86);
+  }
 }
 
 // ==================== دوال مساعدة ====================
