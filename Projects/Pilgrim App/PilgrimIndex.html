@@ -43,30 +43,103 @@
 </div>
 
 <!-- Stats Bar -->
-<div class="stats-bar">
-  <div class="stat-item">
-    <div class="stat-value" id="statTotal">0</div>
-    <div class="stat-label" id="lblStatTotal">Total Pilgrims</div>
+<div class="stats-bar" id="statsBar">
+  <!-- مجموعة: الحجاج -->
+  <div class="stat-group stat-group-blue">
+    <div class="stat-group-title" id="lblGroupPilgrims">Pilgrims</div>
+    <div class="stat-group-items">
+      <div class="stat-item">
+        <div class="stat-icon">🕌</div>
+        <div class="stat-value" id="statTotal">0</div>
+        <div class="stat-label" id="lblStatTotal">Total</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-icon">👥</div>
+        <div class="stat-value" id="statGroups">0</div>
+        <div class="stat-label" id="lblStatGroups">Groups</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-icon">📦</div>
+        <div class="stat-value" id="statPackages">0</div>
+        <div class="stat-label" id="lblStatPackages">Packages</div>
+      </div>
+    </div>
   </div>
-  <div class="stat-item">
-    <div class="stat-value" id="statGroups">0</div>
-    <div class="stat-label" id="lblStatGroups">Groups</div>
+
+  <!-- مجموعة: الجنس -->
+  <div class="stat-group stat-group-purple">
+    <div class="stat-group-title" id="lblGroupGender">Gender</div>
+    <div class="stat-group-items">
+      <div class="stat-item">
+        <div class="stat-icon">👨</div>
+        <div class="stat-value" id="statMale">0</div>
+        <div class="stat-label" id="lblStatMale">Male</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-icon">👩</div>
+        <div class="stat-value" id="statFemale">0</div>
+        <div class="stat-label" id="lblStatFemale">Female</div>
+      </div>
+    </div>
+    <div class="stat-bar-wrap">
+      <div class="stat-bar stat-bar-male" id="barMale" style="width:50%"></div>
+      <div class="stat-bar stat-bar-female" id="barFemale" style="width:50%"></div>
+    </div>
   </div>
-  <div class="stat-item">
-    <div class="stat-value" id="statCountries">0</div>
-    <div class="stat-label" id="lblStatCountries">Countries</div>
+
+  <!-- مجموعة: التذاكر -->
+  <div class="stat-group stat-group-green">
+    <div class="stat-group-title" id="lblGroupTickets">Tickets</div>
+    <div class="stat-group-items">
+      <div class="stat-item">
+        <div class="stat-icon">🎫</div>
+        <div class="stat-value" id="statB2B">0</div>
+        <div class="stat-label" id="lblStatB2B">B2B</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-icon">🎟️</div>
+        <div class="stat-value" id="statB2C">0</div>
+        <div class="stat-label" id="lblStatB2C">B2C</div>
+      </div>
+    </div>
+    <div class="stat-bar-wrap">
+      <div class="stat-bar stat-bar-b2b" id="barB2B" style="width:50%"></div>
+      <div class="stat-bar stat-bar-b2c" id="barB2C" style="width:50%"></div>
+    </div>
   </div>
-  <div class="stat-item">
-    <div class="stat-value" id="statPackages">0</div>
-    <div class="stat-label" id="lblStatPackages">Packages</div>
+
+  <!-- مجموعة: الجغرافيا -->
+  <div class="stat-group stat-group-orange">
+    <div class="stat-group-title" id="lblGroupGeo">Geography</div>
+    <div class="stat-group-items">
+      <div class="stat-item">
+        <div class="stat-icon">🌍</div>
+        <div class="stat-value" id="statCountries">0</div>
+        <div class="stat-label" id="lblStatCountries">Countries</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-icon">🏳️</div>
+        <div class="stat-value" id="statNationalities">0</div>
+        <div class="stat-label" id="lblStatNationalities">Nationalities</div>
+      </div>
+    </div>
   </div>
-  <div class="stat-item">
-    <div class="stat-value" id="statB2B">0</div>
-    <div class="stat-label" id="lblStatB2B">B2B</div>
-  </div>
-  <div class="stat-item">
-    <div class="stat-value" id="statB2C">0</div>
-    <div class="stat-label" id="lblStatB2C">B2C</div>
+
+  <!-- مجموعة: الميدان -->
+  <div class="stat-group stat-group-red">
+    <div class="stat-group-title" id="lblGroupField">Field</div>
+    <div class="stat-group-items">
+      <div class="stat-item">
+        <div class="stat-icon">🏕️</div>
+        <div class="stat-value" id="statCamps">0</div>
+        <div class="stat-label" id="lblStatCamps">Camps</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-icon">🚌</div>
+        <div class="stat-value" id="statTransports">0</div>
+        <div class="stat-label" id="lblStatTransports">Transport</div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -107,11 +180,28 @@
         <label id="lblFlightType">🎫 Ticket Type</label>
         <select id="fFlightType" onchange="doSearch()"></select>
       </div>
+      <div class="search-group">
+        <label id="lblGender">⚧ Gender</label>
+        <select id="fGender" onchange="doSearch()"></select>
+      </div>
+      <div class="search-group">
+        <label id="lblNationality">🏳️ Nationality</label>
+        <select id="fNationality" onchange="doSearch()"></select>
+      </div>
+      <div class="search-group">
+        <label id="lblCamp">🏕️ Camp</label>
+        <select id="fCamp" onchange="doSearch()"></select>
+      </div>
+      <div class="search-group">
+        <label id="lblTransport">🚌 Transport</label>
+        <select id="fTransport" onchange="doSearch()"></select>
+      </div>
     </div>
     <div class="search-actions">
       <button class="btn btn-primary" onclick="doSearch()" id="btnSearch">🔍 Search</button>
       <button class="btn btn-secondary" onclick="clearSearch()" id="btnClear">🔄 Clear</button>
-      <button class="btn btn-export" onclick="exportXLSX()" id="btnExport">📊 Export</button>
+      <button class="btn btn-export" onclick="exportXLSX()" id="btnExport">📊 Export Excel</button>
+      <button class="btn btn-primary" onclick="exportStatsImage()" id="btnExportImg">📷 Export Stats</button>
     </div>
   </div>
 
