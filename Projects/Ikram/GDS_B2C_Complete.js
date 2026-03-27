@@ -460,12 +460,7 @@ function processAPIBatch() {
   
   var endIdx = Math.min(idx + B2C_CONFIG.BATCH_SIZE_API, missing.length);
   var startTime = Date.now();
-  
-  // قراءة كل البيانات مرة واحدة
-  var lastRow = sheet.getLastRow();
-  var numRows = lastRow - B2C_CONFIG.DATA_START + 1;
-  var allData = sheet.getRange(B2C_CONFIG.DATA_START, 1, numRows, 61).getValues();
-  
+
   toast_('🌐 API: ' + (idx + 1) + '-' + endIdx + '/' + missing.length, '✈️', 30);
   
   for (var b = idx; b < endIdx; b++) {
@@ -595,6 +590,11 @@ function fixClassification() {
   var fixedMove = 0;     // DEP1 ممتلئ بدون DEP2 → نقل
   var fixedRetDup = 0;   // عودة مكررة → مسح RET2
 
+  // ═══ مُحسّن: جمع كل العمليات وتنفيذها دفعة واحدة ═══
+  var clearDep1Rows = [];
+  var clearRet2Rows = [];
+  var moveRows = [];
+
   for (var i = 0; i < numRows; i++) {
     var row = i + B2C_CONFIG.DATA_START;
 
@@ -604,14 +604,15 @@ function fixClassification() {
 
     if (dep1Fn && dep2Fn) {
       if (dep1Fn.replace(/-/g, '') === dep2Fn.replace(/-/g, '')) {
-        clearSegment_(sheet, row, B2C_CONFIG.DEP1);
+        clearDep1Rows.push(row);
         fixedDup++;
       }
     } else if (dep1Fn && !dep2Fn) {
-      // مباشر في DEP1 → نقل إلى DEP2
-      var dep1Vals = sheet.getRange(row, B2C_CONFIG.DEP1.fn, 1, 7).getValues()[0];
-      sheet.getRange(row, B2C_CONFIG.DEP2.fn, 1, 7).setValues([dep1Vals]);
-      clearSegment_(sheet, row, B2C_CONFIG.DEP1);
+      var dep1Vals = [];
+      for (var c = B2C_CONFIG.DEP1.fn - 1; c < B2C_CONFIG.DEP1.fn + 6; c++) {
+        dep1Vals.push(allData[i][c]);
+      }
+      moveRows.push({ row: row, vals: dep1Vals });
       fixedMove++;
     }
 
@@ -621,10 +622,22 @@ function fixClassification() {
 
     if (ret1Fn && ret2Fn) {
       if (ret1Fn.replace(/-/g, '') === ret2Fn.replace(/-/g, '')) {
-        clearSegment_(sheet, row, B2C_CONFIG.RET2);
+        clearRet2Rows.push(row);
         fixedRetDup++;
       }
     }
+  }
+
+  // ═══ تنفيذ العمليات المجمّعة ═══
+  for (var m = 0; m < moveRows.length; m++) {
+    sheet.getRange(moveRows[m].row, B2C_CONFIG.DEP2.fn, 1, 7).setValues([moveRows[m].vals]);
+    sheet.getRange(moveRows[m].row, B2C_CONFIG.DEP1.fn, 1, 7).clearContent();
+  }
+  for (var d = 0; d < clearDep1Rows.length; d++) {
+    sheet.getRange(clearDep1Rows[d], B2C_CONFIG.DEP1.fn, 1, 7).clearContent();
+  }
+  for (var r = 0; r < clearRet2Rows.length; r++) {
+    sheet.getRange(clearRet2Rows[r], B2C_CONFIG.RET2.fn, 1, 7).clearContent();
   }
 
   var total = fixedDup + fixedMove + fixedRetDup;

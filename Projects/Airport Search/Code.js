@@ -351,8 +351,11 @@ function filterData_(allData, params) {
   var filtered = allData;
   
   if (params.airport) {
+    var targetAirport = String(params.airport).trim().toLowerCase();
     filtered = filtered.filter(function(row) {
-      return String(row[COL.ARRIVE_CITY]).trim().toLowerCase() === String(params.airport).trim().toLowerCase();
+      var city = String(row[COL.ARRIVE_CITY]).trim().toLowerCase();
+      if (targetAirport === 'madinah') return city === 'madinah' || city === 'madina';
+      return city === targetAirport;
     });
   }
 
@@ -478,7 +481,9 @@ function getFlightDetails(params) {
   try {
     var allData = getAllData();
     var pilgrims = allData.filter(function(row) {
-      var cityMatch = String(row[COL.ARRIVE_CITY]).trim().toLowerCase() === String(params.airport).trim().toLowerCase();
+      var city = String(row[COL.ARRIVE_CITY]).trim().toLowerCase();
+      var targetAirport = String(params.airport).trim().toLowerCase();
+      var cityMatch = (targetAirport === 'madinah') ? (city === 'madinah' || city === 'madina') : city === targetAirport;
       var dateMatch = String(row[COL.ARRIVE_DATE]).substring(0, 10) === params.date;
       var flightMatch = String(row[COL.FLIGHT_NUMBER]).trim() === params.flightNumber;
       var destMatch = String(row[COL.FIRST_HOUSE]).trim() === params.destination;

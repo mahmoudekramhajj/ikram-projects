@@ -506,7 +506,7 @@ function exportReport(reportType) {
   var hotelName = state.currentHotel;
   var cityCode = getHotelCityCode();
   
-  if ((reportType !== 'dashboard' && reportType !== 'forecast') && !hotelName) {
+  if ((reportType !== 'dashboard' && reportType !== 'forecast' && reportType !== 'all-hotels') && !hotelName) {
     showToast('اختر فندقاً أولاً', true);
     return;
   }
