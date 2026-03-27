@@ -404,7 +404,7 @@
     <div class="filters-row">
       <div class="filter-group">
         <label class="filter-label">تاريخ الوصول</label>
-        <select class="filter-select" id="filterDate" onchange="refreshFilters()"><option value="">كل التواريخ</option></select>
+        <select class="filter-select" id="filterDate" onchange="refreshFilters(); doSearch()"><option value="">كل التواريخ</option></select>
       </div>
       <div class="filter-group">
         <label class="filter-label">رقم الرحلة</label>
@@ -414,7 +414,7 @@
     <div class="filters-row">
       <div class="filter-group">
         <label class="filter-label">الوجهة</label>
-        <select class="filter-select" id="filterDest" onchange="refreshFilters()">
+        <select class="filter-select" id="filterDest" onchange="refreshFilters(); doSearch()">
           <option value="">الكل</option>
           <option value="makkah">مكة المكرمة</option>
           <option value="madina">المدينة المنورة</option>
@@ -422,7 +422,7 @@
       </div>
       <div class="filter-group">
         <label class="filter-label">المواصلات</label>
-        <select class="filter-select" id="filterTransport" onchange="refreshFilters()">
+        <select class="filter-select" id="filterTransport" onchange="refreshFilters(); doSearch()">
           <option value="">الكل</option>
           <option value="B2B">إكرام الضيف</option>
           <option value="B2C">تحالف النقل</option>
@@ -432,17 +432,17 @@
     <div class="filters-row">
       <div class="filter-group">
         <label class="filter-label">شركة الطيران</label>
-        <select class="filter-select" id="filterAirline" onchange="refreshFilters()"><option value="">كل الشركات</option></select>
+        <select class="filter-select" id="filterAirline" onchange="refreshFilters(); doSearch()"><option value="">كل الشركات</option></select>
       </div>
       <div class="filter-group">
         <label class="filter-label">مطار القدوم</label>
-        <select class="filter-select" id="filterDepartureCity" onchange="refreshFilters()"><option value="">كل المطارات</option></select>
+        <select class="filter-select" id="filterDepartureCity" onchange="refreshFilters(); doSearch()"><option value="">كل المطارات</option></select>
       </div>
     </div>
     <div class="filters-row">
       <div class="filter-group full-width">
         <label class="filter-label">الفندق</label>
-        <select class="filter-select" id="filterHotel" onchange="refreshFilters()"><option value="">كل الفنادق</option></select>
+        <select class="filter-select" id="filterHotel" onchange="refreshFilters(); doSearch()"><option value="">كل الفنادق</option></select>
       </div>
     </div>
     <div class="filters-row">
@@ -636,7 +636,6 @@
 
       google.script.run.withSuccessHandler(function(r) {
         if (!r.success) return;
-        updateSelect('filterDate', r.dates, function(d) { return formatDateAr(d); }, 'كل التواريخ');
         updateSelect('filterHotel', r.hotels, function(h) { return h; }, 'كل الفنادق');
         updateSelect('filterAirline', r.airlines, function(a) { return a; }, 'كل الشركات');
         updateSelect('filterDepartureCity', r.departureCities, function(c) { return c; }, 'كل المطارات');
@@ -774,10 +773,10 @@
     function onStatsLoaded(result) {
       if (!result.success) return;
       var s = result.stats;
-      document.getElementById('statPilgrims').textContent = s.totalPilgrims.toLocaleString('ar-SA');
-      document.getElementById('statFlights').textContent = s.totalFlights.toLocaleString('ar-SA');
-      document.getElementById('statB2B').textContent = s.b2bCount.toLocaleString('ar-SA');
-      document.getElementById('statB2C').textContent = s.b2cCount.toLocaleString('ar-SA');
+      document.getElementById('statPilgrims').textContent = s.totalPilgrims.toLocaleString('en-US');
+      document.getElementById('statFlights').textContent = s.totalFlights.toLocaleString('en-US');
+      document.getElementById('statB2B').textContent = s.b2bCount.toLocaleString('en-US');
+      document.getElementById('statB2C').textContent = s.b2cCount.toLocaleString('en-US');
     }
 
     function resetSearchBtn() {

@@ -54,6 +54,7 @@
   <div id="hotelActions" style="display:none;padding:0 16px;margin-bottom:8px;display:flex;gap:6px;align-items:center">
     <button class="btn-primary" onclick="initHotelSheet()" style="background:#4c1d95;font-size:12px">📄 تهيئة شيت الفندق</button>
     <button class="btn-primary" onclick="refreshData()" style="background:#065f46;font-size:12px" id="refreshBtn">🔄 تحديث البيانات</button>
+    <button class="btn-export" style="background:#065f46;color:#6ee7b7;border-color:#059669;font-size:12px" onclick="exportReport('all-hotels')">🏨 تقرير جميع الفنادق</button>
     <span id="lastRefreshTime" style="font-size:10px;color:#64748b;margin-right:8px"></span>
   </div>
 
@@ -191,6 +192,7 @@
       <div style="display:flex;gap:6px">
         <button class="btn-export" onclick="exportReport('dashboard')">📥 تصدير Dashboard</button>
         <button class="btn-export" style="background:#4c1d95;color:#c084fc;border-color:#7c3aed" onclick="exportReport('forecast')">📊 تقرير توقعي</button>
+        <button class="btn-export" style="background:#065f46;color:#6ee7b7;border-color:#059669" onclick="exportReport('all-hotels')">🏨 تقرير جميع الفنادق</button>
         <button class="btn-primary" onclick="loadForecast()">📈 عرض التوقعات</button>
       </div>
     </div>

@@ -28,6 +28,9 @@ function exportToExcel(reportType, hotelName, hotelCity, filterData) {
     case 'forecast':
       exportForecastReport_(ss);
       break;
+    case 'all-hotels':
+      exportAllHotelsReport_(ss);
+      break;
   }
   
   var fileId = ss.getId();
@@ -276,6 +279,283 @@ function exportForecastReport_(ss) {
   }
   
   formatExportSheet_(summarySheet, 7);
+  ss.setActiveSheet(summarySheet);
+  ss.moveActiveSheet(1);
+}
+
+function exportAllHotelsReport_(ss) {
+  // ── 1. قراءة البيانات مرة واحدة ──
+  var mainSS = SpreadsheetApp.openById(HOTEL_CONFIG.SPREADSHEET_ID);
+  var journeyData = findSheet_(mainSS, HOTEL_CONFIG.SHEETS.JOURNEY).getDataRange().getValues();
+  var roomData = findSheet_(mainSS, HOTEL_CONFIG.SHEETS.ROOM_TYPE).getDataRange().getValues();
+  var J = HOTEL_CONFIG.JOURNEY_COLS;
+  var R = HOTEL_CONFIG.ROOM_COLS;
+
+  // بناء خريطة المجموعات (نوع الغرفة)
+  var groupInfo = {};
+  for (var i = 1; i < roomData.length; i++) {
+    var rr = roomData[i];
+    var gn = rr[R.GROUP_NUMBER];
+    if (gn) groupInfo[gn] = {
+      roomTypeMed: rr[R.ROOM_TYPE_MED] || '', roomTypeMak1: rr[R.ROOM_TYPE_MAK1] || '', roomTypeMak2: rr[R.ROOM_TYPE_MAK2] || ''
+    };
+  }
+
+  // قراءة checkinData لكل فندق (roomGroupId + roomNumber)
+  var allCheckinData = {};
+  var hotelSheets = mainSS.getSheets();
+  var knownSheetNames = {};
+  for (var hn in HOTEL_CONFIG.HOTEL_ABBR) knownSheetNames[HOTEL_CONFIG.HOTEL_ABBR[hn]] = hn;
+  hotelSheets.forEach(function(sh) {
+    var sn = sh.getName();
+    if (knownSheetNames[sn]) {
+      var data = sh.getDataRange().getValues();
+      var hotelFullName = knownSheetNames[sn];
+      allCheckinData[hotelFullName] = {};
+      for (var i = 1; i < data.length; i++) {
+        var bid = String(data[i][0]);
+        if (bid) allCheckinData[hotelFullName][bid] = {
+          roomGroupId: data[i][16] || '',
+          roomNumber: data[i][17] || ''
+        };
+      }
+    }
+  });
+
+  // ── 2. توزيع الحجاج على الفنادق ──
+  var hotelMap = {};
+
+  for (var i = 1; i < journeyData.length; i++) {
+    var row = journeyData[i];
+    var name = row[J.NAME];
+    if (!name) continue;
+
+    var bookingId = String(row[J.BOOKING_ID] || '');
+    var passport = row[J.PASSPORT] || '';
+    var gender = row[J.GENDER] || '';
+    var groupNum = row[J.GROUP_NUMBER];
+    var gi = groupInfo[groupNum] || {};
+    var firstHouse = row[J.FIRST_HOUSE];
+
+    var entries = [];
+    var madHotel = row[J.MADINAH_EN];
+    var makHotel = row[J.MAKKAH_EN];
+    var shiftHotel = row[J.MAKKAH_SHIFT_EN];
+
+    if (madHotel && madHotel !== 'NULL') {
+      var dates = (firstHouse === 'Madina')
+        ? { ci: formatDate_(row[J.FIRST_HOUSE_START]), co: formatDate_(row[J.FIRST_HOUSE_END]) }
+        : { ci: formatDate_(row[J.LAST_HOUSE_START]),  co: formatDate_(row[J.LAST_HOUSE_END]) };
+      entries.push({ hotel: madHotel, city: 'Madina', label: 'المدينة المنورة', roomType: gi.roomTypeMed || '', ci: dates.ci, co: dates.co });
+    }
+    if (makHotel && makHotel !== 'NULL') {
+      var dates = (firstHouse === 'Makkah')
+        ? { ci: formatDate_(row[J.FIRST_HOUSE_START]), co: formatDate_(row[J.FIRST_HOUSE_END]) }
+        : { ci: formatDate_(row[J.LAST_HOUSE_START]),  co: formatDate_(row[J.LAST_HOUSE_END]) };
+      entries.push({ hotel: makHotel, city: 'Makkah', label: 'مكة المكرمة', roomType: gi.roomTypeMak1 || '', ci: dates.ci, co: dates.co });
+    }
+    if (shiftHotel && shiftHotel !== 'NULL') {
+      var dates = (firstHouse === 'Makkah Shifting')
+        ? { ci: formatDate_(row[J.FIRST_HOUSE_START]), co: formatDate_(row[J.FIRST_HOUSE_END]) }
+        : { ci: formatDate_(row[J.LAST_HOUSE_START]),  co: formatDate_(row[J.LAST_HOUSE_END]) };
+      entries.push({ hotel: shiftHotel, city: 'Makkah Shifting', label: 'مكة المكرمة (تحويل)', roomType: gi.roomTypeMak2 || '', ci: dates.ci, co: dates.co });
+    }
+
+    for (var e = 0; e < entries.length; e++) {
+      var en = entries[e];
+      var key = en.hotel + '|' + en.city + '|' + en.label;
+      if (!hotelMap[key]) hotelMap[key] = [];
+      var checkin = (allCheckinData[en.hotel] || {})[bookingId] || {};
+      hotelMap[key].push({
+        name: name, gender: gender, passport: passport,
+        roomType: en.roomType, roomNumber: checkin.roomNumber || '',
+        roomGroupId: checkin.roomGroupId || '',
+        checkIn: en.ci, checkOut: en.co
+      });
+    }
+  }
+
+  // ── 3. ترتيب: المدينة أولاً ثم مكة ──
+  var keys = Object.keys(hotelMap).sort(function(a, b) {
+    var order = { 'Madina': 1, 'Makkah': 2, 'Makkah Shifting': 3 };
+    return (order[a.split('|')[1]] || 9) - (order[b.split('|')[1]] || 9);
+  });
+
+  // ── 4. ألوان أنواع الغرف ──
+  var ROOM_COLORS = {
+    'Quad':   { bg: '#FFF8E1', border: '#F9A825', header: '#F57F17', label: 'رباعية' },
+    'Triple': { bg: '#E8F5E9', border: '#66BB6A', header: '#2E7D32', label: 'ثلاثية' },
+    'Double': { bg: '#E3F2FD', border: '#42A5F5', header: '#1565C0', label: 'ثنائية' }
+  };
+
+  function detectRoomType(typeStr) {
+    if (!typeStr) return 'Quad';
+    var t = String(typeStr).toLowerCase();
+    if (t.indexOf('dbl') >= 0 || t.indexOf('double') >= 0 || t.indexOf('ثنائي') >= 0 || t.indexOf('2') >= 0) return 'Double';
+    if (t.indexOf('tri') >= 0 || t.indexOf('ثلاثي') >= 0 || t.indexOf('3') >= 0) return 'Triple';
+    return 'Quad';
+  }
+
+  // ── 5. إنشاء الشيتات ──
+  var COL_COUNT = 7;
+  var summaryRows = [];
+  var first = true;
+
+  keys.forEach(function(key) {
+    var parts = key.split('|');
+    var hotelName = parts[0];
+    var cityLabel = parts[2];
+    var pilgrims = hotelMap[key];
+
+    var sheet;
+    if (first) { sheet = ss.getActiveSheet(); first = false; }
+    else { sheet = ss.insertSheet(); }
+
+    var sheetName = (hotelName.length > 90 ? hotelName.substring(0, 90) : hotelName).replace(/[\/\\?*\[\]]/g, '-');
+    try { sheet.setName(sheetName); } catch(e) { sheet.setName(sheetName + ' (' + cityLabel + ')'); }
+
+    // ── تجميع الحجاج حسب الغرفة ──
+    var roomGroups = {};
+    var ungrouped = [];
+
+    pilgrims.forEach(function(p) {
+      if (p.roomGroupId) {
+        if (!roomGroups[p.roomGroupId]) roomGroups[p.roomGroupId] = [];
+        roomGroups[p.roomGroupId].push(p);
+      } else {
+        ungrouped.push(p);
+      }
+    });
+
+    // ترتيب الغرف: رباعي → ثلاثي → ثنائي
+    var sortedRoomIds = Object.keys(roomGroups).sort(function(a, b) {
+      var typeA = detectRoomType((roomGroups[a][0] || {}).roomType);
+      var typeB = detectRoomType((roomGroups[b][0] || {}).roomType);
+      var order = { 'Quad': 1, 'Triple': 2, 'Double': 3 };
+      return (order[typeA] || 9) - (order[typeB] || 9);
+    });
+
+    // ── بناء البيانات + خريطة التنسيق ──
+    var allData = [];
+    var formatMap = []; // { row, type: 'title'|'header'|'roomHeader'|'data', roomColor? }
+
+    // صف العنوان
+    var titleRow = [hotelName + '  —  ' + cityLabel + '  |  عدد الحجاج: ' + pilgrims.length + '  |  عدد الغرف: ' + sortedRoomIds.length];
+    while (titleRow.length < COL_COUNT) titleRow.push('');
+    allData.push(titleRow);
+    formatMap.push({ type: 'title' });
+
+    // صف فارغ
+    allData.push(['', '', '', '', '', '', '']);
+    formatMap.push({ type: 'spacer' });
+
+    // ── غرف مجمّعة ──
+    var roomCount = { Quad: 0, Triple: 0, Double: 0 };
+
+    sortedRoomIds.forEach(function(roomId) {
+      var members = roomGroups[roomId];
+      var rType = detectRoomType((members[0] || {}).roomType);
+      var colors = ROOM_COLORS[rType] || ROOM_COLORS['Quad'];
+      roomCount[rType] = (roomCount[rType] || 0) + 1;
+
+      // صف عنوان الغرفة
+      var roomLabel = 'غرفة ' + colors.label + ' #' + roomCount[rType] + '  —  ' + roomId + '  |  ' + members.length + ' حجاج';
+      var roomHeaderRow = [roomLabel, '', '', '', '', '', ''];
+      allData.push(roomHeaderRow);
+      formatMap.push({ type: 'roomHeader', color: colors });
+
+      // هيدر الأعمدة
+      allData.push(['الاسم', 'الجنس', 'رقم الجواز', 'نوع الغرفة', 'رقم الغرفة', 'تاريخ الدخول', 'تاريخ الخروج']);
+      formatMap.push({ type: 'header' });
+
+      // بيانات الأعضاء
+      members.forEach(function(p) {
+        allData.push([p.name, p.gender, p.passport, p.roomType, p.roomNumber, p.checkIn, p.checkOut]);
+        formatMap.push({ type: 'data', color: colors });
+      });
+
+      // صف فارغ بين الغرف
+      allData.push(['', '', '', '', '', '', '']);
+      formatMap.push({ type: 'spacer' });
+    });
+
+    // ── حجاج بدون غرفة ──
+    if (ungrouped.length > 0) {
+      var ugHeader = ['حجاج بدون تجميع غرفة  —  ' + ungrouped.length + ' حاج', '', '', '', '', '', ''];
+      allData.push(ugHeader);
+      formatMap.push({ type: 'ungroupedHeader' });
+
+      allData.push(['الاسم', 'الجنس', 'رقم الجواز', 'نوع الغرفة', 'رقم الغرفة', 'تاريخ الدخول', 'تاريخ الخروج']);
+      formatMap.push({ type: 'header' });
+
+      ungrouped.forEach(function(p, idx) {
+        allData.push([p.name, p.gender, p.passport, p.roomType, p.roomNumber, p.checkIn, p.checkOut]);
+        formatMap.push({ type: 'ungroupedData', odd: idx % 2 === 1 });
+      });
+    }
+
+    // ── كتابة البيانات دفعة واحدة ──
+    if (allData.length > 0) {
+      sheet.getRange(1, 1, allData.length, COL_COUNT).setValues(allData);
+    }
+
+    // ── تطبيق التنسيق ──
+    sheet.getRange(1, 1, allData.length, COL_COUNT).setFontFamily('Arial').setFontSize(10).setFontColor('#212121').setBackground('#FFFFFF');
+
+    for (var r = 0; r < formatMap.length; r++) {
+      var fm = formatMap[r];
+      var range = sheet.getRange(r + 1, 1, 1, COL_COUNT);
+
+      if (fm.type === 'title') {
+        range.merge().setFontWeight('bold').setFontSize(14).setBackground('#1B5E20').setFontColor('#FFFFFF').setHorizontalAlignment('center');
+      } else if (fm.type === 'roomHeader') {
+        range.merge().setFontWeight('bold').setFontSize(11).setBackground(fm.color.header).setFontColor('#FFFFFF');
+      } else if (fm.type === 'header') {
+        range.setFontWeight('bold').setBackground('#37474F').setFontColor('#FFFFFF').setHorizontalAlignment('center');
+      } else if (fm.type === 'data') {
+        range.setBackground(fm.color.bg);
+        range.setBorder(null, null, true, null, null, null, fm.color.border, SpreadsheetApp.BorderStyle.DOTTED);
+      } else if (fm.type === 'ungroupedHeader') {
+        range.merge().setFontWeight('bold').setFontSize(11).setBackground('#B71C1C').setFontColor('#FFFFFF');
+      } else if (fm.type === 'ungroupedData') {
+        range.setBackground(fm.odd ? '#FAFAFA' : '#FFFFFF');
+      }
+    }
+
+    sheet.setFrozenRows(1);
+    sheet.setRightToLeft(true);
+    for (var c = 1; c <= COL_COUNT; c++) sheet.autoResizeColumn(c);
+
+    // إحصائيات للملخص
+    summaryRows.push([hotelName, cityLabel, pilgrims.length, sortedRoomIds.length, ungrouped.length]);
+  });
+
+  // ── 6. شيت الملخص ──
+  var summarySheet = ss.insertSheet('ملخص الفنادق');
+  var totalPilgrims = summaryRows.reduce(function(s, r) { return s + r[2]; }, 0);
+  var totalRooms = summaryRows.reduce(function(s, r) { return s + r[3]; }, 0);
+
+  var summaryData = [
+    ['تقرير تسكين جميع الفنادق  |  إجمالي الحجاج: ' + totalPilgrims + '  |  إجمالي الغرف: ' + totalRooms + '  |  عدد الفنادق: ' + summaryRows.length, '', '', '', ''],
+    ['الفندق', 'المدينة', 'عدد الحجاج', 'عدد الغرف', 'بدون غرفة']
+  ];
+  for (var r = 0; r < summaryRows.length; r++) summaryData.push(summaryRows[r]);
+  summarySheet.getRange(1, 1, summaryData.length, 5).setValues(summaryData);
+
+  // تنسيق الملخص
+  summarySheet.getRange(1, 1, summaryData.length, 5).setFontFamily('Arial').setFontSize(10).setFontColor('#212121').setBackground('#FFFFFF');
+  summarySheet.getRange(1, 1, 1, 5).merge().setFontWeight('bold').setFontSize(13).setBackground('#1B5E20').setFontColor('#FFFFFF').setHorizontalAlignment('center');
+  summarySheet.getRange(2, 1, 1, 5).setFontWeight('bold').setBackground('#37474F').setFontColor('#FFFFFF').setHorizontalAlignment('center');
+
+  for (var r = 0; r < summaryRows.length; r++) {
+    if (r % 2 === 1) summarySheet.getRange(r + 3, 1, 1, 5).setBackground('#F5F5F5');
+  }
+
+  summarySheet.setFrozenRows(2);
+  summarySheet.setRightToLeft(true);
+  for (var c = 1; c <= 5; c++) summarySheet.autoResizeColumn(c);
+  summarySheet.getRange(2, 1, summaryData.length - 1, 5).setBorder(true, true, true, true, true, true, '#BDBDBD', SpreadsheetApp.BorderStyle.SOLID);
+
   ss.setActiveSheet(summarySheet);
   ss.moveActiveSheet(1);
 }

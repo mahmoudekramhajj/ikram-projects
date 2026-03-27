@@ -335,30 +335,96 @@ function handleHotelEdit(sheet, row, col) {
 function updateAllHotelRows() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(HOTEL_CONFIG.MAIN_SHEET);
-  
+
   if (!sheet) {
     ss.toast("شيت '" + HOTEL_CONFIG.MAIN_SHEET + "' غير موجود!", "❌ خطأ", 5);
     return;
   }
-  
+
   const lastRow = sheet.getLastRow();
   if (lastRow < HOTEL_CONFIG.DATA_START_ROW) {
     ss.toast("لا توجد بيانات للتحديث", "⚠️ تنبيه", 3);
     return;
   }
-  
+
+  // ═══ قراءة بيانات الفنادق مرة واحدة (بدلاً من 360 مرة) ═══
+  const hotelsSheet = ss.getSheetByName(HOTEL_CONFIG.HOTELS_SHEET);
+  if (!hotelsSheet) {
+    ss.toast("شيت الفنادق غير موجود!", "❌ خطأ", 5);
+    return;
+  }
+
+  const hotelsLastRow = hotelsSheet.getLastRow();
+  const allHotelsData = hotelsLastRow >= HOTEL_CONFIG.HOTELS_START_ROW
+    ? hotelsSheet.getRange(HOTEL_CONFIG.HOTELS_START_ROW, 1, hotelsLastRow - HOTEL_CONFIG.HOTELS_START_ROW + 1, 3).getValues()
+    : [];
+
+  const hotelCache = {};
+  const allHotelEnMap = {};
+
+  for (let i = 0; i < allHotelsData.length; i++) {
+    const nameAr = String(allHotelsData[i][0]).trim();
+    const city = String(allHotelsData[i][1]).trim().toLowerCase();
+    const nameEn = String(allHotelsData[i][2]).trim();
+    if (!nameAr) continue;
+
+    allHotelEnMap[nameAr] = nameEn;
+
+    if (!hotelCache[city]) hotelCache[city] = { names: [], map: {} };
+    hotelCache[city].names.push(nameAr);
+    hotelCache[city].map[nameAr] = nameEn;
+  }
+
+  // ═══ قراءة بيانات الباقات دفعة واحدة ═══
+  const numRows = lastRow - HOTEL_CONFIG.DATA_START_ROW + 1;
+  const maxCol = Math.max(...HOTEL_PAIRS.map(p => Math.max(p.cityCol, p.hotelCol, p.hotelEnCol)));
+  const allData = sheet.getRange(HOTEL_CONFIG.DATA_START_ROW, 1, numRows, maxCol).getValues();
+
   let updatedCount = 0;
-  
-  for (let row = HOTEL_CONFIG.DATA_START_ROW; row <= lastRow; row++) {
+
+  for (let i = 0; i < numRows; i++) {
+    const row = i + HOTEL_CONFIG.DATA_START_ROW;
+
     for (const pair of HOTEL_PAIRS) {
-      // تحديث القائمة المنسدلة
-      updateHotelDropdown(sheet, row, pair.cityCol, pair.hotelCol, pair.hotelEnCol);
-      // تحديث الاسم الإنجليزي
-      updateHotelEnglishName(sheet, row, pair.hotelCol, pair.hotelEnCol);
+      const city = String(allData[i][pair.cityCol - 1] || "").trim();
+      const hotelCell = sheet.getRange(row, pair.hotelCol);
+      const hotelEnCell = sheet.getRange(row, pair.hotelEnCol);
+
+      if (!city) {
+        hotelCell.clearDataValidations();
+        hotelCell.setValue("");
+        hotelEnCell.setValue("");
+        continue;
+      }
+
+      const cleanCity = city.toLowerCase();
+      const cached = hotelCache[cleanCity];
+
+      if (!cached || cached.names.length === 0) {
+        hotelCell.clearDataValidations();
+        hotelCell.setValue("");
+        hotelEnCell.setValue("");
+        continue;
+      }
+
+      const rule = SpreadsheetApp.newDataValidation()
+        .requireValueInList(cached.names, true)
+        .setAllowInvalid(false)
+        .build();
+      hotelCell.setDataValidation(rule);
+
+      const currentHotelAr = String(allData[i][pair.hotelCol - 1] || "").trim();
+      if (currentHotelAr) {
+        const enName = allHotelEnMap[currentHotelAr] || "";
+        hotelEnCell.setValue(enName);
+      } else {
+        hotelEnCell.setValue("");
+      }
     }
     updatedCount++;
   }
-  
+
+  SpreadsheetApp.flush();
   ss.toast("تم التحديث بنجاح!\nعدد الصفوف: " + updatedCount, "✅", 5);
 }
 
@@ -561,30 +627,37 @@ function updateFlightGroup(sheet, row, group) {
 function updateAllFlights() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(FLIGHT_CONFIG.SHEET_NAME);
-  
+
   if (!sheet) {
     ss.toast("شيت '" + FLIGHT_CONFIG.SHEET_NAME + "' غير موجود!", "❌ خطأ", 5);
     return;
   }
-  
+
   const lastRow = sheet.getLastRow();
   if (lastRow < FLIGHT_CONFIG.DATA_START_ROW) {
     ss.toast("لا توجد بيانات للتحديث", "⚠️ تنبيه", 3);
     return;
   }
-  
+
+  // ═══ قراءة كل البيانات دفعة واحدة ═══
+  const numRows = lastRow - FLIGHT_CONFIG.DATA_START_ROW + 1;
+  const maxCol = Math.max(...FLIGHT_GROUPS.map(g => Math.max(g.flightNo, g.dateTakeoff, g.timeLanding)));
+  const allData = sheet.getRange(FLIGHT_CONFIG.DATA_START_ROW, 1, numRows, maxCol).getValues();
+
   let successCount = 0, failCount = 0, totalProcessed = 0;
-  
-  for (let row = FLIGHT_CONFIG.DATA_START_ROW; row <= lastRow; row++) {
+
+  for (let i = 0; i < numRows; i++) {
+    const row = i + FLIGHT_CONFIG.DATA_START_ROW;
+
     for (const group of FLIGHT_GROUPS) {
-      const flightNo = sheet.getRange(row, group.flightNo).getValue();
-      const flightDate = sheet.getRange(row, group.dateTakeoff).getValue();
-      
+      const flightNo = allData[i][group.flightNo - 1];
+      const flightDate = allData[i][group.dateTakeoff - 1];
+
       if (!flightNo || !flightDate) continue;
-      
+
       totalProcessed++;
       const data = fetchFlightData(flightNo, flightDate);
-      
+
       if (data) {
         sheet.getRange(row, group.timeTakeoff).setValue(data.departureTime);
         sheet.getRange(row, group.from).setValue(data.from);
@@ -595,11 +668,11 @@ function updateAllFlights() {
       } else {
         failCount++;
       }
-      
+
       Utilities.sleep(500);
     }
   }
-  
+
   ss.toast("نجح: " + successCount + " | فشل: " + failCount + " | الإجمالي: " + totalProcessed, "✅ اكتمل التحديث", 5);
 }
 
@@ -652,41 +725,48 @@ function updateCurrentRow() {
 function fillEmptyFlightsOnly() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(FLIGHT_CONFIG.SHEET_NAME);
-  
+
   if (!sheet) {
     ss.toast("شيت '" + FLIGHT_CONFIG.SHEET_NAME + "' غير موجود!", "❌ خطأ", 5);
     return;
   }
-  
+
   const lastRow = sheet.getLastRow();
   if (lastRow < FLIGHT_CONFIG.DATA_START_ROW) {
     ss.toast("لا توجد بيانات", "⚠️", 3);
     return;
   }
-  
+
+  // ═══ قراءة كل البيانات دفعة واحدة ═══
+  const numRows = lastRow - FLIGHT_CONFIG.DATA_START_ROW + 1;
+  const maxCol = Math.max(...FLIGHT_GROUPS.map(g => Math.max(g.flightNo, g.dateTakeoff, g.timeLanding)));
+  const allData = sheet.getRange(FLIGHT_CONFIG.DATA_START_ROW, 1, numRows, maxCol).getValues();
+
   let filledCount = 0, skippedCount = 0;
   const startTime = new Date().getTime();
   const MAX_TIME = 5 * 60 * 1000;
-  
-  for (let row = FLIGHT_CONFIG.DATA_START_ROW; row <= lastRow; row++) {
+
+  for (let i = 0; i < numRows; i++) {
     if (new Date().getTime() - startTime > MAX_TIME) {
       ss.toast("⏱️ توقف مؤقت - أكمل " + filledCount + " رحلة\nشغّل الدالة مرة أخرى", "تنبيه", 10);
       return;
     }
-    
+
+    const row = i + FLIGHT_CONFIG.DATA_START_ROW;
+
     for (const group of FLIGHT_GROUPS) {
-      const flightNo = sheet.getRange(row, group.flightNo).getValue();
-      const flightDate = sheet.getRange(row, group.dateTakeoff).getValue();
-      const existingTime = sheet.getRange(row, group.timeTakeoff).getValue();
-      
+      const flightNo = allData[i][group.flightNo - 1];
+      const flightDate = allData[i][group.dateTakeoff - 1];
+      const existingTime = allData[i][group.timeTakeoff - 1];
+
       if (!flightNo || !flightDate) continue;
       if (existingTime && String(existingTime).trim() !== "") {
         skippedCount++;
         continue;
       }
-      
+
       const data = fetchFlightData(flightNo, flightDate);
-      
+
       if (data) {
         sheet.getRange(row, group.timeTakeoff).setValue(data.departureTime);
         sheet.getRange(row, group.from).setValue(data.from);
@@ -695,11 +775,11 @@ function fillEmptyFlightsOnly() {
         sheet.getRange(row, group.timeLanding).setValue(data.arrivalTime);
         filledCount++;
       }
-      
+
       Utilities.sleep(300);
     }
   }
-  
+
   ss.toast("✅ اكتمل!\nمُلئت: " + filledCount + " | تُخطيت: " + skippedCount, "النتيجة", 5);
 }
 
@@ -720,23 +800,31 @@ function fillFromCurrentRow() {
   let filledCount = 0;
   const startTime = new Date().getTime();
   const MAX_TIME = 5 * 60 * 1000;
-  
-  for (let row = startRow; row <= lastRow; row++) {
+
+  // ═══ قراءة كل البيانات دفعة واحدة ═══
+  const numRows = lastRow - startRow + 1;
+  if (numRows <= 0) { ss.toast("لا توجد بيانات", "⚠️", 3); return; }
+  const maxCol = Math.max(...FLIGHT_GROUPS.map(g => Math.max(g.flightNo, g.dateTakeoff, g.timeLanding)));
+  const allData = sheet.getRange(startRow, 1, numRows, maxCol).getValues();
+
+  for (let i = 0; i < numRows; i++) {
     if (new Date().getTime() - startTime > MAX_TIME) {
-      ss.toast("⏱️ توقف في الصف " + row + "\nأكمل " + filledCount + " رحلة", "تنبيه", 10);
+      ss.toast("⏱️ توقف في الصف " + (i + startRow) + "\nأكمل " + filledCount + " رحلة", "تنبيه", 10);
       return;
     }
-    
+
+    const row = i + startRow;
+
     for (const group of FLIGHT_GROUPS) {
-      const flightNo = sheet.getRange(row, group.flightNo).getValue();
-      const flightDate = sheet.getRange(row, group.dateTakeoff).getValue();
-      const existingTime = sheet.getRange(row, group.timeTakeoff).getValue();
-      
+      const flightNo = allData[i][group.flightNo - 1];
+      const flightDate = allData[i][group.dateTakeoff - 1];
+      const existingTime = allData[i][group.timeTakeoff - 1];
+
       if (!flightNo || !flightDate) continue;
       if (existingTime && String(existingTime).trim() !== "") continue;
-      
+
       const data = fetchFlightData(flightNo, flightDate);
-      
+
       if (data) {
         sheet.getRange(row, group.timeTakeoff).setValue(data.departureTime);
         sheet.getRange(row, group.from).setValue(data.from);
@@ -745,11 +833,11 @@ function fillFromCurrentRow() {
         sheet.getRange(row, group.timeLanding).setValue(data.arrivalTime);
         filledCount++;
       }
-      
+
       Utilities.sleep(300);
     }
   }
-  
+
   ss.toast("✅ اكتمل! مُلئت: " + filledCount + " رحلة", "النتيجة", 5);
 }
 

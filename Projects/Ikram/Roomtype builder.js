@@ -619,6 +619,7 @@ function _formatRoomType(sheet, numCols, numRows) {
   if (numRows > 0) {
     // الأسرّة المشتركة — تلوين الخلايا > 0 بالأصفر
     var sharedCols = [20, 25, 30]; // T, Y, AD
+    var rules = sheet.getConditionalFormatRules();
     for (var c = 0; c < sharedCols.length; c++) {
       var rule = SpreadsheetApp.newConditionalFormatRule()
         .whenNumberGreaterThan(0)
@@ -626,10 +627,9 @@ function _formatRoomType(sheet, numCols, numRows) {
         .setFontColor('#E65100')
         .setRanges([sheet.getRange(2, sharedCols[c], numRows, 1)])
         .build();
-      var rules = sheet.getConditionalFormatRules();
       rules.push(rule);
-      sheet.setConditionalFormatRules(rules);
     }
+    sheet.setConditionalFormatRules(rules);
   }
 }
 
@@ -640,13 +640,13 @@ function _formatRoomType(sheet, numCols, numRows) {
  * عرض إحصائيات سريعة عن Room Type
  */
 function showRoomTypeStats() {
-  var ss = SpreadsheetApp.openById(RT_CONFIG.SPREADSHEET_ID);
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName(RT_CONFIG.OUTPUT_SHEET);
   if (!sheet || sheet.getLastRow() < 2) {
     SpreadsheetApp.getUi().alert('⚠️ جدول Room Type فارغ — شغّل إعادة البناء أولاً');
     return;
   }
-  
+
   var data = sheet.getRange(2, 1, sheet.getLastRow() - 1, 32).getValues();
   
   var totalGroups = data.length;

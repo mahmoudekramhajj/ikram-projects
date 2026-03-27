@@ -360,29 +360,41 @@ function tgValidateCurrentRow() {
     return;
   }
 
-  // فحص التسجيل
+  // فحص التسجيل — قراءة الأعمدة المطلوبة فقط بدلاً من getDataRange الكامل
   const pdSheet = ss.getSheetByName(TG_CONFIG.SHEET_PERSONAL_DETAILS);
-  const pdData = pdSheet.getDataRange().getValues();
+  const pdLastRow = pdSheet.getLastRow();
   let found = null;
 
-  for (let i = 1; i < pdData.length; i++) {
-    if (_normalizePassport(pdData[i][TG_CONFIG.PD.PASSPORT - 1]) === passport) {
-      found = pdData[i];
-      break;
+  if (pdLastRow >= TG_CONFIG.PD.DATA_START_ROW) {
+    const pdNumRows = pdLastRow - TG_CONFIG.PD.DATA_START_ROW + 1;
+    const pdCols = [TG_CONFIG.PD.PASSPORT, TG_CONFIG.PD.FIRST_NAME, TG_CONFIG.PD.LAST_NAME, TG_CONFIG.PD.PACKAGE_NAME];
+    const maxPdCol = Math.max(...pdCols);
+    const pdData = pdSheet.getRange(TG_CONFIG.PD.DATA_START_ROW, 1, pdNumRows, maxPdCol).getValues();
+
+    for (let i = 0; i < pdData.length; i++) {
+      if (_normalizePassport(pdData[i][TG_CONFIG.PD.PASSPORT - 1]) === passport) {
+        found = pdData[i];
+        break;
+      }
     }
   }
-  
-  // فحص التكرار — يجمع كل المرشدين الآخرين
-  const tgData = sheet.getDataRange().getValues();
+
+  // فحص التكرار — قراءة عمودين فقط بدلاً من getDataRange الكامل
+  const tgLastRow = sheet.getLastRow();
   const otherGuides = [];
-  
-  for (let i = 1; i < tgData.length; i++) {
-    const rowNum = i + 1;
-    if (rowNum === row) continue;
-    const pp = _normalizePassport(tgData[i][TG_CONFIG.TG.PASSPORT - 1]);
-    const gn = String(tgData[i][TG_CONFIG.TG.GUIDE_NAME - 1] || '').trim();
-    if (pp === passport && gn !== guideName && !otherGuides.includes(gn)) {
-      otherGuides.push(gn);
+
+  if (tgLastRow >= TG_CONFIG.TG.DATA_START_ROW) {
+    const tgPassports = sheet.getRange(TG_CONFIG.TG.DATA_START_ROW, TG_CONFIG.TG.PASSPORT, tgLastRow - 1, 1).getValues();
+    const tgGuides = sheet.getRange(TG_CONFIG.TG.DATA_START_ROW, TG_CONFIG.TG.GUIDE_NAME, tgLastRow - 1, 1).getValues();
+
+    for (let i = 0; i < tgPassports.length; i++) {
+      const rowNum = i + TG_CONFIG.TG.DATA_START_ROW;
+      if (rowNum === row) continue;
+      const pp = _normalizePassport(tgPassports[i][0]);
+      const gn = String(tgGuides[i][0] || '').trim();
+      if (pp === passport && gn !== guideName && !otherGuides.includes(gn)) {
+        otherGuides.push(gn);
+      }
     }
   }
 
@@ -757,56 +769,69 @@ function _applyConditionalFormatting(sheet, startRow, numRows) {
  */
 function tgOnEdit(e) {
   if (!e || !e.range) return;
-  
+
   const sheet = e.range.getSheet();
   if (sheet.getName() !== TG_CONFIG.SHEET_TOUR_GUIDE) return;
-  
+
   const row = e.range.getRow();
   const col = e.range.getColumn();
-  
-  // فحص فوري عند إدخال/تعديل رقم الجواز (عمود E)
-  if (row >= TG_CONFIG.TG.DATA_START_ROW && col === TG_CONFIG.TG.PASSPORT) {
-    const passport = _normalizePassport(e.value);
-    if (!passport) return;
 
-    // فحص التسجيل
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const pdSheet = ss.getSheetByName(TG_CONFIG.SHEET_PERSONAL_DETAILS);
-    const pdData = pdSheet.getDataRange().getValues();
+  // ═══ خروج مبكر: فقط عمود الجواز (E) في صفوف البيانات ═══
+  if (row < TG_CONFIG.TG.DATA_START_ROW || col !== TG_CONFIG.TG.PASSPORT) return;
 
-    let found = false;
-    for (let i = 1; i < pdData.length; i++) {
-      if (_normalizePassport(pdData[i][TG_CONFIG.PD.PASSPORT - 1]) === passport) {
-        found = true;
-        break;
-      }
+  const passport = _normalizePassport(e.value);
+  if (!passport) return;
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  // ═══ فحص التسجيل — قراءة عمود الجواز فقط (عمود واحد بدلاً من 32) ═══
+  const pdSheet = ss.getSheetByName(TG_CONFIG.SHEET_PERSONAL_DETAILS);
+  if (!pdSheet) return;
+
+  const pdLastRow = pdSheet.getLastRow();
+  if (pdLastRow < TG_CONFIG.PD.DATA_START_ROW) return;
+
+  const pdPassports = pdSheet.getRange(
+    TG_CONFIG.PD.DATA_START_ROW, TG_CONFIG.PD.PASSPORT,
+    pdLastRow - TG_CONFIG.PD.DATA_START_ROW + 1, 1
+  ).getValues();
+
+  let found = false;
+  for (let i = 0; i < pdPassports.length; i++) {
+    if (_normalizePassport(pdPassports[i][0]) === passport) {
+      found = true;
+      break;
     }
-    
-    sheet.getRange(row, TG_CONFIG.TG.REG_STATUS).setValue(
-      found ? TG_CONFIG.STATUS.REGISTERED : TG_CONFIG.STATUS.NOT_FOUND
-    );
-    
-    // فحص التكرار — يجمع كل المرشدين الآخرين
-    const tgData = sheet.getDataRange().getValues();
-    const guideName = String(sheet.getRange(row, TG_CONFIG.TG.GUIDE_NAME).getValue() || '').trim();
-    const otherGuides = [];
-    
-    for (let i = 1; i < tgData.length; i++) {
-      if (i + 1 === row) continue;
-      const pp = _normalizePassport(tgData[i][TG_CONFIG.TG.PASSPORT - 1]);
-      const gn = String(tgData[i][TG_CONFIG.TG.GUIDE_NAME - 1] || '').trim();
-      if (pp === passport && gn !== guideName && !otherGuides.includes(gn)) {
-        otherGuides.push(gn);
-      }
-    }
-    
-    sheet.getRange(row, TG_CONFIG.TG.DUPLICATE_CHECK).setValue(
-      otherGuides.length > 0
-        ? TG_CONFIG.STATUS.DUPLICATE + ' (Guides: ' + otherGuides.join(', ') + ')'
-        : TG_CONFIG.STATUS.UNIQUE
-    );
-    
-    // تلوين الصف
-    _applyConditionalFormatting(sheet, row, 1);
   }
+
+  sheet.getRange(row, TG_CONFIG.TG.REG_STATUS).setValue(
+    found ? TG_CONFIG.STATUS.REGISTERED : TG_CONFIG.STATUS.NOT_FOUND
+  );
+
+  // ═══ فحص التكرار — قراءة عمودين فقط (الجواز + اسم المرشد) ═══
+  const tgLastRow = sheet.getLastRow();
+  if (tgLastRow < TG_CONFIG.TG.DATA_START_ROW) return;
+
+  const tgPassports = sheet.getRange(TG_CONFIG.TG.DATA_START_ROW, TG_CONFIG.TG.PASSPORT, tgLastRow - 1, 1).getValues();
+  const tgGuides = sheet.getRange(TG_CONFIG.TG.DATA_START_ROW, TG_CONFIG.TG.GUIDE_NAME, tgLastRow - 1, 1).getValues();
+  const guideName = String(sheet.getRange(row, TG_CONFIG.TG.GUIDE_NAME).getValue() || '').trim();
+  const otherGuides = [];
+
+  for (let i = 0; i < tgPassports.length; i++) {
+    if (i + TG_CONFIG.TG.DATA_START_ROW === row) continue;
+    const pp = _normalizePassport(tgPassports[i][0]);
+    const gn = String(tgGuides[i][0] || '').trim();
+    if (pp === passport && gn !== guideName && !otherGuides.includes(gn)) {
+      otherGuides.push(gn);
+    }
+  }
+
+  sheet.getRange(row, TG_CONFIG.TG.DUPLICATE_CHECK).setValue(
+    otherGuides.length > 0
+      ? TG_CONFIG.STATUS.DUPLICATE + ' (Guides: ' + otherGuides.join(', ') + ')'
+      : TG_CONFIG.STATUS.UNIQUE
+  );
+
+  // تلوين الصف
+  _applyConditionalFormatting(sheet, row, 1);
 }
