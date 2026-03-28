@@ -5,12 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>إكرام الضيف | المشاريع التقنية</title>
 <meta name="description" content="الأنظمة الرقمية لإدارة عمليات الحج — شركة إكرام الضيف — موسم 1447 هـ">
+<meta name="theme-color" content="#1B4332">
 <meta property="og:title" content="إكرام الضيف | المشاريع التقنية التشغيلية">
 <meta property="og:description" content="الأنظمة الرقمية لإدارة عمليات الحج — موسم 1447 هـ — 2026">
 <meta property="og:image" content="https://mahmoudekramhajj.github.io/ikram-projects/logo.png">
 <meta property="og:type" content="website">
 <link rel="icon" type="image/png" href="logo.png">
-<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&family=Amiri:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&family=Amiri:wght@700&display=swap" rel="stylesheet">
 <style>
   :root {
     --gold: #C6A84C;
@@ -91,7 +92,9 @@
     animation: fadeDown 0.8s ease-out 0.3s both;
   }
 
-  /* Section Labels */
+  /* Sections */
+  .section { margin-bottom: 40px; }
+
   .section-label {
     text-align: center;
     margin-bottom: 16px;
@@ -109,14 +112,14 @@
     letter-spacing: 0.5px;
   }
 
-  /* Projects Grid */
+  /* Grid */
   .projects-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 24px;
-    margin-bottom: 32px;
   }
 
+  /* Cards */
   .project-card {
     background: var(--white);
     border-radius: 20px;
@@ -135,9 +138,7 @@
   .project-card::before {
     content: '';
     position: absolute;
-    top: 0;
-    right: 0;
-    left: 0;
+    top: 0; right: 0; left: 0;
     height: 4px;
     background: linear-gradient(90deg, var(--gold), var(--green-mid));
     opacity: 0;
@@ -149,19 +150,16 @@
     box-shadow: 0 12px 40px rgba(27, 67, 50, 0.18);
   }
 
-  .project-card:hover::before {
-    opacity: 1;
-  }
+  .project-card:hover::before { opacity: 1; }
 
   .project-card:hover .icon-circle {
     background: var(--green-deep);
     transform: scale(1.1);
   }
 
-  .project-card:hover .icon-circle svg {
-    stroke: var(--gold-light);
-  }
+  .project-card:hover .icon-circle svg { stroke: var(--gold-light); }
 
+  /* Icons */
   .icon-circle {
     width: 72px;
     height: 72px;
@@ -196,22 +194,26 @@
     line-height: 1.6;
   }
 
-  /* Single card centered */
-  .single-card {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 32px;
-  }
+  /* Staggered animation delays */
+  .section:nth-child(1) .section-label { animation-delay: 0.2s; }
+  .section:nth-child(1) .project-card:nth-child(1) { animation-delay: 0.25s; }
+  .section:nth-child(1) .project-card:nth-child(2) { animation-delay: 0.3s; }
+  .section:nth-child(1) .project-card:nth-child(3) { animation-delay: 0.35s; }
 
-  .single-card .project-card {
-    max-width: 320px;
-    width: 100%;
-  }
+  .section:nth-child(2) .section-label { animation-delay: 0.4s; }
+  .section:nth-child(2) .project-card:nth-child(1) { animation-delay: 0.45s; }
+  .section:nth-child(2) .project-card:nth-child(2) { animation-delay: 0.5s; }
+  .section:nth-child(2) .project-card:nth-child(3) { animation-delay: 0.55s; }
+
+  .section:nth-child(3) .section-label { animation-delay: 0.6s; }
+  .section:nth-child(3) .project-card:nth-child(1) { animation-delay: 0.65s; }
+  .section:nth-child(3) .project-card:nth-child(2) { animation-delay: 0.7s; }
+  .section:nth-child(3) .project-card:nth-child(3) { animation-delay: 0.75s; }
 
   /* Footer */
   .footer {
     text-align: center;
-    margin-top: 40px;
+    margin-top: 48px;
     animation: fadeUp 0.7s ease-out 0.8s both;
   }
 
@@ -235,10 +237,7 @@
     border-color: var(--green-deep);
   }
 
-  .footer a svg {
-    width: 18px;
-    height: 18px;
-  }
+  .footer a svg { width: 18px; height: 18px; }
 
   .season-badge {
     display: inline-block;
@@ -276,9 +275,7 @@
   }
 
   @media (max-width: 480px) {
-    .projects-grid {
-      grid-template-columns: 1fr;
-    }
+    .projects-grid { grid-template-columns: 1fr; }
     .container { padding: 24px 16px 40px; }
   }
 </style>
@@ -290,7 +287,7 @@
 <div class="container">
   <div class="header">
     <div class="logo-wrapper">
-      <img src="logo.png" alt="شركة إكرام الضيف" />
+      <img src="logo.png" alt="شركة إكرام الضيف" onerror="this.style.display='none'">
     </div>
     <h1>المشاريع التقنية التشغيلية</h1>
     <p class="subtitle">الأنظمة الرقمية لإدارة عمليات الحج</p>
@@ -299,121 +296,109 @@
   <div class="divider"></div>
 
   <!-- القسم 1: الإدارة والعمليات -->
-  <div class="section-label" style="animation-delay: 0.2s">
-    <span>الإدارة والعمليات</span>
-  </div>
+  <div class="section">
+    <div class="section-label">
+      <span>الإدارة والعمليات</span>
+    </div>
+    <div class="projects-grid">
 
-  <div class="projects-grid">
+      <a href="https://script.google.com/macros/s/AKfycbw6XRwstYnSKaW9nEG2tIXCJVDjBxG6evZNefdJZ6qjHuZokzsHkX7H0v-Uq28NNTqVhw/exec" target="_blank" rel="noopener noreferrer" class="project-card">
+        <div class="icon-circle">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="18" rx="2"/><path d="M2 8h20"/><path d="M8 8v13"/></svg>
+        </div>
+        <h3>نظام الباقات</h3>
+        <p>إدارة باقات الحج والرحلات والفنادق وبيانات الحجاج</p>
+      </a>
 
-    <a href="https://script.google.com/macros/s/AKfycbw6XRwstYnSKaW9nEG2tIXCJVDjBxG6evZNefdJZ6qjHuZokzsHkX7H0v-Uq28NNTqVhw/exec" target="_blank" class="project-card" style="animation-delay:0.25s">
-      <div class="icon-circle">
-        <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="18" rx="2"/><path d="M2 8h20"/><path d="M8 8v13"/></svg>
-      </div>
-      <h3>نظام الباقات</h3>
-      <p>إدارة باقات الحج والرحلات والفنادق وبيانات الحجاج</p>
-    </a>
+      <a href="https://script.google.com/macros/s/AKfycbylWiWTJ5SQbTYz7BmXviQ57xNb8W2_v69884roSXyrUkJoUHWOVA8eGMcwQ0sPEWLK/exec" target="_blank" rel="noopener noreferrer" class="project-card">
+        <div class="icon-circle">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/><path d="M9 9h1"/><path d="M9 13h1"/><path d="M9 17h1"/></svg>
+        </div>
+        <h3>إدارة الفنادق</h3>
+        <p>توزيع الغرف وإدارة حجوزات الفنادق في مكة والمدينة</p>
+      </a>
 
-    <a href="https://script.google.com/macros/s/AKfycbylWiWTJ5SQbTYz7BmXviQ57xNb8W2_v69884roSXyrUkJoUHWOVA8eGMcwQ0sPEWLK/exec" target="_blank" class="project-card" style="animation-delay:0.3s">
-      <div class="icon-circle">
-        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/><path d="M9 9h1"/><path d="M9 13h1"/><path d="M9 17h1"/></svg>
-      </div>
-      <h3>إدارة الفنادق</h3>
-      <p>توزيع الغرف وإدارة حجوزات الفنادق في مكة والمدينة</p>
-    </a>
+      <a href="https://script.google.com/macros/s/AKfycbwZQI3OWoqN_KGGg9pr0aKznzNf6o6b-aoeJQO42pw4uZvwXNbgvtPUCAjmaYL3IEN9/exec" target="_blank" rel="noopener noreferrer" class="project-card">
+        <div class="icon-circle">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M21 12V7H5a2 2 0 010-4h14v4"/><path d="M3 5v14a2 2 0 002 2h16v-5"/><path d="M18 12a2 2 0 000 4h4v-4z"/></svg>
+        </div>
+        <h3>تقارير المبيعات</h3>
+        <p>تقارير عمليات المبيعات والإحصائيات التشغيلية</p>
+      </a>
 
-    <a href="https://script.google.com/macros/s/AKfycbwZQI3OWoqN_KGGg9pr0aKznzNf6o6b-aoeJQO42pw4uZvwXNbgvtPUCAjmaYL3IEN9/exec" target="_blank" class="project-card" style="animation-delay:0.35s">
-      <div class="icon-circle">
-        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M21 12V7H5a2 2 0 010-4h14v4"/><path d="M3 5v14a2 2 0 002 2h16v-5"/><path d="M18 12a2 2 0 000 4h4v-4z"/></svg>
-      </div>
-      <h3>تقارير المبيعات</h3>
-      <p>تقارير عمليات المبيعات والإحصائيات التشغيلية</p>
-    </a>
-
+    </div>
   </div>
 
   <!-- القسم 2: المطار والاستقبال -->
-  <div class="section-label" style="animation-delay: 0.4s">
-    <span>المطار والاستقبال</span>
+  <div class="section">
+    <div class="section-label">
+      <span>المطار والاستقبال</span>
+    </div>
+    <div class="projects-grid">
+
+      <a href="https://script.google.com/macros/s/AKfycby3C4-UVdtIVp2BGwta1YaR6hZqOG-BG5fOk0fifx0C9cHCedhbOG9Xt-EsESGrtudz/exec" target="_blank" rel="noopener noreferrer" class="project-card">
+        <div class="icon-circle">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M2 22l10-7 10 7V4a2 2 0 00-2-2H4a2 2 0 00-2 2z"/><path d="M8 10l2 2 4-4"/></svg>
+        </div>
+        <h3>نظام المطار</h3>
+        <p>بحث وتصدير بيانات الحجاج ومسح الجوازات</p>
+      </a>
+
+      <a href="https://script.google.com/macros/s/AKfycbzX_6PAon6GgwGdA19ai-w3mmXHIKT4RglJlO6qs6qBBRtqqDKtfXDEs4ZksyIcRBWG/exec" target="_blank" rel="noopener noreferrer" class="project-card">
+        <div class="icon-circle">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+        </div>
+        <h3>استقبال المطار</h3>
+        <p>تأكيد وصول الحجاج وتوزيع الحافلات</p>
+      </a>
+
+      <a href="https://script.google.com/macros/s/AKfycbxAGuVU-uL_lMV-8nptKxji8bpxcDdlTFSuBLpBFNnrSSFEAxPzb2yOeEIp9AvWI2eB/exec" target="_blank" rel="noopener noreferrer" class="project-card">
+        <div class="icon-circle">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        </div>
+        <h3>نظام مخيم منى</h3>
+        <p>إدارة الخيام وتوزيع الحجاج في المشاعر المقدسة</p>
+      </a>
+
+    </div>
   </div>
 
-  <div class="projects-grid">
+  <!-- القسم 3: الحاج والمرشد -->
+  <div class="section">
+    <div class="section-label">
+      <span>الحاج والمرشد</span>
+    </div>
+    <div class="projects-grid">
 
-    <a href="https://script.google.com/macros/s/AKfycby3C4-UVdtIVp2BGwta1YaR6hZqOG-BG5fOk0fifx0C9cHCedhbOG9Xt-EsESGrtudz/exec" target="_blank" class="project-card" style="animation-delay:0.45s">
-      <div class="icon-circle">
-        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M2 22l10-7 10 7V4a2 2 0 00-2-2H4a2 2 0 00-2 2z"/><path d="M8 10l2 2 4-4"/></svg>
-      </div>
-      <h3>نظام المطار</h3>
-      <p>بحث وتصدير بيانات الحجاج ومسح الجوازات</p>
-    </a>
+      <a href="https://script.google.com/macros/s/AKfycby6wMDtgNToRFw0XQG40D_I0SWcoT9vMidueMMJm2B5ufPan6CVOnUhAH_GJvS4nveAXA/exec" target="_blank" rel="noopener noreferrer" class="project-card">
+        <div class="icon-circle">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </div>
+        <h3>تطبيق الحاج</h3>
+        <p>عرض بيانات الحاج ورحلته وتفاصيل الفنادق والطيران</p>
+      </a>
 
-    <a href="https://script.google.com/macros/s/AKfycbzX_6PAon6GgwGdA19ai-w3mmXHIKT4RglJlO6qs6qBBRtqqDKtfXDEs4ZksyIcRBWG/exec" target="_blank" class="project-card" style="animation-delay:0.5s">
-      <div class="icon-circle">
-        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-      </div>
-      <h3>استقبال المطار</h3>
-      <p>تأكيد وصول الحجاج وتوزيع الحافلات</p>
-    </a>
+      <a href="https://script.google.com/macros/s/AKfycbwg3TVCEXQnUUM1UuPpwlAYKGNA5fl2JyP_Z6AP0D9LP2FTKSzuj6jYCBBh6vdUdh5THQ/exec" target="_blank" rel="noopener noreferrer" class="project-card">
+        <div class="icon-circle">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+        </div>
+        <h3>تطبيق المرشد</h3>
+        <p>عرض مجموعة المرشد السياحي وبيانات الحجاج</p>
+      </a>
 
-    <a href="https://script.google.com/macros/s/AKfycbxAGuVU-uL_lMV-8nptKxji8bpxcDdlTFSuBLpBFNnrSSFEAxPzb2yOeEIp9AvWI2eB/exec" target="_blank" class="project-card" style="animation-delay:0.55s">
-      <div class="icon-circle">
-        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-      </div>
-      <h3>نظام مخيم منى</h3>
-      <p>إدارة الخيام وتوزيع الحجاج في المشاعر المقدسة</p>
-    </a>
+      <a href="https://t.me/IkramAlDayfBot" target="_blank" rel="noopener noreferrer" class="project-card">
+        <div class="icon-circle">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M21 3L1 11l7.5 3.5M21 3l-8 18-3.5-7.5M21 3L8.5 14.5"/></svg>
+        </div>
+        <h3>بوت تيليجرام</h3>
+        <p>خدمة ذاتية للحجاج عبر تيليجرام بدعم متعدد اللغات</p>
+      </a>
 
-  </div>
-
-  <!-- القسم 3: تطبيقات الحاج والمرشد -->
-  <div class="section-label" style="animation-delay: 0.6s">
-    <span>الحاج والمرشد</span>
-  </div>
-
-  <div class="projects-grid">
-
-    <a href="https://script.google.com/macros/s/AKfycby6wMDtgNToRFw0XQG40D_I0SWcoT9vMidueMMJm2B5ufPan6CVOnUhAH_GJvS4nveAXA/exec" target="_blank" class="project-card" style="animation-delay:0.65s">
-      <div class="icon-circle">
-        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-      </div>
-      <h3>تطبيق الحاج</h3>
-      <p>عرض بيانات الحاج ورحلته وتفاصيل الفنادق والطيران</p>
-    </a>
-
-    <a href="https://script.google.com/macros/s/AKfycbwg3TVCEXQnUUM1UuPpwlAYKGNA5fl2JyP_Z6AP0D9LP2FTKSzuj6jYCBBh6vdUdh5THQ/exec" target="_blank" class="project-card" style="animation-delay:0.7s">
-      <div class="icon-circle">
-        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-      </div>
-      <h3>تطبيق المرشد</h3>
-      <p>عرض مجموعة المرشد السياحي وبيانات الحجاج</p>
-    </a>
-
-    <a href="https://script.google.com/macros/s/AKfycbwAt8Gn7S3LCvNksOopS07OPDy5TKFDObRDsdsotNoiGQblCBxf7raVGsw1Rehcl9WE2Q/exec" target="_blank" class="project-card" style="animation-delay:0.75s">
-      <div class="icon-circle">
-        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-      </div>
-      <h3>Holiday In Bakkah</h3>
-      <p>باقات العطل في مكة المكرمة</p>
-    </a>
-
-  </div>
-
-  <!-- القسم 4: البوت -->
-  <div class="section-label" style="animation-delay: 0.8s">
-    <span>خدمة الحجاج</span>
-  </div>
-
-  <div class="single-card">
-    <a href="https://t.me/IkramAlDayfBot" target="_blank" class="project-card" style="animation-delay:0.85s">
-      <div class="icon-circle">
-        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M21 3L1 11l7.5 3.5M21 3l-8 18-3.5-7.5M21 3L8.5 14.5"/></svg>
-      </div>
-      <h3>بوت تيليجرام</h3>
-      <p>خدمة ذاتية للحجاج عبر تيليجرام بدعم متعدد اللغات</p>
-    </a>
+    </div>
   </div>
 
   <div class="footer">
-    <a href="https://ekramaldyf.com/" target="_blank">
+    <a href="https://ekramaldyf.com/" target="_blank" rel="noopener noreferrer">
       <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
       ekramaldyf.com
     </a>
