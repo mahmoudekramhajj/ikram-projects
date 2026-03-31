@@ -1,0 +1,14 @@
+{
+  "description": "Stable deployment IDs - same URL always, updated via: clasp deploy -i <id>",
+  "projects": {
+    "Ikram": "AKfycbyBKuj5n7MCPGNHHYC2bOg7z_HEWoYpIevjz1sH2VcETiBJE1fHrp7ppRerwAoEyjiotA",
+    "Airport Search": "AKfycby3C4-UVdtIVp2BGwta1YaR6hZqOG-BG5fOk0fifx0C9cHCedhbOG9Xt-EsESGrtudz",
+    "Mina Camp Search": "AKfycbz1Nzfl9EwYc5VQaKyYW3cALetbGXbpbelW3kZA0_KdRaF9Bp6APMGxFW8ereKSW_nW",
+    "Hotel Management": "AKfycbxNDwq4pJxhpE7p5iey0F61NbI-N6aDTrG67jUuhzryRQRp4rwl1D2xEI438zf62Ple",
+    "Sales Operations Report": "AKfycbyrjdPf6Tx03HLyID9N5Y8kC4jV0XZ-WGmzT-IJ6VlkDMqjZJTci4h6zw0DqkaLuAWl",
+    "Reception Airport": "AKfycbzX_6PAon6GgwGdA19ai-w3mmXHIKT4RglJlO6qs6qBBRtqqDKtfXDEs4ZksyIcRBWG",
+    "Pilgrim App": "AKfycby6wMDtgNToRFw0XQG40D_I0SWcoT9vMidueMMJm2B5ufPan6CVOnUhAH_GJvS4nveAXA",
+    "Guide App": "AKfycbwirA68K9peWAsnAmcYZV3sDU1Bpy9TWQKt9lvtlF0kDGcvtxgqvAmJzhBdvD_eUf9Bdg",
+    "Transport": "AKfycby6ZFLTkmsKE-KFDNzLY2-jCigvrXBUg0-I9MacAGg8YxMxNo28PhB8UehDxrRX7Vj_"
+  }
+}
