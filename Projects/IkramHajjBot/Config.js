@@ -7,7 +7,7 @@ var SHEET_ID = '1z4b3BmTLDLvYUs8H8cPU8MJrOuvuN5GztZ9pLlYhF6s';
 var JOURNEY_SHEET = 'رحلة الحاج '; // مسافة في النهاية — مهم
 var PILGRIM_DATA_SHEET = 'Pilgrim Data'; // شيت البيانات المجمّعة من الحجاج
 var DRIVE_FOLDER_ID = ''; // TODO: أضف ID مجلد Google Drive لحفظ صور الجوازات
-var CACHE_TTL = 1800; // مدة الكاش بالثواني (30 دقيقة)
+var CACHE_TTL = 300; // مدة الكاش بالثواني (5 دقائق)
 
 // ============================================
 // المدراء — Chat IDs المصرّح لهم باستخدام /broadcast و /stats

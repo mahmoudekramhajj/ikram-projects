@@ -159,6 +159,7 @@ var I18N = {
   lbl_pkg_name:    { ar: 'اسم الباقة',    en: 'Package Name',   fr: 'Nom du forfait', de: 'Paketname',       it: 'Nome pacchetto',    es: 'Nombre del paquete' },
   lbl_guide:       { ar: 'المرشد',        en: 'Tour Guide',     fr: 'Guide',          de: 'Reiseleiter',     it: 'Guida turistica',   es: 'Guía turístico' },
   lbl_guide_phone: { ar: 'هاتف المرشد',   en: 'Guide Phone',    fr: 'Tél. du guide',  de: 'Reiseleiter Tel.', it: 'Tel. guida',       es: 'Tel. del guía' },
+  lbl_under_review:{ ar: 'قيد التدقيق',   en: 'Under Review',   fr: 'En cours de vérification', de: 'Wird überprüft', it: 'In revisione', es: 'En revisión' },
 
   // --- العد التنازلي ---
   countdown_before: {

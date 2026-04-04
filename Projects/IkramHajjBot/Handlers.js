@@ -225,8 +225,9 @@ function handleMyHotel_(chatId, session) {
   if (map2 && house2Hotel !== house1Hotel) mapButtons.push([{ text: mapPfx + house2Hotel, url: map2 }]);
 
   if (hasThirdHotel) {
-    var map3 = getHotelMapLink_(thirdHotelName);
-    if (map3 && thirdHotelName !== house1Hotel && thirdHotelName !== house2Hotel) {
+    // نبحث بالعربي أولاً ثم بالإنجليزي
+    var map3 = getHotelMapLink_(shiftHotelAr) || getHotelMapLink_(shiftHotelEn);
+    if (map3) {
       mapButtons.push([{ text: mapPfx + thirdHotelName, url: map3 }]);
     }
   }
@@ -297,13 +298,9 @@ function handleMyPackage_(chatId, session) {
       '📍 Location: <b>' + campName + '</b>';
   }
 
-  if (guide) {
-    var guideName = isAr ? guide.nameAr : guide.nameEn;
-    text += '\n\n👨‍✈️ <b>' + guideLbl + '</b>\n' +
-      '━━━━━━━━━━━━━━\n' +
-      '👤 ' + guideName + '\n' +
-      '📞 ' + guidePhoneLbl + ': <code>' + guide.phone + '</code>';
-  }
+  text += '\n\n👨‍✈️ <b>' + guideLbl + '</b>\n' +
+    '━━━━━━━━━━━━━━\n' +
+    '🔄 ' + T_('lbl_under_review', lang);
 
   sendMessage_(chatId, text, {
     inline_keyboard: [[{ text: T_('btn_back', lang), callback_data: 'show_menu' }]]

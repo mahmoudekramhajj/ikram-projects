@@ -161,9 +161,15 @@ function getHotelMapLink_(hotelName) {
 
     if (!nameAr && !nameEn) continue;
 
+    var nameArNoSpc = nameAr.replace(/\s/g, '');
+    var nameEnNoSpc = nameEn.replace(/\s/g, '');
+    var inputNoSpc = input.replace(/\s/g, '');
+
     if (nameAr === input || nameEn === input ||
         (nameAr && input && (nameAr.indexOf(input) !== -1 || input.indexOf(nameAr) !== -1)) ||
-        (nameEn && input && (nameEn.indexOf(input) !== -1 || input.indexOf(nameEn) !== -1))) {
+        (nameEn && input && (nameEn.indexOf(input) !== -1 || input.indexOf(nameEn) !== -1)) ||
+        (nameArNoSpc && inputNoSpc && (nameArNoSpc.indexOf(inputNoSpc) !== -1 || inputNoSpc.indexOf(nameArNoSpc) !== -1)) ||
+        (nameEnNoSpc && inputNoSpc && (nameEnNoSpc.indexOf(inputNoSpc) !== -1 || inputNoSpc.indexOf(nameEnNoSpc) !== -1))) {
       var link = String(data[i][3] || '').trim();
       setCache_(cacheKey, link || '');
       return link || null;
