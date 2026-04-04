@@ -39,6 +39,17 @@ function handleMessage_(message) {
     return;
   }
 
+  // === أوامر المدير ===
+  if (text === '/broadcast' || text === '/stats') {
+    if (isAdmin_(chatId)) {
+      if (text === '/broadcast') startBroadcast_(chatId);
+      else handleStats_(chatId);
+    } else {
+      sendMessage_(chatId, T_('admin_not_authorized', 'ar'));
+    }
+    return;
+  }
+
   // === أمر /menu ===
   if (text === '/menu') {
     var session = getSession_(chatId);
@@ -97,6 +108,12 @@ function handleMessage_(message) {
       return;
     }
 
+    // --- حالات المدير (admin broadcast) ---
+    if (inputState.indexOf('admin_') === 0) {
+      handleAdminInput_(chatId, text, message, session);
+      return;
+    }
+
     // --- رسالة نصية عادية ---
     sendMessage_(chatId, '📩 استلمنا سؤالك:\n«' + text + '»\n\nاستخدم القائمة للاستعلام عن بياناتك 👇');
     sendMainMenu_(chatId, session.language);
@@ -146,10 +163,29 @@ function handleCallback_(callback) {
     'room_hotel_1':    function() { promptRoom_(chatId, session, '1'); },
     'room_hotel_2':    function() { promptRoom_(chatId, session, '2'); },
     'room_hotel_3':    function() { promptRoom_(chatId, session, '3'); },
-    'add_passport_photo': function() { promptPassportPhoto_(chatId, session); }
+    'add_passport_photo': function() { promptPassportPhoto_(chatId, session); },
+    'confirm_arrival':    function() { handleConfirmArrival_(chatId, session); },
+    'my_qr':              function() { handleMyQR_(chatId, session); },
+    'announcements':      function() { handleAnnouncements_(chatId, session); }
   };
+
+  // === أزرار تفاصيل الإعلان ===
+  if (data.indexOf('ann_detail_') === 0) {
+    var msgId = data.replace('ann_detail_', '');
+    handleAnnDetail_(chatId, session, msgId);
+    return;
+  }
+
+  // === أزرار المدير (broadcast) ===
+  if (data.indexOf('admin_') === 0) {
+    handleAdminCallback_(chatId, data, session);
+    return;
+  }
 
   if (handlers[data]) {
     handlers[data]();
   }
+
+  // تحديث نشاط الحاج
+  updateBotActivity_(chatId);
 }

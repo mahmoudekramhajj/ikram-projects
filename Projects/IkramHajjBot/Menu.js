@@ -8,7 +8,8 @@ function sendMainMenu_(chatId, lang) {
   var buttons = [
     [{ text: T_('btn_flight', lang), callback_data: 'my_flight' }, { text: T_('btn_hotel', lang), callback_data: 'my_hotel' }],
     [{ text: T_('btn_package', lang), callback_data: 'my_package' }, { text: T_('btn_transport', lang), callback_data: 'my_transport' }],
-    [{ text: T_('btn_my_data', lang), callback_data: 'my_data' }],
+    [{ text: T_('btn_confirm_arrival', lang), callback_data: 'confirm_arrival' }, { text: T_('btn_my_qr', lang), callback_data: 'my_qr' }],
+    [{ text: T_('btn_announcements', lang), callback_data: 'announcements' }, { text: T_('btn_my_data', lang), callback_data: 'my_data' }],
     [{ text: T_('btn_emergency', lang), callback_data: 'emergency' }, { text: T_('btn_contact', lang), callback_data: 'contact_company' }],
     [{ text: T_('btn_change_lang', lang), callback_data: 'change_lang' }, { text: T_('btn_refresh', lang), callback_data: 'refresh_data' }],
     [{ text: T_('btn_switch', lang), callback_data: 'switch_pilgrim' }]
@@ -29,7 +30,8 @@ function sendLanguageButtons_(chatId) {
   var keyboard = {
     inline_keyboard: [
       [{ text: '🇸🇦 العربية', callback_data: 'lang_ar' }, { text: '🇬🇧 English', callback_data: 'lang_en' }],
-      [{ text: '🇫🇷 Français', callback_data: 'lang_fr' }, { text: '🇳🇱 Nederlands', callback_data: 'lang_nl' }]
+      [{ text: '🇫🇷 Français', callback_data: 'lang_fr' }, { text: '🇩🇪 Deutsch', callback_data: 'lang_de' }],
+      [{ text: '🇮🇹 Italiano', callback_data: 'lang_it' }, { text: '🇪🇸 Español', callback_data: 'lang_es' }]
     ]
   };
   sendMessage_(chatId, 'اختر لغتك / Choose your language:', keyboard);

@@ -3,7 +3,7 @@
 // ============================================
 
 function setWebhook() {
-  var webAppUrl = 'https://script.google.com/macros/s/AKfycbydPqakby_TjKOUMMXAtTiynEiu_96bZ7W6xSCr11EAf7f1-UnL5duR-_cc0u5xjwZlhg/exec';
+  var webAppUrl = 'https://script.google.com/macros/s/AKfycbyuuym2PAqvhCyycmGrKsFWPoJOihnBlrfGHpV1Fg5f_m5MphIQlHWdXPU1biP4_6t4/exec';
   var res = UrlFetchApp.fetch(TELEGRAM_API + '/setWebhook', {
     method: 'post',
     contentType: 'application/json',

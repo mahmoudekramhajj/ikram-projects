@@ -2,12 +2,14 @@
 // جلب البيانات — الحاج + التنقل + خريطة الفندق
 // ============================================
 
-function findPilgrimByPassport_(passportNo) {
+function findPilgrimByPassport_(passportNo, skipCache) {
   var inputPassport = String(passportNo).toUpperCase().trim();
   var cacheKey = 'pilgrim_' + inputPassport;
 
-  var cached = getCache_(cacheKey);
-  if (cached) return cached;
+  if (!skipCache) {
+    var cached = getCache_(cacheKey);
+    if (cached) return cached;
+  }
 
   var ss = SpreadsheetApp.openById(SHEET_ID);
   var sheet = ss.getSheetByName(JOURNEY_SHEET);
@@ -34,6 +36,72 @@ function findPilgrimByPassport_(passportNo) {
   }
 
   return null;
+}
+
+// ============================================
+// تأكيد وصول الحاج — الكتابة في شيت "رحلة الحاج"
+// أعمدة AX (49) + AY (50) + AZ (51)
+// ============================================
+function confirmArrivalInSheet_(pilgrimRow, source) {
+  try {
+    var ss = SpreadsheetApp.openById(SHEET_ID);
+    var sheet = ss.getSheetByName(JOURNEY_SHEET);
+    if (!sheet) return false;
+
+    var sheetRow = pilgrimRow + 1; // تحويل من index (0-based) إلى صف الشيت (1-based)
+    var now = Utilities.formatDate(new Date(), 'Asia/Riyadh', 'yyyy-MM-dd HH:mm:ss');
+
+    sheet.getRange(sheetRow, COL_RECEPTION_STATUS + 1).setValue('تم');
+    sheet.getRange(sheetRow, COL_RECEPTION_TIME + 1).setValue(now);
+    sheet.getRange(sheetRow, COL_RECEPTION_STAFF + 1).setValue(source);
+
+    return true;
+  } catch (e) {
+    Logger.log('confirmArrivalInSheet_ error: ' + e.message);
+    return false;
+  }
+}
+
+// ============================================
+// قراءة حالة الاستقبال من الشيت
+// ============================================
+function getReceptionStatus_(pilgrimRow) {
+  try {
+    var ss = SpreadsheetApp.openById(SHEET_ID);
+    var sheet = ss.getSheetByName(JOURNEY_SHEET);
+    if (!sheet) return null;
+
+    var sheetRow = pilgrimRow + 1;
+    var status = String(sheet.getRange(sheetRow, COL_RECEPTION_STATUS + 1).getValue()).trim();
+    var time = String(sheet.getRange(sheetRow, COL_RECEPTION_TIME + 1).getValue()).trim();
+
+    return { status: status, time: time };
+  } catch (e) {
+    Logger.log('getReceptionStatus_ error: ' + e.message);
+    return null;
+  }
+}
+
+// ============================================
+// تحديد مجموعة العمليات المناسبة حسب المطار وشركة الطيران
+// ============================================
+function getOpsGroupChatId_(arriveCity, airlineEn) {
+  var city = String(arriveCity).trim().toLowerCase();
+
+  // مطار المدينة
+  if (city === 'madinah' || city === 'madina' || city.indexOf('مدين') !== -1) {
+    return OPS_GROUPS.madinah;
+  }
+
+  // مطار جدة — تحديد الصالة حسب شركة الطيران
+  if (city === 'jeddah' || city === 'jed' || city.indexOf('جد') !== -1) {
+    var airline = String(airlineEn).trim();
+    var terminal = AIRLINE_TERMINAL[airline] || 'T1'; // افتراضي: صالة 1
+    return terminal === 'N' ? OPS_GROUPS.jeddah_north : OPS_GROUPS.jeddah_t1;
+  }
+
+  // افتراضي: جدة صالة 1
+  return OPS_GROUPS.jeddah_t1;
 }
 
 // ============================================

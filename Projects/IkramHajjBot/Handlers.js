@@ -373,7 +373,9 @@ function handleEmergency_(chatId, session) {
     ar: ['أرقام الطوارئ', 'الطوارئ الموحد', 'وزارة الحج — مساعدات الحجاج', 'الهلال الأحمر'],
     en: ['Emergency Numbers', 'Unified Emergency', 'Ministry of Hajj — Pilgrim Support', 'Red Crescent'],
     fr: ['Numéros d\'urgence', 'Urgences', 'Ministère du Hajj', 'Croissant-Rouge'],
-    nl: ['Noodnummers', 'Noodgevallen', 'Ministerie van Hadj', 'Rode Halve Maan']
+    de: ['Notrufnummern', 'Einheitlicher Notruf', 'Hajj-Ministerium — Pilgerhilfe', 'Roter Halbmond'],
+    it: ['Numeri di emergenza', 'Emergenza unificata', 'Ministero del Hajj — Supporto pellegrini', 'Mezzaluna Rossa'],
+    es: ['Números de emergencia', 'Emergencia unificada', 'Ministerio del Hajj — Apoyo a peregrinos', 'Media Luna Roja']
   };
 
   var e = emergencyData[lang] || emergencyData['en'];
@@ -399,7 +401,9 @@ function handleContactCompany_(chatId, session) {
     ar: ['تواصل مع إكرام الضيف', 'الهاتف', 'واتساب'],
     en: ['Contact Ikram Al-Dayf', 'Phone', 'WhatsApp'],
     fr: ['Contactez Ikram Al-Dayf', 'Téléphone', 'WhatsApp'],
-    nl: ['Neem contact op met Ikram Al-Dayf', 'Telefoon', 'WhatsApp']
+    de: ['Kontaktieren Sie Ikram Al-Dayf', 'Telefon', 'WhatsApp'],
+    it: ['Contatta Ikram Al-Dayf', 'Telefono', 'WhatsApp'],
+    es: ['Contacta a Ikram Al-Dayf', 'Teléfono', 'WhatsApp']
   };
 
   var c = contactData[lang] || contactData['en'];
@@ -418,6 +422,200 @@ function handleContactCompany_(chatId, session) {
 }
 
 // ============================================
+// ✅ تأكيد الوصول
+// ============================================
+function handleConfirmArrival_(chatId, session) {
+  var lang = session.language || 'ar';
+  var pilgrim = findPilgrimByPassport_(session.passport);
+
+  if (!pilgrim) {
+    sendMessage_(chatId, T_('data_not_found', lang));
+    return;
+  }
+
+  var r = pilgrim.rowData;
+  var arriveDate = normDate_(r[20]); // ArrivalArriveDate
+  var today = getTodayString_();
+  var yesterday = getDateOffset_(today, -1);
+  var tomorrow = getDateOffset_(today, 1);
+
+  // التحقق من التاريخ (نافذة 3 أيام: أمس + اليوم + غداً)
+  if (arriveDate !== today && arriveDate !== yesterday && arriveDate !== tomorrow) {
+    sendMessage_(chatId, T_('arrival_not_today', lang, { date: formatDate_(r[20]) }), {
+      inline_keyboard: [[{ text: T_('btn_back', lang), callback_data: 'show_menu' }]]
+    });
+    return;
+  }
+
+  // التحقق إذا مؤكد مسبقاً
+  var reception = getReceptionStatus_(pilgrim.row);
+  if (reception && reception.status === 'تم') {
+    sendMessage_(chatId, T_('arrival_already', lang, { time: reception.time }), {
+      inline_keyboard: [[{ text: T_('btn_back', lang), callback_data: 'show_menu' }]]
+    });
+    return;
+  }
+
+  // كتابة التأكيد في الشيت
+  var source = 'Bot:' + String(r[7] || '').substring(0, 30);
+  var success = confirmArrivalInSheet_(pilgrim.row, source);
+
+  if (!success) {
+    sendMessage_(chatId, '❌ حدث خطأ. حاول مرة أخرى.');
+    return;
+  }
+
+  // مسح الكاش
+  clearPilgrimCache_(session.passport);
+
+  // إرسال رسالة نجاح للحاج
+  sendMessage_(chatId, T_('arrival_confirmed', lang), {
+    inline_keyboard: [[{ text: T_('btn_back', lang), callback_data: 'show_menu' }]]
+  });
+
+  // إرسال إشعار لمجموعة العمليات المناسبة
+  try {
+    var arriveCity = String(r[19] || '');
+    var airlineEn = String(r[17] || '');
+    var groupChatId = getOpsGroupChatId_(arriveCity, airlineEn);
+
+    var name = String(r[7] || '-');
+    var passport = String(r[8] || '-');
+    var flight = String(r[24] || '-');
+    var nationality = String(r[12] || '-');
+    var house1 = String(r[36] || '-');
+    var hotel = '';
+    if (house1.toLowerCase().indexOf('madi') !== -1) {
+      hotel = String(r[47] || '-');
+    } else {
+      hotel = String(r[43] || '-');
+    }
+
+    var opsMsg = '✅ <b>تأكيد وصول (بوت)</b>\n' +
+      '━━━━━━━━━━━━━━\n' +
+      '👤 ' + name + '\n' +
+      '🛂 <code>' + passport + '</code>\n' +
+      '🌍 ' + nationality + '\n' +
+      '✈️ ' + flight + ' → ' + arriveCity + '\n' +
+      '🏨 ' + hotel + ' (' + house1 + ')';
+
+    sendMessage_(groupChatId, opsMsg);
+  } catch (e) {
+    Logger.log('Ops notification error: ' + e.message);
+  }
+}
+
+// ============================================
+// 📱 QR Code — كود خاص لكل حاج
+// ============================================
+function handleMyQR_(chatId, session) {
+  var lang = session.language || 'ar';
+  var pilgrim = findPilgrimByPassport_(session.passport);
+
+  if (!pilgrim) {
+    sendMessage_(chatId, T_('data_not_found', lang));
+    return;
+  }
+
+  var r = pilgrim.rowData;
+
+  // بناء بيانات QR (JSON مضغوط — مفاتيح قصيرة)
+  var qrData = {
+    n: String(r[7] || ''),                      // Name
+    p: String(r[8] || ''),                      // Passport
+    pkg: String(r[1] || ''),                    // PackageId
+    grp: String(r[6] || ''),                    // Group Number
+    nat: String(r[12] || ''),                   // Nationality
+    f: String(r[24] || ''),                     // Arrival Flight
+    arr: normDate_(r[20]) || '',                // Arrival Date
+    city: String(r[19] || ''),                  // Arrive City
+    h1: String(r[36] || ''),                    // FirstHouse
+    h2: String(r[39] || '')                     // LastHouse
+  };
+
+  var jsonStr = JSON.stringify(qrData);
+  var encoded = encodeURIComponent(jsonStr);
+
+  // QR Server API (مجاني وفعّال)
+  var qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=400x400&format=png&data=' + encoded;
+
+  var caption = T_('qr_caption', lang);
+
+  sendPhoto_(chatId, qrUrl, caption, {
+    inline_keyboard: [[{ text: T_('btn_back', lang), callback_data: 'show_menu' }]]
+  });
+}
+
+// ============================================
+// 📢 الإعلانات — قائمة آخر الرسائل
+// ============================================
+function handleAnnouncements_(chatId, session) {
+  var lang = (session && session.language) || 'ar';
+  var messages = getRecentMessages_(session.passport, 5);
+
+  if (!messages || messages.length === 0) {
+    sendMessage_(chatId, T_('ann_title', lang) + '\n\n' + T_('ann_empty', lang), {
+      inline_keyboard: [[{ text: T_('btn_back', lang), callback_data: 'show_menu' }]]
+    });
+    return;
+  }
+
+  var buttons = [];
+  for (var i = 0; i < messages.length; i++) {
+    var m = messages[i];
+    var label = '';
+    if (m.priority === 'urgent') label += '🚨 ';
+    label += m.title || ('📢 #' + m.id);
+    if (m.sentAt) {
+      var d = m.sentAt.substring(0, 10);
+      label += ' — ' + d;
+    }
+    buttons.push([{ text: label, callback_data: 'ann_detail_' + m.id }]);
+  }
+  buttons.push([{ text: T_('btn_back', lang), callback_data: 'show_menu' }]);
+
+  sendMessage_(chatId, T_('ann_title', lang), { inline_keyboard: buttons });
+}
+
+// ============================================
+// 📢 تفاصيل إعلان واحد
+// ============================================
+function handleAnnDetail_(chatId, session, msgId) {
+  var lang = (session && session.language) || 'ar';
+  var msgRow = getMessageById_(msgId);
+
+  if (!msgRow) {
+    sendMessage_(chatId, T_('ann_empty', lang));
+    return;
+  }
+
+  // جلب النص بلغة الحاج
+  var langCol = LANG_TO_COL[lang] || AM.MSG_EN;
+  var text = String(msgRow[langCol] || '').trim();
+  if (!text) text = String(msgRow[AM.MSG_EN] || msgRow[AM.MSG_AR] || '').trim();
+
+  var priority = String(msgRow[AM.PRIORITY] || '').toLowerCase().trim();
+  var header = priority === 'urgent' ? T_('ann_urgent', lang) + ' ' : '';
+  var fullText = T_('ann_from_admin', lang) + header + text;
+
+  var backBtn = { inline_keyboard: [[{ text: T_('btn_back', lang), callback_data: 'announcements' }]] };
+  sendMessage_(chatId, fullText, backBtn);
+
+  // إرسال صورة إن وُجدت
+  var imageUrl = String(msgRow[AM.IMAGE_URL] || '').trim();
+  if (imageUrl) {
+    sendPhoto_(chatId, getDriveDirectUrl_(imageUrl), '');
+  }
+
+  // إرسال ملف إن وُجد
+  var fileUrl = String(msgRow[AM.FILE_URL] || '').trim();
+  if (fileUrl) {
+    var fileName = String(msgRow[AM.FILE_NAME] || '').trim();
+    sendDocument_(chatId, getDriveDirectUrl_(fileUrl), fileName, T_('ann_file_attached', lang));
+  }
+}
+
+// ============================================
 // 🔄 تحديث البيانات
 // ============================================
 function handleRefreshData_(chatId, session) {
@@ -425,8 +623,11 @@ function handleRefreshData_(chatId, session) {
   var passport = session.passport;
 
   if (passport) {
+    // مسح كل الكاش المتعلق بالحاج
     clearPilgrimCache_(passport);
-    var pilgrim = findPilgrimByPassport_(passport);
+
+    // إعادة جلب من الشيت مباشرة (تجاوز الكاش)
+    var pilgrim = findPilgrimByPassport_(passport, true);
     if (pilgrim) {
       var pkgId = String(pilgrim.rowData[1] || '');
       clearTransportCache_(pkgId);
