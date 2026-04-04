@@ -116,30 +116,36 @@
   <!-- ========== TAB: ROOMING ========== -->
   <div id="tab-rooming" class="tab-content">
     <div class="stats-bar" id="roomingStats"></div>
-    
-    <!-- Auto-assign button -->
+
+    <!-- أزرار التسكين الذكي -->
     <div class="filter-bar" id="roomingActions">
-      <button class="btn-primary" onclick="runAutoAssign()">🤖 تجميع تلقائي</button>
-      <button class="btn-primary" style="background:#0e4429" onclick="runOptimization()">💡 تحسين الغرف</button>
-      <button class="btn-primary" style="background:#7c2d12" onclick="clearAllRoomGroups()">🗑️ إعادة تعيين الكل</button>
+      <button class="btn-primary" onclick="runSmartAssign()">🤖 توزيع ذكي</button>
+      <button class="btn-primary" style="background:#0e4429" onclick="runUpdateAssign()">🔄 اكتمل العدد</button>
+      <button class="btn-primary" style="background:#1e3a5f" onclick="showGuideStats()">📊 إحصائية المرشدين</button>
+      <button class="btn-primary" style="background:#7c2d12" onclick="clearAllAssignments()">🗑️ مسح التسكين</button>
+      <button class="btn-export" onclick="printRoomAssignments()">🖨️ طباعة</button>
+      <button class="btn-export" onclick="exportRoomAssignments()">📥 تصدير Excel</button>
       <select id="guideFilter" onchange="applyGuideFilter()" style="background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:8px;padding:6px 12px;font-family:inherit;font-size:12px">
         <option value="">🎯 كل المرشدين</option>
       </select>
     </div>
 
-    <!-- Optimization Results -->
-    <div id="optimizationResults" style="display:none"></div>
+    <!-- تقرير التوزيع -->
+    <div id="assignmentReport" style="display:none"></div>
 
-    <!-- Confirmed Room Groups -->
+    <!-- إحصائية المرشدين -->
+    <div id="guideStatsPanel" style="display:none"></div>
+
+    <!-- الغرف الموزّعة -->
     <div id="confirmedGroups"></div>
-    
-    <!-- Incomplete Room Alert -->
-    <div id="incompleteRoomAlert" class="alert-card" style="display:none"></div>
-    
-    <!-- Ungrouped Shared Pilgrims -->
+
+    <!-- غرف جزئية -->
+    <div id="partialRoomsAlert" class="alert-card" style="display:none"></div>
+
+    <!-- حجاج بدون غرفة (مرشد) -->
     <div id="ungroupedPilgrims"></div>
 
-    <!-- Grouping Action Bar (manual) -->
+    <!-- شريط التجميع اليدوي -->
     <div id="groupingBar" class="action-bar" style="display:none">
       <span id="groupingCount"></span>
       <button class="btn-confirm" onclick="confirmRoomGroup()">🛏️ تأكيد التجميع</button>

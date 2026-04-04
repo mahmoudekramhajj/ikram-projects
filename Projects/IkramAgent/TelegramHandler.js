@@ -10,6 +10,10 @@ var WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbyaoTbo3iLa0ibr-UfUElR
  * معالجة طلبات GET
  */
 function doGet(e) {
+  // ClaudeAPI
+  var params = e ? e.parameter : {};
+  if (params.action && params.key) return handleClaudeAPI_(e);
+
   return ContentService.createTextOutput('Ikram Agent v2.0 is running! 🕋')
     .setMimeType(ContentService.MimeType.TEXT);
 }

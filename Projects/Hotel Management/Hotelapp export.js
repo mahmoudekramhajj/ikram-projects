@@ -28,18 +28,23 @@ function exportToExcel(reportType, hotelName, hotelCity, filterData) {
     case 'forecast':
       exportForecastReport_(ss);
       break;
+    case 'rooming':
+      exportRoomingReport_(ss, hotelName, hotelCity);
+      break;
   }
   
   var fileId = ss.getId();
-  var url = 'https://docs.google.com/spreadsheets/d/' + fileId + '/export?format=xlsx';
-  
-  ScriptApp.newTrigger('deleteFile_')
-    .timeBased()
-    .after(60 * 60 * 1000)
-    .create();
-  PropertiesService.getScriptProperties().setProperty('tempFileId', fileId);
-  
-  return { success: true, url: url, fileName: ss.getName() + '.xlsx' };
+  var fileName = ss.getName() + '.xlsx';
+
+  // تحويل لـ base64 عبر DriveApp (لا يحتاج صلاحيات إضافية)
+  var file = DriveApp.getFileById(fileId);
+  var blob = file.getBlob();
+  var base64 = Utilities.base64Encode(blob.getBytes());
+
+  // حذف الملف المؤقت فوراً
+  file.setTrashed(true);
+
+  return { success: true, base64: base64, fileName: fileName };
 }
 
 function deleteFile_() {
@@ -278,6 +283,147 @@ function exportForecastReport_(ss) {
   formatExportSheet_(summarySheet, 7);
   ss.setActiveSheet(summarySheet);
   ss.moveActiveSheet(1);
+}
+
+// ============================================================
+// EXPORT: ROOMING REPORT
+// ============================================================
+
+function exportRoomingReport_(ss, hotelName, hotelCity) {
+  var mainSS = SpreadsheetApp.openById(HOTEL_CONFIG.SPREADSHEET_ID);
+  var hotelSheet = getHotelSheet_(mainSS, hotelName);
+  if (!hotelSheet) {
+    var sheet = ss.getActiveSheet();
+    sheet.setName('خطأ');
+    sheet.appendRow(['لم يتم العثور على شيت الفندق: ' + hotelName]);
+    return;
+  }
+
+  var data = hotelSheet.getDataRange().getValues();
+  if (data.length < 2) {
+    var sheet = ss.getActiveSheet();
+    sheet.setName('فارغ');
+    sheet.appendRow(['لا توجد بيانات في شيت الفندق: ' + hotelName]);
+    return;
+  }
+  var headers = data[0];
+
+  // Find column indices
+  var COL = {
+    APPLICANT: headers.indexOf('ApplicantId'),
+    NAME: headers.indexOf('اسم الحاج'),
+    PASSPORT: headers.indexOf('رقم الجواز'),
+    GENDER: headers.indexOf('الجنس'),
+    NATIONALITY: headers.indexOf('الجنسية'),
+    GROUP: headers.indexOf('رقم المجموعة'),
+    ROOM_GROUP: headers.indexOf('RoomGroup_ID'),
+    ROOM_NUM: headers.indexOf('رقم الغرفة'),
+    ROOM_TYPE: headers.indexOf('نوع الغرفة'),
+    ROOM_MATES: headers.indexOf('شركاء الغرفة'),
+    PACKAGE: headers.indexOf('الباقة'),
+    GUIDE: headers.indexOf('المرشد')
+  };
+
+  // Group by room
+  var rooms = {};
+  var unassigned = [];
+
+  for (var i = 1; i < data.length; i++) {
+    var row = data[i];
+    if (!row[COL.NAME] || String(row[COL.NAME]).trim() === '') continue;
+
+    var roomId = String(row[COL.ROOM_GROUP] || '').trim();
+    var pilgrim = {
+      name: row[COL.NAME],
+      passport: row[COL.PASSPORT],
+      gender: row[COL.GENDER],
+      nationality: row[COL.NATIONALITY],
+      group: row[COL.GROUP],
+      roomId: roomId,
+      roomNum: row[COL.ROOM_NUM],
+      roomType: row[COL.ROOM_TYPE],
+      guide: row[COL.GUIDE] || ''
+    };
+
+    if (roomId) {
+      if (!rooms[roomId]) rooms[roomId] = [];
+      rooms[roomId].push(pilgrim);
+    } else {
+      unassigned.push(pilgrim);
+    }
+  }
+
+  // Sheet 1: ملخص الغرف
+  var summarySheet = ss.getActiveSheet();
+  summarySheet.setName('ملخص التسكين');
+  summarySheet.appendRow([hotelName + ' — تقرير التسكين']);
+  summarySheet.appendRow(['تاريخ التقرير: ' + Utilities.formatDate(new Date(), 'Asia/Riyadh', 'yyyy-MM-dd HH:mm')]);
+  summarySheet.appendRow(['']);
+
+  var sumHeaders = ['رقم الغرفة', 'نوع الغرفة', 'السعة', 'المسكّنين', 'الحالة', 'الحجاج'];
+  summarySheet.appendRow(sumHeaders);
+
+  var roomKeys = Object.keys(rooms).sort();
+  roomKeys.forEach(function(rid) {
+    var members = rooms[rid];
+    var capacity = members[0].roomType === 'Double' ? 2 : members[0].roomType === 'Triple' ? 3 : 4;
+    var status = members.length >= capacity ? 'مكتملة' : 'جزئية (' + (capacity - members.length) + ' فارغ)';
+    var names = members.map(function(m) { return m.name || ''; }).join(' | ');
+    summarySheet.appendRow([rid || '', members[0].roomType || '', capacity || '', members.length || 0, status || '', names || '']);
+  });
+
+  summarySheet.appendRow(['']);
+  summarySheet.appendRow(['إجمالي الغرف: ' + roomKeys.length, '', '', 'إجمالي المسكّنين: ' + (data.length - 1 - unassigned.length), '', 'غير مسكّنين: ' + unassigned.length]);
+
+  // Format
+  summarySheet.getRange(1, 1).setFontWeight('bold').setFontSize(14);
+  summarySheet.getRange(4, 1, 1, sumHeaders.length).setFontWeight('bold').setBackground('#064e3b').setFontColor('#ffffff');
+  summarySheet.setFrozenRows(4);
+  for (var c = 1; c <= sumHeaders.length; c++) summarySheet.autoResizeColumn(c);
+
+  // Sheet 2: تفاصيل الحجاج
+  var detailSheet = ss.insertSheet('تفاصيل الحجاج');
+  var detHeaders = ['رقم الغرفة', 'نوع الغرفة', 'اسم الحاج', 'رقم الجواز', 'الجنس', 'الجنسية', 'رقم المجموعة', 'المرشد'];
+  detailSheet.appendRow(detHeaders);
+
+  roomKeys.forEach(function(rid) {
+    rooms[rid].forEach(function(p) {
+      detailSheet.appendRow([rid || '', p.roomType || '', p.name || '', p.passport || '', p.gender === 'Male' ? 'ذكر' : 'أنثى', p.nationality || '', p.group || '', p.guide || '']);
+    });
+  });
+
+  // Unassigned
+  if (unassigned.length > 0) {
+    detailSheet.appendRow(['']);
+    detailSheet.appendRow(['— غير مسكّنين —']);
+    unassigned.forEach(function(p) {
+      detailSheet.appendRow(['', '', p.name || '', p.passport || '', p.gender === 'Male' ? 'ذكر' : 'أنثى', p.nationality || '', p.group || '', p.guide || '']);
+    });
+  }
+
+  formatExportSheet_(detailSheet, detHeaders.length);
+
+  // Sheet 3: حسب المرشد
+  var guideSheet = ss.insertSheet('حسب المرشد');
+  var guideHeaders = ['المرشد', 'إجمالي الحجاج', 'مسكّنين', 'غير مسكّنين'];
+  guideSheet.appendRow(guideHeaders);
+
+  var guides = {};
+  for (var i = 1; i < data.length; i++) {
+    var row = data[i];
+    var guide = String(row[COL.GUIDE] || '').trim();
+    if (!guide) guide = 'بدون مرشد';
+    if (!guides[guide]) guides[guide] = { total: 0, assigned: 0, unassigned: 0 };
+    guides[guide].total++;
+    if (String(row[COL.ROOM_GROUP] || '').trim()) guides[guide].assigned++;
+    else guides[guide].unassigned++;
+  }
+
+  Object.keys(guides).sort().forEach(function(g) {
+    guideSheet.appendRow([g || '', guides[g].total || 0, guides[g].assigned || 0, guides[g].unassigned || 0]);
+  });
+
+  formatExportSheet_(guideSheet, guideHeaders.length);
 }
 
 function formatExportSheet_(sheet, colCount) {

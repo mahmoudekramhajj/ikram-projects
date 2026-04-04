@@ -13,11 +13,17 @@ const HOTEL_CONFIG = {
   
  SHEETS: {
     JOURNEY: 'رحلة الحاج ',
-    ROOM_TYPE: 'Room Type Preview',
+    ROOM_TYPE: 'Room Type',
+    NUSK_ROOM_TYPE: 'NUSK Room Type',
     PACKAGES: 'الباقات',
     TOUR_GUIDE: 'Tour Guide',
+    GUIDE_RABIH: 'Guide Rabih',
+    GUIDE_GROUPING: 'Guide Grouping',
     ROOM_MAPPING: 'Room Mapping',
-    PRE_ASSIGN_LOG: 'PA_Log'
+    HOTEL_CHECKIN: 'Hotel Check-in',
+    HOUSING_CONTRACTS: 'عقود السكن',
+    ROOM_AVAILABILITY: 'توفر الغرف',
+    PERSONAL_DETAILS: 'Presonal Details'
   },
   // رحلة الحاج column indices (0-based)
   JOURNEY_COLS: {
@@ -51,9 +57,11 @@ const HOTEL_CONFIG = {
     MADINAH_EN: 47
   },
   
-  // Room Type Preview column indices (0-based)
+  // Room Type column indices (0-based)
   ROOM_COLS: {
     GROUP_NUMBER: 0,
+    BOOKING_ID: 1,
+    PACKAGE_ID: 2,
     PACKAGE_NAME: 3,
     PILGRIMS: 4,
     MALE: 5,
@@ -77,6 +85,27 @@ const HOTEL_CONFIG = {
     BEDS_MAK2: 27,
     FULL_ROOMS_MAK2: 28,
     SHARED_BEDS_MAK2: 29
+  },
+
+  // Guide Rabih column indices (0-based)
+  GUIDE_RABIH_COLS: {
+    SERIAL: 0,        // الرقم التسلسلي
+    GROUP_NUMBER: 1,   // رقم المجموعة
+    PILGRIM_TYPE: 2,   // نوع الحاج (رئيسي/عضو عائلة)
+    CATEGORY: 3,       // فئة الحجاج
+    GENDER: 4,         // الجنس
+    PASSPORT: 5,       // رقم جواز السفر
+    FIRST_NAME_AR: 8,  // الاسم الأول (العربية)
+    LAST_NAME_AR: 9,   // اسم العائلة (العربية)
+    FIRST_NAME_EN: 10, // الاسم الأول (الإنجليزية)
+    LAST_NAME_EN: 11,  // اسم العائلة (الإنجليزية)
+    EMAIL: 13,         // البريد الإلكتروني
+    PHONE: 14,         // رقم الجوال
+    GUIDE_NAME: 15,    // اسم المرشد
+    COUNTRY: 16,       // بلد الإقامة
+    NATIONALITY: 17,   // الجنسية
+    PACKAGE_ID: 18,    // رقم الباقة
+    PACKAGE_NAME: 19   // اسم الباقة
   },
   
   // Tour Guide sheet (0-based) — reads columns A-K (11 columns)
@@ -175,6 +204,12 @@ const HOTEL_CONFIG = {
 // ============================================================
 
 function doGet(e) {
+  // ClaudeAPI — لو فيه action parameter يذهب للـ API
+  var params = e ? e.parameter : {};
+  if (params.action && params.key) {
+    return handleClaudeAPI_(e);
+  }
+
   var template = HtmlService.createTemplateFromFile('HotelIndex');
   return template.evaluate()
     .setTitle('إدارة الفنادق | إكرام الضيف')

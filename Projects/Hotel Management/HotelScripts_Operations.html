@@ -535,7 +535,12 @@ function exportReport(reportType) {
       showLoading(false);
       if (result.success) {
         showToast('✅ تم إنشاء التقرير — جاري التحميل');
-        window.open(result.url, '_blank');
+        var link = document.createElement('a');
+        link.href = 'data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,' + result.base64;
+        link.download = result.fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
       } else {
         showToast('خطأ في إنشاء التقرير', true);
       }

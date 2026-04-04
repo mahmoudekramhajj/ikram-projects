@@ -51,6 +51,10 @@ const COL = {
 // ─────────────────────────────────────────────────────
 
 function doGet(e) {
+  // ClaudeAPI
+  var params = e ? e.parameter : {};
+  if (params.action && params.key) return handleClaudeAPI_(e);
+
   var page = (e && e.parameter && e.parameter.page) ? e.parameter.page : 'index';
 
   if (page === 'main') {

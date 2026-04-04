@@ -590,12 +590,7 @@ function generateInternalRoomId_(hotelName, hotelCity, roomType, existingIds) {
   return prefix + nextSeq;
 }
 
-// Legacy wrapper — for manual grouping compatibility
-function generateRoomGroupId() {
-  var now = new Date();
-  var ts = Utilities.formatDate(now, 'Asia/Riyadh', 'yyMMddHHmmssSSS');
-  return 'RG-' + ts + '-' + Math.floor(Math.random() * 10000);
-}
+// [DELETED] generateRoomGroupId — Legacy RG-timestamp replaced by generateInternalRoomId_
 
 // ============================================================
 // HELPER: Format Utilities

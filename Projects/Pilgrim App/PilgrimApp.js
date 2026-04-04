@@ -22,6 +22,10 @@ var CONFIG = {
 };
 
 function doGet(e) {
+  // ClaudeAPI
+  var params = e ? e.parameter : {};
+  if (params.action && params.key) return handleClaudeAPI_(e);
+
   return HtmlService.createTemplateFromFile('PilgrimIndex')
     .evaluate()
     .setTitle('Ikram AlDyf - Pilgrim Search')

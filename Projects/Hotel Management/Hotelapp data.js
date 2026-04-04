@@ -597,30 +597,6 @@ function getRoomMappingForHotel(hotelName) {
   
   return rooms;
 }
-function debugRoomMapping() {
-  var ss = SpreadsheetApp.openById(HOTEL_CONFIG.SPREADSHEET_ID);
-  var pkgSheet = findSheet_(ss, HOTEL_CONFIG.SHEETS.PACKAGES);
-  var pkgData = pkgSheet.getDataRange().getValues();
-  
-  var hotels = {};
-  for (var i = 2; i < pkgData.length; i++) {
-    var row = pkgData[i];
-    if (!row[0]) continue;
-    var slots = [
-      { col: 13, name: row[13] },
-      { col: 28, name: row[28] },
-      { col: 43, name: row[43] }
-    ];
-    slots.forEach(function(s) {
-      if (s.name) hotels[s.name] = (hotels[s.name] || 0) + 1;
-    });
-  }
-  
-  Logger.log('=== فنادق الباقات (أعمدة 13/28/43) ===');
-  for (var h in hotels) {
-    Logger.log('"' + h + '" → ' + hotels[h] + ' باقة');
-  }
-}
 // ============================================================
 // ROOM MAPPING: توليد لجميع الفنادق دفعة واحدة
 // يُشغّل: يدوياً من Script Editor
