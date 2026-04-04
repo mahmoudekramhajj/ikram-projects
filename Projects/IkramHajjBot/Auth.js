@@ -49,11 +49,16 @@ function handlePassportInput_(chatId, text, session) {
       ar: '✅ تم التحقق بنجاح!\n\nمرحباً <b>' + pilgrim.name + '</b> 🕋',
       en: '✅ Verified successfully!\n\nWelcome <b>' + pilgrim.name + '</b> 🕋',
       fr: '✅ Vérification réussie!\n\nBienvenue <b>' + pilgrim.name + '</b> 🕋',
-      nl: '✅ Verificatie geslaagd!\n\nWelkom <b>' + pilgrim.name + '</b> 🕋'
+      de: '✅ Verifizierung erfolgreich!\n\nWillkommen <b>' + pilgrim.name + '</b> 🕋',
+      it: '✅ Verifica riuscita!\n\nBenvenuto <b>' + pilgrim.name + '</b> 🕋',
+      es: '✅ ¡Verificación exitosa!\n\nBienvenido <b>' + pilgrim.name + '</b> 🕋'
     };
 
     sendMessage_(chatId, successMsgs[lang] || successMsgs['en']);
     sendMainMenu_(chatId, lang);
+
+    // تسجيل الحاج في BotActivity
+    registerPilgrim_(chatId, text, pilgrim);
 
   } else {
     sendMessage_(chatId, T_('passport_not_found', lang));

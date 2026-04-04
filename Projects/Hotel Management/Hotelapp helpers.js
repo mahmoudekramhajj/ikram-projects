@@ -654,8 +654,8 @@ function normalizeHotelName_(name) {
 }
 
 // ============================================================
-// GUIDE MAP: Build from Tour Guide sheet
-// Returns: { passport → guideName } for Registered + Unique only
+// GUIDE MAP: Build from Guide Rabih sheet
+// Returns: { passport → guideName }
 // ============================================================
 
 function buildGuideMap_(ss) {
@@ -666,24 +666,20 @@ function buildGuideMap_(ss) {
   try {
     var sheet = findSheet_(ss, HOTEL_CONFIG.SHEETS.TOUR_GUIDE);
     if (!sheet) return map;
-    
+
     var lastRow = sheet.getLastRow();
     var startRow = HOTEL_CONFIG.GUIDE_START_ROW || 2;
     if (lastRow < startRow) return map;
-    
+
     var numRows = lastRow - startRow + 1;
-    var data = sheet.getRange(startRow, 1, numRows, 11).getValues(); // A-K
+    var data = sheet.getRange(startRow, 1, numRows, 33).getValues();
     var G = HOTEL_CONFIG.GUIDE_COLS;
-    
+
     for (var i = 0; i < data.length; i++) {
       var guideName = String(data[i][G.GUIDE_NAME]).trim();
       var passport = String(data[i][G.PASSPORT]).trim().toUpperCase();
-      var regStatus = String(data[i][G.REG_STATUS]).trim();
-      var dupCheck = String(data[i][G.UNIQUE_CHECK]).trim();
-      
-      if (guideName && passport
-          && regStatus.indexOf('Registered') !== -1
-          && dupCheck.indexOf('Unique') !== -1) {
+
+      if (guideName && passport) {
         map[passport] = guideName;
       }
     }

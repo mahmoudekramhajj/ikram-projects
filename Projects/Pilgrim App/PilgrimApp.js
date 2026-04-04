@@ -3,7 +3,7 @@
  * نظام البحث عن الحجاج - شركة إكرام الضيف للسياحة
  * الإصدار 2.0
  * التعديلات:
- *   - مصدر المرشد من شيت Tour Guide (بشرط Registered + Unique)
+ *   - مصدر المرشد من شيت Guide Rabih (المصدر المعتمد)
  *   - مصدر المواصلات من شيت الباقات عمود BN
  * ══════════════════════════════════════════════════════════════════
  */
@@ -14,7 +14,7 @@ var CONFIG = {
   PACKAGES_SHEET: 'الباقات',
   FLIGHTS_SHEET: 'الطيران',
   SETTINGS_SHEET: 'الإعدادات',
-  TOUR_GUIDE_SHEET: 'Tour Guide',
+  TOUR_GUIDE_SHEET: 'Guide Rabih',
   PILGRIMS_START: 2,
   PACKAGES_START: 3,
   FLIGHTS_START: 3,
@@ -51,15 +51,16 @@ function getGuidePackageStats() {
       }
     }
 
-    // بناء الإحصائية من Tour Guide
+    // بناء الإحصائية من Guide Rabih
     var gLastRow = guideSheet.getLastRow();
     var pkgStats = {};
     if (gLastRow >= CONFIG.TOUR_GUIDE_START) {
-      var gData = guideSheet.getRange(CONFIG.TOUR_GUIDE_START, 1, gLastRow - CONFIG.TOUR_GUIDE_START + 1, 11).getValues();
+      var gData = guideSheet.getRange(CONFIG.TOUR_GUIDE_START, 1, gLastRow - CONFIG.TOUR_GUIDE_START + 1, 33).getValues();
+      // Guide Rabih: 15=اسم المرشد, 5=جواز, 18=رقم الباقة, 19=اسم الباقة
       for (var j = 0; j < gData.length; j++) {
-        var guideName = String(gData[j][0]).trim();
-        var gPassport = String(gData[j][4]).trim().toUpperCase();
-        var pkg       = pkgMap[gPassport] || String(gData[j][8]).trim();
+        var guideName = String(gData[j][15]).trim();
+        var gPassport = String(gData[j][5]).trim().toUpperCase();
+        var pkg       = pkgMap[gPassport] || String(gData[j][19]).trim();
         if (!guideName || !pkg) continue;
         if (!pkgStats[pkg]) pkgStats[pkg] = {};
         pkgStats[pkg][guideName] = (pkgStats[pkg][guideName] || 0) + 1;
@@ -101,9 +102,8 @@ function getPassword() {
 }
 
 // ══════════════════════════════════════════════════════════════
-// بناء خريطة المرشدين من شيت Tour Guide
-// الشرط: J = ✅ Registered و K = ✅ Unique
-// المفتاح: رقم الجواز (E) → اسم المرشد (A)
+// بناء خريطة المرشدين من شيت Guide Rabih
+// المفتاح: رقم الجواز (F=5) → اسم المرشد (P=15)
 // ══════════════════════════════════════════════════════════════
 
 function buildGuideMap(ss) {
@@ -115,19 +115,13 @@ function buildGuideMap(ss) {
     if (lastRow < CONFIG.TOUR_GUIDE_START) return map;
 
     var numRows = lastRow - CONFIG.TOUR_GUIDE_START + 1;
-    var data = sheet.getRange(CONFIG.TOUR_GUIDE_START, 1, numRows, 11).getValues();
+    var data = sheet.getRange(CONFIG.TOUR_GUIDE_START, 1, numRows, 33).getValues();
 
     for (var i = 0; i < data.length; i++) {
-      var guideName = String(data[i][0]).trim();        // A: اسم المرشد
-      var passport  = String(data[i][4]).trim().toUpperCase(); // E: رقم الجواز
-      var regStatus = String(data[i][9]).trim();         // J: حالة التسجيل
-      var dupCheck  = String(data[i][10]).trim();        // K: فحص التكرار
+      var guideName = String(data[i][15]).trim();
+      var passport  = String(data[i][5]).trim().toUpperCase();
 
-      // إذا كانت أعمدة J و K فارغة نقبل السجل، وإذا كانت ممتلئة نتحقق منها
-      var regOk  = !regStatus  || regStatus.indexOf('Registered') !== -1;
-      var uniqOk = !dupCheck   || dupCheck.indexOf('Unique')      !== -1;
-
-      if (guideName && passport && regOk && uniqOk) {
+      if (guideName && passport) {
         map[passport] = guideName;
       }
     }

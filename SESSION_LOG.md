@@ -4,6 +4,63 @@
 
 ---
 
+## 2026-03-30 | Sales Report v3.0+ — فلاتر + وضع المرشد
+
+**ما تم إنجازه:**
+- 8 فلاتر متتالية: Status, Country, Airline, Supplier, Package, Residence, DepCity, Guide
+- فلتر الإقامة مرتبط بـ ArrivalFlightNumber (وليس PackageId)
+- فلتر المرشد من شيت Guide Rabih عمود P
+- بطاقات KPI إضافية (عدد حجاج الإقامة + المرشد)
+- تصدير Excel: 4 شيتات + شيت لكل PNR بتنسيق شركات الطيران (Family/First Name, Passport, DOB, Gender, Expiry)
+- بيانات الحجاج من Guide Rabih (firstName, familyName, dob, passportExpiry, guide)
+- شيت Packages يعكس عدد الحجاج الفعلي حسب الفلاتر
+
+**وضع المرشد (Guide Mode) — قيد التطوير:**
+- Backend جاهز: `getGuideReport(guideName)` — يقرأ Guide Rabih + رحلة الحاج (48 عمود) + الباقات
+- Frontend: guideModeArea + KPIs + جدول حجاج — يعمل لكن **يظهر 0 حجاج** (يحتاج debug)
+- الأسماء المركبة ("أشرف حبيب - دار السلام") تُعرض كما هي في الفلتر، والبحث جزئي في getGuideReport
+- **لم يُنفذ**: تصدير Excel في وضع المرشد
+
+**آخر deployment:** @30 — `AKfycbwICN-v2Gvlr9oyFae8ahlPmKSKvpsNEeFdkAap9RW1vfLr9maiWgMlEeaZL26E5coQ`
+
+**الخطوة التالية:**
+1. تصحيح وضع المرشد (0 حجاج) — debug getGuideReport + renderGuideReport
+2. تصدير Excel في وضع المرشد
+3. اختبار شامل
+
+---
+
+## 2026-03-28 | ترحيل مصدر المرشدين إلى Guide Rabih
+**ما تم:**
+- تحليل شيت "Guide Rabih" الجديد: 6535 صف، 33 عمود (نفس هيكل Presonal Details)، عمود P = اسم المرشد (5565 حاج لديهم مرشد، 88 مرشد فريد)
+- مقارنة البيانات: تطابق 99.9% مع Tour Guide (فرق واحد فقط = مسافة زائدة)
+- تحديث 7 مشاريع لقراءة المرشدين من "Guide Rabih" بدلاً من "Tour Guide":
+  1. **Hotel Management** — Hotelapp.js (SHEETS + GUIDE_COLS) + Hotelapp helpers.js (buildGuideMap_)
+  2. **IkramHajjBot** — DataFetcher.js (getTourGuide_: أرقام أعمدة جديدة)
+  3. **Ikram/Minacamp.js** — SHEETS.GUIDE + G columns + buildMinaGuideMap_
+  4. **Ikram/Roomtype builder.js** — PD_SHEET من Presonal Details إلى Guide Rabih
+  5. **Pilgrim App** — TOUR_GUIDE_SHEET + getGuidePackageStats + buildGuideMap
+  6. **Guide App** — Code.js (CONFIG.SHEETS + GUIDE columns + generateGuideLinks + getGuidePassports_) + generateGuideLinks.js
+  7. **SheetData** — analyze_guides.js + analyze_pkg_guides.js (مصدر JSON + أسماء الحقول)
+- **لم يُعدَّل JourneyMerger** — إضافة عمود مرشد ستزيح بيانات Reception Airport (العمود 49+)
+- **Mina Camp Search لا يحتاج تعديل** — يقرأ من "مخيم مني" الذي يُكتب بواسطة Minacamp.js (مُحدَّث)
+- تحديث CLAUDE.md: إضافة Guide Rabih للشيتات + تحديث خريطة التفاعل + آخر نقطة عمل
+
+**الملفات المتأثرة:**
+- `Projects/Hotel Management/Hotelapp.js` + `Hotelapp helpers.js`
+- `Projects/IkramHajjBot/DataFetcher.js`
+- `Projects/Ikram/Minacamp.js` + `Roomtype builder.js`
+- `Projects/Pilgrim App/PilgrimApp.js`
+- `Projects/Guide App/Code.js` + `generateGuideLinks.js`
+- `Projects/SheetData/analyze_guides.js` + `analyze_pkg_guides.js`
+- `CLAUDE.md` + `SESSION_LOG.md`
+
+**الخطوة التالية:**
+- `clasp push` للمشاريع: Hotel Management, IkramHajjBot, Ikram, Pilgrim App, Guide App
+- اختبار يدوي لكل تطبيق: التحقق أن أسماء المرشدين تظهر بشكل صحيح
+
+---
+
 ## 2026-03-26 | جهاز المكتب
 **ما تم:**
 - ربط Git على جهاز المكتب بـ GitHub remote (mahmoudekramhajj/ekram-aldyf)

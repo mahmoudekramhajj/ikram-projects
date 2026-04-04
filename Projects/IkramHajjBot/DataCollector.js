@@ -107,6 +107,7 @@ function handlePhoneInput_(chatId, text, session) {
 
   savePilgrimField_(session.passport, name, 2, phone);
   updateSession_(chatId, { inputState: '' });
+  updateDataCollection_(chatId, 'phone');
 
   sendMessage_(chatId, T_('phone_saved', lang, { phone: phone }));
   sendMainMenu_(chatId, lang);
@@ -135,6 +136,7 @@ function handleRoomInput_(chatId, text, session) {
 
   savePilgrimField_(session.passport, name, fieldIndex, roomNo);
   updateSession_(chatId, { inputState: '' });
+  updateDataCollection_(chatId, 'rooms');
 
   sendMessage_(chatId, T_('room_saved', lang, { room: roomNo, hotel: hotelLabel }));
   sendMainMenu_(chatId, lang);
@@ -188,6 +190,7 @@ function handlePassportPhoto_(chatId, fileId, session) {
     savePilgrimField_(passport, name, 6, fileLink);
 
     updateSession_(chatId, { inputState: '' });
+    updateDataCollection_(chatId, 'photo');
     sendMessage_(chatId, T_('photo_saved', lang));
     sendMainMenu_(chatId, lang);
 

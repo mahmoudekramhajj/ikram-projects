@@ -65,12 +65,13 @@ node refresh.js
 |---|---|---|
 | **رحلة الحاج** (6500+ صف) | Airport Search, IkramHajjBot, Pilgrim App, Guide App, Hotel Management, Mina Camp Search | Reception Airport, **JourneyMerger** (يكتب الشيت كاملاً) |
 | **رحلة الحاج 2** (6500+ صف) | **JourneyMerger** (مصدر بيانات الرحلة) | منصة نسك (مصدر خارجي) |
-| **Presonal Details** (6500+ صف) | **JourneyMerger** (مصدر البيانات الشخصية)، Pilgrim App, B2C Sync, Roomtype Builder, TourGuide Manager | منصة نسك (مصدر خارجي) |
+| **Presonal Details** (6500+ صف) | **JourneyMerger** (مصدر البيانات الشخصية)، Pilgrim App, B2C Sync, TourGuide Manager | منصة نسك (مصدر خارجي) |
 | **الباقات** (69 عمود) | Ikram, IkramAgent, IkramHajjBot, Hotel Management, Pilgrim App, Holiday In Bakkah | Ikram |
 | **الطيران** (103 عمود) | Ikram, IkramAgent, GDS, B2C Sync, Sales Report, Holiday In Bakkah | Ikram, GDS, B2C Sync, PNR Sync |
 | **الفنادق** | Ikram, Hotel Management, Holiday In Bakkah | — |
 | **مخيم مني** | Mina Camp Search | Ikram (Minacamp.js) |
-| **Tour Guide** | Guide App, Ikram (Minacamp.js, TourGuide_Manager.js) | TourGuide Manager |
+| **Guide Rabih** (المصدر المعتمد للمرشدين) | IkramHajjBot, Hotel Management, Pilgrim App, Guide App, Ikram (Minacamp.js, Roomtype builder.js), SheetData | — (يُحدَّث من نسك) |
+| **Tour Guide** (قديم — لم يعد مستخدماً) | — | TourGuide Manager |
 | **BotSessions** | IkramHajjBot | IkramHajjBot |
 
 ### APIs الخارجية
@@ -128,6 +129,7 @@ node refresh.js
 | **مخيم مني** | 28 | 5966 | بيانات مخيمات منى |
 | **رحلة الحاج 2** | 42 | 6527 | الشكل الجديد من نسك — بيانات الرحلة بدون بيانات شخصية |
 | **Presonal Details** | 33 | 6532 | البيانات الشخصية للحجاج (اسم، جواز، إيميل، جوال، مرشد، تأشيرة، تذكرة) |
+| **Guide Rabih** | 33 | 6535 | **المصدر المعتمد لأسماء المرشدين** — نفس هيكل Presonal Details + عمود P مملوء بأسماء المرشدين (88 مرشد) |
 
 ### شيت الباقات — هيكل الأعمدة الكامل
 
@@ -446,7 +448,7 @@ Presonal Details (بيانات شخصية) ─┘
 
 ## آخر نقطة عمل
 
-- **التاريخ:** 2026-03-26
-- **المشروع:** JourneyMerger — دمج بيانات نسك الجديدة
-- **الحالة:** سكريبت JourneyMerger.js جاهز ومرفوع عبر clasp push. يحتاج: أول تشغيل يدوي من محرر السكريبت + إعداد Trigger اختياري
-- **الخطوة التالية:** تشغيل `mergeJourneyData()` من Google Apps Script + التحقق من النتائج + إعداد Trigger
+- **التاريخ:** 2026-03-28
+- **المشروع:** ترحيل مصدر بيانات المرشدين من "Tour Guide" إلى "Guide Rabih"
+- **الحالة:** تم تحديث جميع التطبيقات (7 مشاريع). يحتاج: `clasp push` لكل مشروع متأثر
+- **الخطوة التالية:** `clasp push` للمشاريع: Hotel Management, IkramHajjBot, Ikram, Pilgrim App, Guide App + اختبار يدوي

@@ -2,12 +2,14 @@
 // جلب البيانات — الحاج + التنقل + خريطة الفندق
 // ============================================
 
-function findPilgrimByPassport_(passportNo) {
+function findPilgrimByPassport_(passportNo, skipCache) {
   var inputPassport = String(passportNo).toUpperCase().trim();
   var cacheKey = 'pilgrim_' + inputPassport;
 
-  var cached = getCache_(cacheKey);
-  if (cached) return cached;
+  if (!skipCache) {
+    var cached = getCache_(cacheKey);
+    if (cached) return cached;
+  }
 
   var ss = SpreadsheetApp.openById(SHEET_ID);
   var sheet = ss.getSheetByName(JOURNEY_SHEET);
@@ -34,6 +36,72 @@ function findPilgrimByPassport_(passportNo) {
   }
 
   return null;
+}
+
+// ============================================
+// تأكيد وصول الحاج — الكتابة في شيت "رحلة الحاج"
+// أعمدة AX (49) + AY (50) + AZ (51)
+// ============================================
+function confirmArrivalInSheet_(pilgrimRow, source) {
+  try {
+    var ss = SpreadsheetApp.openById(SHEET_ID);
+    var sheet = ss.getSheetByName(JOURNEY_SHEET);
+    if (!sheet) return false;
+
+    var sheetRow = pilgrimRow + 1; // تحويل من index (0-based) إلى صف الشيت (1-based)
+    var now = Utilities.formatDate(new Date(), 'Asia/Riyadh', 'yyyy-MM-dd HH:mm:ss');
+
+    sheet.getRange(sheetRow, COL_RECEPTION_STATUS + 1).setValue('تم');
+    sheet.getRange(sheetRow, COL_RECEPTION_TIME + 1).setValue(now);
+    sheet.getRange(sheetRow, COL_RECEPTION_STAFF + 1).setValue(source);
+
+    return true;
+  } catch (e) {
+    Logger.log('confirmArrivalInSheet_ error: ' + e.message);
+    return false;
+  }
+}
+
+// ============================================
+// قراءة حالة الاستقبال من الشيت
+// ============================================
+function getReceptionStatus_(pilgrimRow) {
+  try {
+    var ss = SpreadsheetApp.openById(SHEET_ID);
+    var sheet = ss.getSheetByName(JOURNEY_SHEET);
+    if (!sheet) return null;
+
+    var sheetRow = pilgrimRow + 1;
+    var status = String(sheet.getRange(sheetRow, COL_RECEPTION_STATUS + 1).getValue()).trim();
+    var time = String(sheet.getRange(sheetRow, COL_RECEPTION_TIME + 1).getValue()).trim();
+
+    return { status: status, time: time };
+  } catch (e) {
+    Logger.log('getReceptionStatus_ error: ' + e.message);
+    return null;
+  }
+}
+
+// ============================================
+// تحديد مجموعة العمليات المناسبة حسب المطار وشركة الطيران
+// ============================================
+function getOpsGroupChatId_(arriveCity, airlineEn) {
+  var city = String(arriveCity).trim().toLowerCase();
+
+  // مطار المدينة
+  if (city === 'madinah' || city === 'madina' || city.indexOf('مدين') !== -1) {
+    return OPS_GROUPS.madinah;
+  }
+
+  // مطار جدة — تحديد الصالة حسب شركة الطيران
+  if (city === 'jeddah' || city === 'jed' || city.indexOf('جد') !== -1) {
+    var airline = String(airlineEn).trim();
+    var terminal = AIRLINE_TERMINAL[airline] || 'T1'; // افتراضي: صالة 1
+    return terminal === 'N' ? OPS_GROUPS.jeddah_north : OPS_GROUPS.jeddah_t1;
+  }
+
+  // افتراضي: جدة صالة 1
+  return OPS_GROUPS.jeddah_t1;
 }
 
 // ============================================
@@ -270,6 +338,70 @@ function getB2CFlightDetails_(passport) {
     Logger.log('getB2CFlightDetails_ error: ' + e);
     return null;
   }
+}
+
+// ============================================
+// جلب تواريخ الفندق الثالث من شيت الباقات
+// الأعمدة: City(41), CheckIn(44), CheckOut(45), PackageEnd(7)
+// ============================================
+function getThirdHotelDates_(packageId) {
+  try {
+    if (!packageId || packageId === '-') return null;
+    var inputId = String(packageId).trim();
+    var cacheKey = 'hotel3_' + inputId;
+
+    var cached = getCache_(cacheKey);
+    if (cached !== null) return cached;
+
+    var ss = SpreadsheetApp.openById(SHEET_ID);
+    var sheet = ss.getSheetByName('الباقات');
+    if (!sheet) return null;
+
+    var data = sheet.getDataRange().getValues();
+
+    for (var i = 2; i < data.length; i++) {
+      if (String(data[i][1]).trim() === inputId) {
+        var result = {
+          city: String(data[i][41] || '').trim(),
+          checkIn: data[i][44],
+          checkOut: data[i][45],
+          packageEnd: data[i][7]
+        };
+        setCache_(cacheKey, result);
+        return result;
+      }
+    }
+    return null;
+  } catch (e) {
+    Logger.log('getThirdHotelDates_ error: ' + e);
+    return null;
+  }
+}
+
+// ============================================
+// حساب تاريخ خروج الفندق الثالث (الحالة 2: آخر فندق قبل المطار)
+// ============================================
+function calcThirdHotelCheckout_(returnDate, returnTime, packageEnd, fallbackCheckout) {
+  var depDate = normDate_(returnDate);
+  var depTime = formatTime_(returnTime);
+  if (!depDate || depDate === '-') return formatDate_(fallbackCheckout);
+
+  var timeParts = depTime.split(':');
+  var hour = parseInt(timeParts[0], 10);
+  if (isNaN(hour)) return formatDate_(fallbackCheckout);
+
+  // رحلة قبل 18:00 → الخروج نفس يوم الرحلة
+  if (hour < 18) return depDate;
+
+  // رحلة بعد 18:00 → نتحقق من تاريخ نهاية الباقة
+  var pkgEnd = normDate_(packageEnd);
+  if (!pkgEnd || pkgEnd === '-') return depDate;
+
+  // إذا الباقة تنتهي نفس يوم الرحلة → نكتب يوم الرحلة
+  if (pkgEnd <= depDate) return depDate;
+
+  // الباقة فيها متسع → الخروج يوم الرحلة + 1
+  return getDateOffset_(depDate, 1);
 }
 
 // ============================================

@@ -11,21 +11,18 @@ function generateGuideLinks() {
   var DEPLOY_URL = 'https://script.google.com/macros/s/AKfycbwirA68K9peWAsnAmcYZV3sDU1Bpy9TWQKt9lvtlF0kDGcvtxgqvAmJzhBdvD_eUf9Bdg/exec';
   
   var ss = SpreadsheetApp.openById('1z4b3BmTLDLvYUs8H8cPU8MJrOuvuN5GztZ9pLlYhF6s');
-  var guideSheet = ss.getSheetByName('Tour Guide');
+  var guideSheet = ss.getSheetByName('Guide Rabih');
   var lastRow = guideSheet.getLastRow();
-  var data = guideSheet.getRange(2, 1, lastRow - 1, 11).getValues();
-  
-  // ── جمع أسماء المرشدين الفريدة (Registered + Unique فقط) ──
+  var data = guideSheet.getRange(2, 1, lastRow - 1, 33).getValues();
+
+  // ── جمع أسماء المرشدين الفريدة من Guide Rabih ──
   var guidesMap = {};
-  
+
   for (var i = 0; i < data.length; i++) {
-    var name = String(data[i][0]).trim();
-    var registered = String(data[i][9]);
-    var unique = String(data[i][10]);
-    
+    var name = String(data[i][15]).trim(); // P: اسم المرشد
+
     if (!name) continue;
-    if (registered.indexOf('✅') === -1 || unique.indexOf('✅') === -1) continue;
-    
+
     if (!guidesMap[name]) {
       guidesMap[name] = { name: name, count: 0 };
     }

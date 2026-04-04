@@ -1,7 +1,7 @@
 <script>
 // ══════════════════════════════════════════════════════════════
-// SalesScripts.html - Sales Report Logic v1.1
-// التحديث: حفظ الفلاتر وموقع التمرير عند التحديث التلقائي
+// SalesScripts.html - Sales Report Logic v3.0
+// فلتر Status + جدول تفصيلي + تصدير xlsx احترافي
 // ══════════════════════════════════════════════════════════════
 
 // ==================== State ====================
@@ -16,66 +16,60 @@ var L = {
   ar: {
     headerTitle: 'تقرير المبيعات والعمليات',
     headerSub: 'شركة إكرام الضيف للحج',
-    kpiPnrs: 'إجمالي PNR',
-    kpiPax: 'إجمالي المقاعد',
-    kpiSold: 'المباع',
-    kpiRemaining: 'المتبقي',
-    kpiPct: 'نسبة البيع',
-    filterCountry: 'الدولة',
-    filterAirline: 'شركة الطيران',
-    filterSupplier: 'المورد',
-    apply: 'تطبيق',
-    clear: 'مسح',
-    excel: '📊 إكسل',
-    print: '🖨️ طباعة',
-    loading: 'جاري تحميل البيانات...',
-    titleCountries: '🌍 حسب الدولة',
-    titleAirlines: '✈️ حسب شركة الطيران',
-    titleSuppliers: '🤝 حسب المورد',
-    titleCharts: '📈 تحليلات بصرية',
-    titlePnrDetails: '📋 تفاصيل PNR',
-    chartCountry: 'المبيعات حسب الدولة',
-    chartAirline: 'المبيعات حسب شركة الطيران',
+    kpiPnrs: 'إجمالي PNR', kpiPax: 'إجمالي المقاعد', kpiSold: 'المباع',
+    kpiRemaining: 'المتبقي', kpiPct: 'نسبة البيع',
+    filterStatus: 'الحالة', filterCountry: 'الدولة', filterAirline: 'شركة الطيران',
+    filterSupplier: 'المورد', filterPackage: 'الباقة', filterResidence: 'بلد الإقامة',
+    filterDepCity: 'مدينة الذهاب', filterGuide: 'المرشد',
+    clear: 'مسح', excel: '📊 إكسل', print: '🖨️ طباعة',
+    loading: 'جاري تحميل البيانات...', exporting: 'جاري التصدير...',
+    titleCountries: '🌍 حسب الدولة', titleAirlines: '✈️ حسب شركة الطيران',
+    titleSuppliers: '🤝 حسب المورد', titlePackages: '📦 حسب الباقة',
+    titleCharts: '📈 تحليلات بصرية', titlePnrDetails: '📋 تفاصيل PNR',
+    chartCountry: 'المبيعات حسب الدولة', chartAirline: 'المبيعات حسب شركة الطيران',
     chartSupplier: 'نسبة البيع حسب المورد',
     thCountry: 'الدولة', thAirline: 'الشركة', thSupplier: 'المورد',
+    thPackage: 'الباقة', thPackages: 'الباقات', thStatus: 'الحالة',
     thPnrs: 'PNR', thPax: 'المقاعد', thSold: 'المباع',
     thRemaining: 'المتبقي', thPct: 'النسبة', thBar: 'التقدم',
     thCountries: 'الدول', thCity: 'المدينة', thPnr: 'PNR',
-    all: 'الكل', total: 'الإجمالي',
-    footer: 'إكرام الضيف للحج - تقرير المبيعات v1.1',
-    autoRefresh: 'تحديث تلقائي كل 30 ث'
+    thDep: 'الذهاب', thRet: 'العودة', thCityStart: 'أولاً',
+    thNuskNo: 'رقم نسك', thStartDate: 'تاريخ البداية', thEndDate: 'تاريخ النهاية',
+    thPilgrimName: 'اسم الحاج', thPassport: 'رقم الجواز',
+    all: 'الكل', total: 'الإجمالي', na: '-',
+    footer: 'إكرام الضيف للحج - تقرير المبيعات v3.0',
+    autoRefresh: 'تحديث تلقائي كل 30 ث',
+    pilgrims: 'حاج',
+    shDashboard: 'الملخص', shDetails: 'تفاصيل PNR', shPackages: 'الباقات', shPilgrims: 'الحجاج'
   },
   en: {
     headerTitle: 'Sales & Operations Report',
     headerSub: 'Ikram AlDyf for Hajj',
-    kpiPnrs: 'Total PNRs',
-    kpiPax: 'Total PAX',
-    kpiSold: 'Sold',
-    kpiRemaining: 'Remaining',
-    kpiPct: 'Sales %',
-    filterCountry: 'Country',
-    filterAirline: 'Airline',
-    filterSupplier: 'Supplier',
-    apply: 'Apply',
-    clear: 'Clear',
-    excel: '📊 Excel',
-    print: '🖨️ Print',
-    loading: 'Loading data...',
-    titleCountries: '🌍 By Country',
-    titleAirlines: '✈️ By Airline',
-    titleSuppliers: '🤝 By Supplier',
-    titleCharts: '📈 Visual Analytics',
-    titlePnrDetails: '📋 PNR Details',
-    chartCountry: 'Sales by Country',
-    chartAirline: 'Sales by Airline',
+    kpiPnrs: 'Total PNRs', kpiPax: 'Total PAX', kpiSold: 'Sold',
+    kpiRemaining: 'Remaining', kpiPct: 'Sales %',
+    filterStatus: 'Status', filterCountry: 'Country', filterAirline: 'Airline',
+    filterSupplier: 'Supplier', filterPackage: 'Package', filterResidence: 'Residence',
+    filterDepCity: 'Dep City', filterGuide: 'Guide',
+    clear: 'Clear', excel: '📊 Excel', print: '🖨️ Print',
+    loading: 'Loading data...', exporting: 'Exporting...',
+    titleCountries: '🌍 By Country', titleAirlines: '✈️ By Airline',
+    titleSuppliers: '🤝 By Supplier', titlePackages: '📦 By Package',
+    titleCharts: '📈 Visual Analytics', titlePnrDetails: '📋 PNR Details',
+    chartCountry: 'Sales by Country', chartAirline: 'Sales by Airline',
     chartSupplier: 'Sales % by Supplier',
     thCountry: 'Country', thAirline: 'Airline', thSupplier: 'Supplier',
+    thPackage: 'Package', thPackages: 'Packages', thStatus: 'Status',
     thPnrs: 'PNRs', thPax: 'PAX', thSold: 'Sold',
     thRemaining: 'Remaining', thPct: 'Sales %', thBar: 'Progress',
     thCountries: 'Countries', thCity: 'City', thPnr: 'PNR',
-    all: 'All', total: 'Total',
-    footer: 'Ikram AlDyf for Hajj - Sales Report v1.1',
-    autoRefresh: 'Auto-refresh 30s'
+    thDep: 'Departure', thRet: 'Return', thCityStart: 'First City',
+    thNuskNo: 'Nusk No', thStartDate: 'Start Date', thEndDate: 'End Date',
+    thPilgrimName: 'Pilgrim Name', thPassport: 'Passport',
+    all: 'All', total: 'Total', na: '-',
+    footer: 'Ikram AlDyf for Hajj - Sales Report v3.0',
+    autoRefresh: 'Auto-refresh 30s',
+    pilgrims: 'Pilgrims',
+    shDashboard: 'Dashboard', shDetails: 'PNR Details', shPackages: 'Packages', shPilgrims: 'Pilgrims'
   }
 };
 
@@ -97,297 +91,446 @@ function changeLang(lang) {
 
 function updateUITexts() {
   var t = L[currentLang];
-  setText('headerTitle', t.headerTitle);
-  setText('headerSub', t.headerSub);
-  setText('kpiPnrsLabel', t.kpiPnrs);
-  setText('kpiPaxLabel', t.kpiPax);
-  setText('kpiSoldLabel', t.kpiSold);
-  setText('kpiRemainingLabel', t.kpiRemaining);
+  setText('headerTitle', t.headerTitle); setText('headerSub', t.headerSub);
+  setText('kpiPnrsLabel', t.kpiPnrs); setText('kpiPaxLabel', t.kpiPax);
+  setText('kpiSoldLabel', t.kpiSold); setText('kpiRemainingLabel', t.kpiRemaining);
   setText('kpiPctLabel', t.kpiPct);
-  setText('lblFilterCountry', t.filterCountry);
-  setText('lblFilterAirline', t.filterAirline);
-  setText('lblFilterSupplier', t.filterSupplier);
-  setText('btnApply', t.apply);
-  setText('btnClear', t.clear);
-  setText('btnExport', t.excel);
-  setText('btnPrint', t.print);
+  setText('lblFilterStatus', t.filterStatus); setText('lblFilterCountry', t.filterCountry);
+  setText('lblFilterAirline', t.filterAirline); setText('lblFilterSupplier', t.filterSupplier);
+  setText('lblFilterPackage', t.filterPackage); setText('lblFilterResidence', t.filterResidence);
+  setText('lblFilterDepCity', t.filterDepCity); setText('lblFilterGuide', t.filterGuide);
+  setText('btnClear', t.clear); setText('btnExport', t.excel); setText('btnPrint', t.print);
   setText('txtLoading', t.loading);
-  setText('titleCountries', t.titleCountries);
-  setText('titleAirlines', t.titleAirlines);
-  setText('titleSuppliers', t.titleSuppliers);
-  setText('titleCharts', t.titleCharts);
-  setText('titlePnrDetails', t.titlePnrDetails);
-  setText('chartTitleCountry', t.chartCountry);
-  setText('chartTitleAirline', t.chartAirline);
+  setText('titleCountries', t.titleCountries); setText('titleAirlines', t.titleAirlines);
+  setText('titleSuppliers', t.titleSuppliers); setText('titlePackages', t.titlePackages);
+  setText('titleCharts', t.titleCharts); setText('titlePnrDetails', t.titlePnrDetails);
+  setText('chartTitleCountry', t.chartCountry); setText('chartTitleAirline', t.chartAirline);
   setText('chartTitleSupplier', t.chartSupplier);
-  setText('thCountry', t.thCountry);
-  setText('thAirline', t.thAirline);
-  setText('thSupplier', t.thSupplier);
-  ['1','2','3','4'].forEach(function(n) {
-    setText('thPnrs'+n, t.thPnrs);
-    setText('thPax'+n, t.thPax);
-    setText('thSold'+n, t.thSold);
-    setText('thRemaining'+n, t.thRemaining);
+  setText('thCountry', t.thCountry); setText('thAirline', t.thAirline); setText('thSupplier', t.thSupplier);
+  setText('thPackage', t.thPackage); setText('thPackage4', t.thPackages);
+  setText('thStatus4', t.thStatus); setText('thDep4', t.thDep); setText('thRet4', t.thRet);
+  setText('thCityStart4', t.thCityStart);
+  ['1','2','3','4','5'].forEach(function(n) {
+    setText('thPnrs'+n, t.thPnrs); setText('thPax'+n, t.thPax);
+    setText('thSold'+n, t.thSold); setText('thRemaining'+n, t.thRemaining);
     setText('thPct'+n, t.thPct);
     if (document.getElementById('thBar'+n)) setText('thBar'+n, t.thBar);
   });
-  setText('thCountries3', t.thCountries);
-  setText('thCity4', t.thCity);
-  setText('thPnr4', t.thPnr);
-  setText('thCountry4', t.thCountry);
-  setText('thAirline4', t.thAirline);
-  setText('thSupplier4', t.thSupplier);
-  setText('footerText', t.footer);
-  setText('footerRefresh', t.autoRefresh);
+  setText('thCountries3', t.thCountries); setText('thCountries5', t.thCountries);
+  setText('thPnr4', t.thPnr); setText('thCountry4', t.thCountry);
+  setText('thAirline4', t.thAirline); setText('thSupplier4', t.thSupplier);
+  setText('footerText', t.footer); setText('footerRefresh', t.autoRefresh);
 }
 
-function setText(id, text) {
-  var el = document.getElementById(id);
-  if (el) el.textContent = text;
-}
+function setText(id, text) { var el = document.getElementById(id); if (el) el.textContent = text; }
 
 // ==================== Data Loading ====================
 function loadData() {
-  // حفظ الحالة الحالية قبل التحديث
   var scrollPos = window.scrollY || window.pageYOffset;
-  var savedCountry = val('fCountry');
-  var savedAirline = val('fAirline');
-  var savedSupplier = val('fSupplier');
+  var saved = {};
+  FILTER_IDS.forEach(function(id) { saved[id] = val(id); });
   var isFirstLoad = rawFlights.length === 0;
-  
+
   google.script.run
     .withSuccessHandler(function(json) {
       var data = JSON.parse(json);
-      if (!data.success) {
-        if (isFirstLoad) showError(data.error || 'Unknown error');
-        return;
-      }
+      if (!data.success) { if (isFirstLoad) showError(data.error || 'Unknown error'); return; }
       rawFlights = data.flights || [];
+      guideReportCache = {}; // مسح cache المرشد عند تحديث البيانات
       initFilterOptions();
-      
-      // استعادة الفلاتر المحفوظة
-      if (savedCountry) document.getElementById('fCountry').value = savedCountry;
-      if (savedAirline) document.getElementById('fAirline').value = savedAirline;
-      if (savedSupplier) document.getElementById('fSupplier').value = savedSupplier;
-      
+      for (var id in saved) { if (saved[id]) document.getElementById(id).value = saved[id]; }
       applyFilters();
-      
-      // تحديث الوقت
-      document.getElementById('footerTimestamp').textContent = 
-        new Date().toLocaleTimeString();
-      
-      // إخفاء التحميل وإظهار المحتوى
+      document.getElementById('footerTimestamp').textContent = new Date().toLocaleTimeString();
       document.getElementById('loadingArea').style.display = 'none';
       document.getElementById('contentArea').style.display = 'block';
-      
-      // استعادة موقع التمرير (فقط عند التحديث وليس التحميل الأول)
-      if (!isFirstLoad) {
-        window.scrollTo(0, scrollPos);
-      }
+      if (!isFirstLoad) window.scrollTo(0, scrollPos);
     })
     .withFailureHandler(function(err) {
-      // عند فشل التحديث نحتفظ بالبيانات الحالية
-      if (rawFlights.length > 0) {
-        console.log('Auto-refresh failed, keeping current data');
-      } else {
-        showError(err.message || 'Connection error');
-      }
+      if (rawFlights.length > 0) console.log('Auto-refresh failed');
+      else showError(err.message || 'Connection error');
     })
     .getSalesData();
 }
 
 function showError(msg) {
-  document.getElementById('loadingArea').innerHTML = 
-    '<div style="color:#dc3545;font-size:1.1rem;">❌ ' + msg + '</div>';
+  document.getElementById('loadingArea').innerHTML = '<div style="color:#dc3545;font-size:1.1rem;">❌ ' + msg + '</div>';
 }
 
-// ==================== Filters ====================
+// ==================== Filters (Cascading) ====================
+var FILTER_IDS = ['fStatus','fCountry','fAirline','fSupplier','fPackage','fResidence','fDepCity','fGuide'];
+
 function initFilterOptions() {
   var t = L[currentLang];
-  var countries = [], airlines = [], suppliers = [];
-  
+  var sets = { fStatus: [], fCountry: [], fAirline: [], fSupplier: [], fPackage: [], fResidence: [], fDepCity: [], fGuide: [] };
+
   for (var i = 0; i < rawFlights.length; i++) {
     var f = rawFlights[i];
-    if (f.country && countries.indexOf(f.country) === -1) countries.push(f.country);
-    if (f.airline && airlines.indexOf(f.airline) === -1) airlines.push(f.airline);
-    if (f.supplier && suppliers.indexOf(f.supplier) === -1) suppliers.push(f.supplier);
+    addUniq(sets.fStatus, f.status || '');
+    addUniq(sets.fCountry, f.country);
+    addUniq(sets.fAirline, f.airline);
+    addUniq(sets.fSupplier, f.supplier);
+    for (var p = 0; p < f.packages.length; p++) addUniq(sets.fPackage, f.packages[p].name);
+    for (var r = 0; r < (f.residenceCountries||[]).length; r++) addUniq(sets.fResidence, f.residenceCountries[r]);
+    if (f.city) addUniq(sets.fDepCity, f.city);
+    for (var g = 0; g < (f.guides||[]).length; g++) addUniq(sets.fGuide, f.guides[g]);
   }
-  
-  fillSelect('fCountry', countries.sort(), t.all);
-  fillSelect('fAirline', airlines.sort(), t.all);
-  fillSelect('fSupplier', suppliers.sort(), t.all);
+
+  for (var id in sets) fillSelect(id, sets[id].sort(), t.all);
 }
 
-function fillSelect(id, arr, allText) {
-  var s = document.getElementById(id);
-  if (!s) return;
-  var current = s.value;
-  s.innerHTML = '<option value="">' + allText + '</option>';
-  for (var i = 0; i < arr.length; i++) {
-    s.innerHTML += '<option value="' + arr[i] + '">' + arr[i] + '</option>';
+function updateFilterOptions() {
+  var t = L[currentLang];
+  var vals = {}; FILTER_IDS.forEach(function(id) { vals[id] = val(id); });
+  var sets = { fStatus: [], fCountry: [], fAirline: [], fSupplier: [], fPackage: [], fResidence: [], fDepCity: [], fGuide: [] };
+
+  for (var i = 0; i < rawFlights.length; i++) {
+    var f = rawFlights[i];
+    var m = {
+      fStatus: !vals.fStatus || (f.status||'') === vals.fStatus,
+      fCountry: !vals.fCountry || f.country === vals.fCountry,
+      fAirline: !vals.fAirline || f.airline === vals.fAirline,
+      fSupplier: !vals.fSupplier || f.supplier === vals.fSupplier,
+      fPackage: !vals.fPackage || f.packages.some(function(p) { return p.name === vals.fPackage; }),
+      fResidence: !vals.fResidence || (f.residenceCountries||[]).indexOf(vals.fResidence) !== -1,
+      fDepCity: !vals.fDepCity || f.city === vals.fDepCity,
+      fGuide: !vals.fGuide || (f.guides||[]).indexOf(vals.fGuide) !== -1
+    };
+
+    FILTER_IDS.forEach(function(id) {
+      var allMatch = true;
+      FILTER_IDS.forEach(function(otherId) { if (otherId !== id && !m[otherId]) allMatch = false; });
+      if (!allMatch) return;
+
+      if (id === 'fStatus') addUniq(sets[id], f.status || '');
+      else if (id === 'fCountry') addUniq(sets[id], f.country);
+      else if (id === 'fAirline') addUniq(sets[id], f.airline);
+      else if (id === 'fSupplier') addUniq(sets[id], f.supplier);
+      else if (id === 'fPackage') { for (var p=0;p<f.packages.length;p++) addUniq(sets[id],f.packages[p].name); }
+      else if (id === 'fResidence') { for (var r=0;r<(f.residenceCountries||[]).length;r++) addUniq(sets[id],f.residenceCountries[r]); }
+      else if (id === 'fDepCity') { if (f.city) addUniq(sets[id], f.city); }
+      else if (id === 'fGuide') { for (var g=0;g<(f.guides||[]).length;g++) addUniq(sets[id],f.guides[g]); }
+    });
   }
-  if (current) s.value = current;
+
+  for (var id in sets) fillSelect(id, sets[id].sort(), t.all);
+}
+
+function addUniq(arr, v) { if (v && arr.indexOf(v) === -1) arr.push(v); }
+
+function fillSelect(id, arr, allText) {
+  var s = document.getElementById(id); if (!s) return;
+  var cur = s.value;
+  s.innerHTML = '<option value="">' + allText + '</option>';
+  var found = false;
+  for (var i = 0; i < arr.length; i++) {
+    if (arr[i] === cur) found = true;
+    s.innerHTML += '<option value="' + esc(arr[i]) + '">' + esc(arr[i] || '(empty)') + '</option>';
+  }
+  s.value = found ? cur : '';
 }
 
 function applyFilters() {
-  var fc = val('fCountry');
-  var fa = val('fAirline');
-  var fs = val('fSupplier');
-  
-  filteredFlights = rawFlights.filter(function(f) {
-    if (fc && f.country !== fc) return false;
-    if (fa && f.airline !== fa) return false;
-    if (fs && f.supplier !== fs) return false;
+  try {
+    var v = {}; FILTER_IDS.forEach(function(id) { v[id] = val(id); });
+
+    filteredFlights = rawFlights.filter(function(f) {
+      if (v.fStatus && (f.status||'') !== v.fStatus) return false;
+      if (v.fCountry && f.country !== v.fCountry) return false;
+      if (v.fAirline && f.airline !== v.fAirline) return false;
+      if (v.fSupplier && f.supplier !== v.fSupplier) return false;
+      if (v.fPackage && !f.packages.some(function(p) { return p.name === v.fPackage; })) return false;
+      if (v.fResidence && (f.residenceCountries||[]).indexOf(v.fResidence) === -1) return false;
+      if (v.fDepCity && f.city !== v.fDepCity) return false;
+      if (v.fGuide && (f.guides||[]).indexOf(v.fGuide) === -1) return false;
+      return true;
+    });
+
+    console.log('[Filter] active:', JSON.stringify(v), '| raw:', rawFlights.length, '→ filtered:', filteredFlights.length);
+
+    updateFilterOptions();
+    reportData = generateClientReport(filteredFlights);
+
+    // ─── وضع المرشد: عند اختيار مرشد محدد ───
+    var selectedGuide = v.fGuide;
+    if (selectedGuide) {
+      enterGuideMode(selectedGuide);
+    } else {
+      exitGuideMode();
+      renderAll();
+    }
+  } catch (err) {
+    console.error('[applyFilters ERROR]', err);
+  }
+}
+
+// ══════════════════════════════════════
+// Guide Mode — عرض مرتكز على المرشد
+// ══════════════════════════════════════
+
+var guideReportCache = {}; // guideName → data (لتجنب طلبات متكررة)
+
+function enterGuideMode(guideName) {
+  document.getElementById('normalModeArea').style.display = 'none';
+  document.getElementById('guideModeArea').style.display = 'block';
+  document.getElementById('guideLoading').style.display = 'block';
+  document.getElementById('guidePilgrimSection').style.display = 'none';
+
+  // KPI أولية من guideCounts (package-based)
+  setText('gKpiGuide', guideName);
+  var gc = reportData.guidePilgrims || {};
+  var guideCount = gc[guideName] || 0;
+  setText('gKpiPilgrims', fmtN(guideCount));
+
+  // عرض بطاقة المرشد في الشريط العلوي
+  var guideEl = document.getElementById('kpiGuideCount');
+  if (guideEl) {
+    guideEl.parentElement.style.display = '';
+    setText('kpiGuideCount', fmtN(guideCount));
+    setText('kpiGuideLabel', guideName);
+  }
+  // إخفاء بطاقة الإقامة
+  var resEl = document.getElementById('kpiResCount');
+  if (resEl) resEl.parentElement.style.display = 'none';
+
+  // عرض الـ KPIs العادية (PNR-level)
+  var r = reportData;
+  setText('kpiPnrs', fmtN(r.totals.pnrs)); setText('kpiPax', fmtN(r.totals.pax));
+  setText('kpiSold', fmtN(r.totals.sold)); setText('kpiRemaining', fmtN(r.totals.remaining));
+  setText('kpiPct', r.totals.salesPct + '%');
+
+  // جلب بيانات المرشد من السيرفر
+  if (guideReportCache[guideName]) {
+    renderGuideReport(guideReportCache[guideName]);
+    return;
+  }
+
+  google.script.run
+    .withSuccessHandler(function(json) {
+      try {
+        var data = JSON.parse(json);
+        if (!data.success) {
+          console.error('Guide report error:', data.error);
+          document.getElementById('guideLoading').style.display = 'none';
+          return;
+        }
+        guideReportCache[guideName] = data;
+        if (val('fGuide') === guideName) renderGuideReport(data);
+      } catch (e) {
+        console.error('Guide parse error:', e);
+        document.getElementById('guideLoading').style.display = 'none';
+      }
+    })
+    .withFailureHandler(function(err) {
+      console.error('Guide report failed:', err);
+      document.getElementById('guideLoading').style.display = 'none';
+    })
+    .getGuideReport(guideName);
+}
+
+function exitGuideMode() {
+  document.getElementById('guideModeArea').style.display = 'none';
+  document.getElementById('normalModeArea').style.display = 'block';
+}
+
+function renderGuideReport(data) {
+  document.getElementById('guideLoading').style.display = 'none';
+  document.getElementById('guidePilgrimSection').style.display = 'block';
+
+  // بناء قائمة أرقام الرحلات من PNRs المُفلترة — لربط فلاتر PNR-level بحجاج المرشد
+  var allowedFlights = {};
+  filteredFlights.forEach(function(f) {
+    if (f.dep1) allowedFlights[f.dep1.flight] = true;
+    if (f.dep2) allowedFlights[f.dep2.flight] = true;
+  });
+  var hasFlightFilter = Object.keys(allowedFlights).length > 0;
+
+  // تطبيق الفلاتر على حجاج المرشد
+  var v = {};
+  FILTER_IDS.forEach(function(id) { v[id] = val(id); });
+  var pilgrims = (data.pilgrims || []).filter(function(pl) {
+    // ربط فلاتر PNR (Country, DepCity, Airline, etc.) عبر أرقام الرحلات
+    if (hasFlightFilter && pl.flightNo && !allowedFlights[pl.flightNo]) return false;
+    if (v.fResidence && pl.residence !== v.fResidence) return false;
     return true;
   });
-  
-  reportData = generateClientReport(filteredFlights);
-  renderAll();
+
+  // KPIs
+  setText('gKpiGuide', data.guide);
+  setText('gKpiPilgrims', fmtN(pilgrims.length));
+  var pkgs = {}, flights = {}, countries = {};
+  pilgrims.forEach(function(pl) {
+    if (pl.pkgNo) pkgs[pl.pkgNo] = true;
+    if (pl.flightNo) flights[pl.flightNo] = true;
+    if (pl.nationality) countries[pl.nationality] = (countries[pl.nationality] || 0) + 1;
+  });
+  setText('gKpiPackages', Object.keys(pkgs).length);
+  setText('gKpiFlights', Object.keys(flights).length);
+  setText('gKpiCountries', Object.keys(countries).length);
+  setText('gPilgrimCount', pilgrims.length);
+
+  // ترتيب حسب الباقة ثم الاسم
+  pilgrims.sort(function(a, b) {
+    if (a.pkgName !== b.pkgName) return (a.pkgName || '').localeCompare(b.pkgName || '');
+    return (a.familyName || '').localeCompare(b.familyName || '');
+  });
+
+  // بناء الجدول
+  var tbody = document.getElementById('gTbodyPilgrims');
+  var html = '', lastPkg = '', pkgCount = 0;
+  for (var i = 0; i < pilgrims.length; i++) {
+    var pl = pilgrims[i];
+    // subtotal عند تغيير الباقة
+    if (pl.pkgName !== lastPkg) {
+      if (lastPkg) {
+        html += '<tr style="background:#E8F5E9;font-weight:600;"><td colspan="10" style="text-align:right;">📦 ' + esc(lastPkg) + ' — ' + pkgCount + ' pilgrims</td></tr>';
+      }
+      lastPkg = pl.pkgName;
+      pkgCount = 0;
+    }
+    pkgCount++;
+    html += '<tr>' +
+      '<td>' + (i + 1) + '</td>' +
+      '<td>' + esc(pl.familyName) + '</td>' +
+      '<td>' + esc(pl.firstName) + '</td>' +
+      '<td>' + esc(pl.passport) + '</td>' +
+      '<td title="' + esc(pl.pkgNo) + '">' + esc(pl.pkgName || pl.pkgNo) + '</td>' +
+      '<td>' + esc(pl.flightNo) + '</td>' +
+      '<td>' + esc(pl.depCity) + '</td>' +
+      '<td>' + esc(pl.depDate) + '</td>' +
+      '<td>' + esc(pl.residence) + '</td>' +
+      '<td>' + esc(pl.nationality) + '</td>' +
+      '</tr>';
+  }
+  // آخر subtotal
+  if (lastPkg) {
+    html += '<tr style="background:#E8F5E9;font-weight:600;"><td colspan="10" style="text-align:right;">📦 ' + esc(lastPkg) + ' — ' + pkgCount + ' pilgrims</td></tr>';
+  }
+  html += '<tr style="background:#1A4D2E;color:white;font-weight:700;"><td colspan="10" style="text-align:center;">Total: ' + pilgrims.length + ' pilgrims</td></tr>';
+  tbody.innerHTML = html;
+
+  // حفظ للتصدير
+  window._guideReportData = { guide: data.guide, pilgrims: pilgrims, stats: { pkgs: pkgs, flights: flights, countries: countries } };
 }
 
 function clearFilters() {
-  document.getElementById('fCountry').value = '';
-  document.getElementById('fAirline').value = '';
-  document.getElementById('fSupplier').value = '';
+  FILTER_IDS.forEach(function(id) { document.getElementById(id).value = ''; });
   applyFilters();
 }
 
-function val(id) {
-  var el = document.getElementById(id);
-  return el ? el.value.trim() : '';
-}
+function val(id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 // ==================== Client-side Report ====================
 function generateClientReport(flights) {
-  var byCountry = {}, byAirline = {}, bySupplier = {};
+  var byCountry = {}, byAirline = {}, bySupplier = {}, byPackage = {};
   var totals = { pnrs: 0, pax: 0, sold: 0, remaining: 0 };
-  
+  var resPilgrims = {}, guidePilgrims = {};
+
   for (var i = 0; i < flights.length; i++) {
     var f = flights[i];
-    totals.pnrs++;
-    totals.pax += f.pax;
-    totals.sold += f.sold;
-    totals.remaining += f.remaining;
-    
-    aggregate(byCountry, f.country || 'Unknown', f);
-    aggregate(byAirline, f.airline || 'Unknown', f);
-    
+    totals.pnrs++; totals.pax += f.pax; totals.sold += f.sold; totals.remaining += f.remaining;
+    for (var rc in (f.residenceCounts||{})) { resPilgrims[rc] = (resPilgrims[rc]||0) + f.residenceCounts[rc]; }
+    for (var gc in (f.guideCounts||{})) { if (!guidePilgrims[gc]) guidePilgrims[gc]=0; guidePilgrims[gc] += f.guideCounts[gc]; }
+    agg(byCountry, f.country || 'Unknown', f);
+    agg(byAirline, f.airline || 'Unknown', f);
+
     var s = f.supplier || 'Unknown';
-    if (!bySupplier[s]) bySupplier[s] = { name: s, pnrs: 0, pax: 0, sold: 0, remaining: 0, countries: [] };
-    bySupplier[s].pnrs++;
-    bySupplier[s].pax += f.pax;
-    bySupplier[s].sold += f.sold;
-    bySupplier[s].remaining += f.remaining;
-    if (f.country && bySupplier[s].countries.indexOf(f.country) === -1) {
-      bySupplier[s].countries.push(f.country);
+    if (!bySupplier[s]) bySupplier[s] = { name: s, pnrs:0, pax:0, sold:0, remaining:0, countries:[] };
+    bySupplier[s].pnrs++; bySupplier[s].pax += f.pax; bySupplier[s].sold += f.sold; bySupplier[s].remaining += f.remaining;
+    if (f.country && bySupplier[s].countries.indexOf(f.country)===-1) bySupplier[s].countries.push(f.country);
+
+    for (var p = 0; p < f.packages.length; p++) {
+      var pk = f.packages[p], key = pk.name||pk.id||'Unknown';
+      if (!byPackage[key]) byPackage[key] = { name:key, id:pk.id, pnrs:0, pax:0, sold:0, remaining:0, countries:[] };
+      byPackage[key].pnrs++; byPackage[key].pax += f.pax; byPackage[key].sold += f.sold; byPackage[key].remaining += f.remaining;
+      if (f.country && byPackage[key].countries.indexOf(f.country)===-1) byPackage[key].countries.push(f.country);
     }
   }
-  
+
   totals.salesPct = totals.pax > 0 ? round1(totals.sold / totals.pax * 100) : 0;
-  
-  return {
-    totals: totals,
-    countries: toSortedArray(byCountry),
-    airlines: toSortedArray(byAirline),
-    suppliers: toSortedArray(bySupplier)
-  };
+  return { totals: totals, countries: toSorted(byCountry), airlines: toSorted(byAirline), suppliers: toSorted(bySupplier), packages: toSorted(byPackage), resPilgrims: resPilgrims, guidePilgrims: guidePilgrims };
 }
 
-function aggregate(obj, key, f) {
-  if (!obj[key]) obj[key] = { name: key, pnrs: 0, pax: 0, sold: 0, remaining: 0 };
-  obj[key].pnrs++;
-  obj[key].pax += f.pax;
-  obj[key].sold += f.sold;
-  obj[key].remaining += f.remaining;
+function agg(obj, key, f) {
+  if (!obj[key]) obj[key] = { name: key, pnrs:0, pax:0, sold:0, remaining:0 };
+  obj[key].pnrs++; obj[key].pax += f.pax; obj[key].sold += f.sold; obj[key].remaining += f.remaining;
 }
 
-function toSortedArray(obj) {
+function toSorted(obj) {
   var arr = [];
-  for (var k in obj) {
-    var item = obj[k];
-    item.salesPct = item.pax > 0 ? round1(item.sold / item.pax * 100) : 0;
-    arr.push(item);
-  }
-  return arr.sort(function(a, b) { return b.pax - a.pax; });
+  for (var k in obj) { var it = obj[k]; it.salesPct = it.pax > 0 ? round1(it.sold/it.pax*100) : 0; arr.push(it); }
+  return arr.sort(function(a,b) { return b.pax - a.pax; });
 }
 
-function round1(n) { return Math.round(n * 10) / 10; }
+function round1(n) { return Math.round(n*10)/10; }
 function fmtN(n) { return Number(n).toLocaleString('en-US'); }
 
 // ==================== Rendering ====================
 function renderAll() {
-  var r = reportData;
-  var t = L[currentLang];
-  
-  // KPIs
-  setText('kpiPnrs', fmtN(r.totals.pnrs));
-  setText('kpiPax', fmtN(r.totals.pax));
-  setText('kpiSold', fmtN(r.totals.sold));
-  setText('kpiRemaining', fmtN(r.totals.remaining));
+  var r = reportData, t = L[currentLang];
+  setText('kpiPnrs', fmtN(r.totals.pnrs)); setText('kpiPax', fmtN(r.totals.pax));
+  setText('kpiSold', fmtN(r.totals.sold)); setText('kpiRemaining', fmtN(r.totals.remaining));
   setText('kpiPct', r.totals.salesPct + '%');
-  
-  // Section counts
-  setText('countCountries', r.countries.length);
-  setText('countAirlines', r.airlines.length);
-  setText('countSuppliers', r.suppliers.length);
+
+  // ─── عدد الحجاج حسب بلد الإقامة المختار ───
+  var selRes = val('fResidence');
+  var resEl = document.getElementById('kpiResCount');
+  if (resEl) {
+    if (selRes && r.resPilgrims && r.resPilgrims[selRes]) {
+      resEl.parentElement.style.display = '';
+      setText('kpiResCount', fmtN(r.resPilgrims[selRes]));
+      setText('kpiResLabel', selRes + ' ' + L[currentLang].pilgrims);
+    } else {
+      resEl.parentElement.style.display = 'none';
+    }
+  }
+  // ─── عدد الحجاج حسب المرشد المختار ───
+  var selGuide = val('fGuide');
+  var guideEl = document.getElementById('kpiGuideCount');
+  if (guideEl) {
+    if (selGuide && r.guidePilgrims && r.guidePilgrims[selGuide]) {
+      guideEl.parentElement.style.display = '';
+      setText('kpiGuideCount', fmtN(r.guidePilgrims[selGuide]));
+      setText('kpiGuideLabel', selGuide);
+    } else {
+      guideEl.parentElement.style.display = 'none';
+    }
+  }
+
+  setText('countCountries', r.countries.length); setText('countAirlines', r.airlines.length);
+  setText('countSuppliers', r.suppliers.length); setText('countPackages', r.packages.length);
   setText('countPnrs', filteredFlights.length);
-  
-  // Tables
   renderTable('tbodyCountries', 'tfootCountries', r.countries, r.totals, false);
   renderTable('tbodyAirlines', 'tfootAirlines', r.airlines, r.totals, false);
   renderTable('tbodySuppliers', 'tfootSuppliers', r.suppliers, r.totals, true);
+  renderTable('tbodyPackages', 'tfootPackages', r.packages, r.totals, true);
   renderPnrTable();
-  
-  // Charts
   renderCharts();
 }
 
 function renderTable(tbodyId, tfootId, items, totals, showCountries) {
-  var t = L[currentLang];
-  var tbody = document.getElementById(tbodyId);
-  var tfoot = document.getElementById(tfootId);
+  var t = L[currentLang], tbody = document.getElementById(tbodyId), tfoot = document.getElementById(tfootId);
   if (!tbody || !tfoot) return;
-  
   var html = '';
   for (var i = 0; i < items.length; i++) {
-    var item = items[i];
-    var pctClass = getPctClass(item.salesPct);
-    
-    html += '<tr>' +
-      '<td>' + item.name + '</td>' +
-      '<td>' + item.pnrs + '</td>' +
-      '<td>' + fmtN(item.pax) + '</td>' +
-      '<td>' + fmtN(item.sold) + '</td>' +
-      '<td>' + fmtN(item.remaining) + '</td>' +
-      '<td><span class="pct-badge ' + pctClass + '">' + item.salesPct + '%</span></td>' +
-      '<td><div class="progress-cell">' +
-        '<div class="mini-bar"><div class="mini-bar-fill ' + pctClass + '" style="width:' + Math.min(item.salesPct, 100) + '%"></div></div>' +
-      '</div></td>';
-    
+    var it = items[i], pc = getPctClass(it.salesPct);
+    html += '<tr><td>' + esc(it.name) + '</td><td>' + it.pnrs + '</td><td>' + fmtN(it.pax) + '</td>' +
+      '<td>' + fmtN(it.sold) + '</td><td>' + fmtN(it.remaining) + '</td>' +
+      '<td><span class="pct-badge ' + pc + '">' + it.salesPct + '%</span></td>' +
+      '<td><div class="progress-cell"><div class="mini-bar"><div class="mini-bar-fill ' + pc + '" style="width:' + Math.min(it.salesPct,100) + '%"></div></div></div></td>';
     if (showCountries) {
       html += '<td><div class="country-tags">';
-      var ctrs = item.countries || [];
-      for (var j = 0; j < ctrs.length; j++) {
-        html += '<span class="country-tag">' + ctrs[j] + '</span>';
-      }
+      (it.countries||[]).forEach(function(c) { html += '<span class="country-tag">' + esc(c) + '</span>'; });
       html += '</div></td>';
     }
-    
     html += '</tr>';
   }
   tbody.innerHTML = html;
-  
-  var totalPct = totals.pax > 0 ? round1(totals.sold / totals.pax * 100) : 0;
-  tfoot.innerHTML = '<tr>' +
-    '<td>' + t.total + '</td>' +
-    '<td>' + totals.pnrs + '</td>' +
-    '<td>' + fmtN(totals.pax) + '</td>' +
-    '<td>' + fmtN(totals.sold) + '</td>' +
-    '<td>' + fmtN(totals.remaining) + '</td>' +
-    '<td><span class="pct-badge ' + getPctClass(totalPct) + '">' + totalPct + '%</span></td>' +
-    '<td></td>' +
-    (showCountries ? '<td></td>' : '') +
-    '</tr>';
+  var tp = totals.pax > 0 ? round1(totals.sold/totals.pax*100) : 0;
+  tfoot.innerHTML = '<tr><td>' + t.total + '</td><td>' + totals.pnrs + '</td><td>' + fmtN(totals.pax) + '</td>' +
+    '<td>' + fmtN(totals.sold) + '</td><td>' + fmtN(totals.remaining) + '</td>' +
+    '<td><span class="pct-badge ' + getPctClass(tp) + '">' + tp + '%</span></td><td></td>' +
+    (showCountries ? '<td></td>' : '') + '</tr>';
 }
 
 function renderPnrTable() {
@@ -395,37 +538,53 @@ function renderPnrTable() {
   var tfoot = document.getElementById('tfootPnrDetails');
   var t = L[currentLang];
   if (!tbody) return;
-  
-  var sorted = filteredFlights.slice().sort(function(a, b) { return b.salesPct - a.salesPct; });
-  
+
+  var sorted = filteredFlights.slice().sort(function(a,b) { return b.salesPct - a.salesPct; });
   var html = '';
   for (var i = 0; i < sorted.length; i++) {
-    var f = sorted[i];
-    var pctClass = getPctClass(f.salesPct);
-    html += '<tr>' +
-      '<td>' + (i + 1) + '</td>' +
-      '<td style="font-weight:700;color:#1565c0;">' + f.pnr + '</td>' +
-      '<td>' + f.country + '</td>' +
-      '<td>' + f.city + '</td>' +
-      '<td>' + f.airline + '</td>' +
-      '<td>' + f.supplier + '</td>' +
+    var f = sorted[i], pc = getPctClass(f.salesPct);
+    var statusCls = f.status === 'CANCEL' ? 'status-cancel' : f.status === 'Confirm' ? 'status-confirm' : 'status-empty';
+    var depStr = legStr(f.dep1);
+    if (f.dep2) depStr = depStr ? depStr + ' ✈ ' + legStr(f.dep2) : legStr(f.dep2);
+    var retStr = legStr(f.ret1);
+    if (f.ret2) retStr = retStr ? retStr + ' ✈ ' + legStr(f.ret2) : legStr(f.ret2);
+    var pkgNames = f.packages.map(function(p) { return p.name||p.id; }).join(', ');
+    var cityBadge = f.cityStart ? '<span class="city-badge city-' + f.cityStart.toLowerCase() + '">' + f.cityStart + '</span>' : t.na;
+
+    html += '<tr class="' + statusCls + '-row">' +
+      '<td>' + (i+1) + '</td>' +
+      '<td class="pnr-col">' + esc(f.pnr) + '</td>' +
+      '<td><span class="status-badge ' + statusCls + '">' + esc(f.status||t.na) + '</span></td>' +
+      '<td>' + esc(f.country) + '</td>' +
+      '<td>' + esc(f.airline) + '</td>' +
+      '<td>' + esc(f.supplier) + '</td>' +
       '<td>' + fmtN(f.pax) + '</td>' +
       '<td>' + fmtN(f.sold) + '</td>' +
       '<td>' + fmtN(f.remaining) + '</td>' +
-      '<td><span class="pct-badge ' + pctClass + '">' + f.salesPct + '%</span></td>' +
+      '<td><span class="pct-badge ' + pc + '">' + f.salesPct + '%</span></td>' +
+      '<td class="route-cell">' + (depStr||t.na) + '</td>' +
+      '<td class="route-cell">' + (retStr||t.na) + '</td>' +
+      '<td class="pkg-cell" title="' + esc(pkgNames) + '">' + esc(pkgNames) + '</td>' +
+      '<td>' + cityBadge + '</td>' +
       '</tr>';
   }
   tbody.innerHTML = html;
-  
+
   var r = reportData.totals;
-  tfoot.innerHTML = '<tr>' +
-    '<td></td><td>' + t.total + '</td><td></td><td></td><td></td><td></td>' +
-    '<td>' + fmtN(r.pax) + '</td>' +
-    '<td>' + fmtN(r.sold) + '</td>' +
-    '<td>' + fmtN(r.remaining) + '</td>' +
+  tfoot.innerHTML = '<tr><td></td><td>' + t.total + '</td><td></td><td></td><td></td><td></td>' +
+    '<td>' + fmtN(r.pax) + '</td><td>' + fmtN(r.sold) + '</td><td>' + fmtN(r.remaining) + '</td>' +
     '<td><span class="pct-badge ' + getPctClass(r.salesPct) + '">' + r.salesPct + '%</span></td>' +
-    '</tr>';
+    '<td></td><td></td><td></td><td></td></tr>';
 }
+
+function legStr(leg) {
+  if (!leg) return '';
+  return leg.from + '→' + leg.to + ' (' + leg.flight + ') ' + (leg.date||'');
+}
+
+// أول leg متاحة للذهاب/العودة (dep1 أو dep2 كـ fallback)
+function depLeg(f) { return f.dep1 || f.dep2 || {from:'',to:'',flight:'',date:''}; }
+function retLeg(f) { return f.ret1 || f.ret2 || {from:'',to:'',flight:'',date:''}; }
 
 function getPctClass(pct) {
   if (pct >= 75) return 'high';
@@ -443,167 +602,359 @@ function renderCharts() {
 
 function renderBarChart(canvasId, items) {
   var t = L[currentLang];
-  
-  if (chartInstances[canvasId]) {
-    chartInstances[canvasId].destroy();
-  }
-  
-  var labels = items.map(function(i) { return i.name; });
-  var soldData = items.map(function(i) { return i.sold; });
-  var remainData = items.map(function(i) { return i.remaining; });
-  
-  var ctx = document.getElementById(canvasId);
-  if (!ctx) return;
-  
+  if (chartInstances[canvasId]) chartInstances[canvasId].destroy();
+  var ctx = document.getElementById(canvasId); if (!ctx) return;
   chartInstances[canvasId] = new Chart(ctx, {
     type: 'bar',
     data: {
-      labels: labels,
+      labels: items.map(function(i){return i.name;}),
       datasets: [
-        {
-          label: t.thSold,
-          data: soldData,
-          backgroundColor: '#4caf50',
-          borderRadius: 3
-        },
-        {
-          label: t.thRemaining,
-          data: remainData,
-          backgroundColor: '#ff9800',
-          borderRadius: 3
-        }
+        { label: t.thSold, data: items.map(function(i){return i.sold;}), backgroundColor: '#4caf50', borderRadius: 3 },
+        { label: t.thRemaining, data: items.map(function(i){return i.remaining;}), backgroundColor: '#ff9800', borderRadius: 3 }
       ]
     },
     options: {
-      indexAxis: 'y',
-      responsive: true,
-      maintainAspectRatio: false,
-      animation: { duration: 0 },
-      plugins: {
-        legend: { position: 'top', labels: { font: { family: 'Cairo', size: 11 } } }
-      },
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false, animation: { duration: 0 },
+      plugins: { legend: { position: 'top', labels: { font: { family: 'Cairo', size: 11 } } } },
       scales: {
-        x: { 
-          stacked: true,
-          grid: { display: false },
-          ticks: { font: { family: 'Cairo', size: 10 } }
-        },
-        y: { 
-          stacked: true,
-          grid: { display: false },
-          ticks: { font: { family: 'Cairo', size: 11 } }
-        }
+        x: { stacked: true, grid: { display: false }, ticks: { font: { family: 'Cairo', size: 10 } } },
+        y: { stacked: true, grid: { display: false }, ticks: { font: { family: 'Cairo', size: 11 } } }
       }
     }
   });
-  
   ctx.parentElement.style.height = Math.max(250, items.length * 32) + 'px';
 }
 
 function renderSupplierChart(canvasId, items) {
   var t = L[currentLang];
-  
-  if (chartInstances[canvasId]) {
-    chartInstances[canvasId].destroy();
-  }
-  
-  var sorted = items.slice().sort(function(a, b) { return b.salesPct - a.salesPct; });
-  var labels = sorted.map(function(i) { return i.name; });
-  var pctData = sorted.map(function(i) { return i.salesPct; });
-  var colors = pctData.map(function(p) {
-    if (p >= 75) return '#dc3545';
-    if (p >= 50) return '#fd7e14';
-    return '#4caf50';
-  });
-  
-  var ctx = document.getElementById(canvasId);
-  if (!ctx) return;
-  
+  if (chartInstances[canvasId]) chartInstances[canvasId].destroy();
+  var sorted = items.slice().sort(function(a,b){return b.salesPct-a.salesPct;});
+  var ctx = document.getElementById(canvasId); if (!ctx) return;
   chartInstances[canvasId] = new Chart(ctx, {
     type: 'bar',
     data: {
-      labels: labels,
+      labels: sorted.map(function(i){return i.name;}),
       datasets: [{
-        label: t.thPct,
-        data: pctData,
-        backgroundColor: colors,
+        label: t.thPct, data: sorted.map(function(i){return i.salesPct;}),
+        backgroundColor: sorted.map(function(i){ return i.salesPct>=75?'#dc3545':i.salesPct>=50?'#fd7e14':'#4caf50'; }),
         borderRadius: 4
       }]
     },
     options: {
-      indexAxis: 'y',
-      responsive: true,
-      maintainAspectRatio: false,
-      animation: { duration: 0 },
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: function(ctx) { return ctx.parsed.x + '%'; }
-          }
-        }
-      },
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false, animation: { duration: 0 },
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(c){return c.parsed.x+'%';} } } },
       scales: {
-        x: { 
-          max: 100,
-          grid: { color: 'rgba(0,0,0,.05)' },
-          ticks: { 
-            callback: function(v) { return v + '%'; },
-            font: { family: 'Cairo', size: 10 }
-          }
-        },
-        y: { 
-          grid: { display: false },
-          ticks: { font: { family: 'Cairo', size: 11 } }
-        }
+        x: { max: 100, grid: { color: 'rgba(0,0,0,.05)' }, ticks: { callback: function(v){return v+'%';}, font: { family: 'Cairo', size: 10 } } },
+        y: { grid: { display: false }, ticks: { font: { family: 'Cairo', size: 11 } } }
       }
     }
   });
-  
   ctx.parentElement.style.height = Math.max(250, sorted.length * 30) + 'px';
 }
 
-// ==================== Export ====================
+// ══════════════════════════════════════════════════════════════
+// Excel Export (.xlsx) — Professional with Company Colors
+// ══════════════════════════════════════════════════════════════
+
+var BRAND = {
+  hdrFill: { fgColor: { rgb: '1A4D2E' } },
+  hdrFont: { bold: true, color: { rgb: 'FFFFFF' }, name: 'Cairo', sz: 11 },
+  altFill: { fgColor: { rgb: 'E8F5E9' } },
+  border: { top: {style:'thin',color:{rgb:'CED4DA'}}, bottom: {style:'thin',color:{rgb:'CED4DA'}}, left: {style:'thin',color:{rgb:'CED4DA'}}, right: {style:'thin',color:{rgb:'CED4DA'}} },
+  cancelFill: { fgColor: { rgb: 'FFEBEE' } },
+  confirmFill: { fgColor: { rgb: 'E8F5E9' } },
+  kpiFill: { fgColor: { rgb: '3C7B44' } },
+  kpiFont: { bold: true, color: { rgb: 'FFFFFF' }, name: 'Cairo', sz: 14 }
+};
+
 function exportAllExcel() {
-  if (!reportData) return;
+  if (!reportData) { alert('No data to export'); return; }
+  if (typeof XLSX === 'undefined') { alert('XLSX library not loaded. Please reload the page.'); return; }
+
+  // ─── وضع المرشد: تصدير مخصص ───
+  if (window._guideReportData && document.getElementById('guideModeArea').style.display !== 'none') {
+    buildGuideXlsx(window._guideReportData);
+    return;
+  }
+
+  var t = L[currentLang], btn = document.getElementById('btnExport');
+
+  // جمع أرقام الرحلات + أرقام الباقات من الفلاتر الحالية
+  var allPkgIds = [], allFlightNos = [];
+  filteredFlights.forEach(function(f) {
+    f.packages.forEach(function(p) { if (p.id && allPkgIds.indexOf(p.id)===-1) allPkgIds.push(p.id); });
+    if (f.dep1 && f.dep1.flight && allFlightNos.indexOf(f.dep1.flight)===-1) allFlightNos.push(f.dep1.flight);
+    if (f.dep2 && f.dep2.flight && allFlightNos.indexOf(f.dep2.flight)===-1) allFlightNos.push(f.dep2.flight);
+  });
+
+  btn.disabled = true; btn.textContent = t.exporting;
+
+  google.script.run
+    .withSuccessHandler(function(json) {
+      try {
+        var data = JSON.parse(json);
+        btn.disabled = false; btn.textContent = t.excel;
+        if (!data.success) { alert('Export error: ' + (data.error||'Unknown')); return; }
+        buildXlsx(data.packages||{}, data.pilgrims||{});
+      } catch (e) {
+        btn.disabled = false; btn.textContent = t.excel;
+        alert('Export parse error: ' + e.message);
+      }
+    })
+    .withFailureHandler(function(err) {
+      btn.disabled = false; btn.textContent = t.excel;
+      alert('Server error: ' + (err.message||err) + ' — Exporting without pilgrim data...');
+      try { buildXlsx({}, {}); } catch (e) { alert('buildXlsx error: ' + e.message); }
+    })
+    .getExportData(JSON.stringify({ pkgIds: allPkgIds, flightNos: allFlightNos }));
+}
+
+function buildXlsx(pkgMap, pilgrimMap) {
+  try {
   var t = L[currentLang];
-  
-  var csv = '\uFEFF';
-  csv += '=== ' + t.titleCountries + ' ===\n';
-  csv += t.thCountry + ',' + t.thPnrs + ',' + t.thPax + ',' + t.thSold + ',' + t.thRemaining + ',' + t.thPct + '\n';
-  for (var i = 0; i < reportData.countries.length; i++) {
-    var c = reportData.countries[i];
-    csv += '"' + c.name + '",' + c.pnrs + ',' + c.pax + ',' + c.sold + ',' + c.remaining + ',' + c.salesPct + '%\n';
+  var wb = XLSX.utils.book_new();
+
+  // ─── Sheet 1: Dashboard ───
+  var dash = [];
+  dash.push([t.headerTitle + ' — ' + new Date().toLocaleDateString()]);
+  dash.push([]);
+  dash.push([t.kpiPnrs, t.kpiPax, t.kpiSold, t.kpiRemaining, t.kpiPct]);
+  dash.push([reportData.totals.pnrs, reportData.totals.pax, reportData.totals.sold, reportData.totals.remaining, reportData.totals.salesPct + '%']);
+  dash.push([]);
+
+  // حسب الدولة
+  dash.push([t.titleCountries]);
+  dash.push([t.thCountry, t.thPnrs, t.thPax, t.thSold, t.thRemaining, t.thPct]);
+  reportData.countries.forEach(function(c) { dash.push([c.name, c.pnrs, c.pax, c.sold, c.remaining, c.salesPct+'%']); });
+  dash.push([]);
+
+  // حسب شركة الطيران
+  dash.push([t.titleAirlines]);
+  dash.push([t.thAirline, t.thPnrs, t.thPax, t.thSold, t.thRemaining, t.thPct]);
+  reportData.airlines.forEach(function(a) { dash.push([a.name, a.pnrs, a.pax, a.sold, a.remaining, a.salesPct+'%']); });
+  dash.push([]);
+
+  // حسب المورد
+  dash.push([t.titleSuppliers]);
+  dash.push([t.thSupplier, t.thPnrs, t.thPax, t.thSold, t.thRemaining, t.thPct, t.thCountries]);
+  reportData.suppliers.forEach(function(s) { dash.push([s.name, s.pnrs, s.pax, s.sold, s.remaining, s.salesPct+'%', (s.countries||[]).join(', ')]); });
+
+  var ws1 = XLSX.utils.aoa_to_sheet(dash);
+  styleSheet(ws1, dash, [0, 5, 5+reportData.countries.length+2, 5+reportData.countries.length+2+reportData.airlines.length+2]);
+  ws1['!cols'] = [{wch:30},{wch:8},{wch:10},{wch:10},{wch:10},{wch:10},{wch:30}];
+  XLSX.utils.book_append_sheet(wb, ws1, t.shDashboard);
+
+  // ─── Sheet 2: PNR Details ───
+  var det = [];
+  var detHdr = [t.thPnr, t.thStatus, t.thCountry, t.thCity, t.thAirline, t.thSupplier,
+    t.thPax, t.thSold, t.thRemaining, t.thPct,
+    t.thDep + ' From', t.thDep + ' To', t.thDep + ' Flight', t.thDep + ' Date',
+    t.thRet + ' From', t.thRet + ' To', t.thRet + ' Flight', t.thRet + ' Date',
+    t.thPackage, t.thNuskNo, t.thStartDate, t.thEndDate, t.thCityStart, t.filterResidence];
+  det.push(detHdr);
+
+  filteredFlights.forEach(function(f) {
+    var pkgNames = f.packages.map(function(p){return p.name||p.id;}).join('; ');
+    var pkgIds = f.packages.map(function(p){return p.id;}).join('; ');
+    var pStart='', pEnd='', cityS = f.cityStart||'';
+    f.packages.forEach(function(p) { var pi=pkgMap[p.id]; if(pi&&!pStart) { pStart=pi.startDate; pEnd=pi.endDate; if(!cityS) cityS=pi.cityStart; } });
+
+    det.push([
+      f.pnr, f.status||'', f.country, f.city, f.airline, f.supplier,
+      f.pax, f.sold, f.remaining, f.salesPct+'%',
+      depLeg(f).from, depLeg(f).to, depLeg(f).flight, depLeg(f).date,
+      retLeg(f).from, retLeg(f).to, retLeg(f).flight, retLeg(f).date,
+      pkgNames, pkgIds, pStart, pEnd, cityS, (f.residenceCountries||[]).join('; ')
+    ]);
+  });
+
+  var ws2 = XLSX.utils.aoa_to_sheet(det);
+  styleDetailSheet(ws2, det);
+  ws2['!cols'] = [{wch:15},{wch:10},{wch:12},{wch:10},{wch:15},{wch:15},{wch:6},{wch:6},{wch:6},{wch:8},
+    {wch:6},{wch:6},{wch:10},{wch:11},{wch:6},{wch:6},{wch:10},{wch:11},{wch:25},{wch:10},{wch:11},{wch:11},{wch:6},{wch:15}];
+  ws2['!autofilter'] = { ref: XLSX.utils.encode_range({s:{r:0,c:0},e:{r:0,c:detHdr.length-1}}) };
+  ws2['!freeze'] = { xSplit: 0, ySplit: 1 };
+  XLSX.utils.book_append_sheet(wb, ws2, t.shDetails);
+
+  // ─── Sheet 3: Packages (أعداد الحجاج الفعليين حسب الفلاتر) ───
+  var pkg = [];
+  pkg.push([t.thPackage, t.thNuskNo, t.thStartDate, t.thEndDate, t.thCityStart, 'PNRs', t.shPilgrims]);
+
+  // حساب عدد الحجاج والـ PNRs الفعلية لكل باقة من نتائج الفلاتر
+  var pkgStats = {}; // pkgId → {name, pnrs: [], pilgrims: count}
+  filteredFlights.forEach(function(f) {
+    f.packages.forEach(function(p) {
+      if (!pkgStats[p.id]) pkgStats[p.id] = { name: p.name||p.id, pnrs: [], pilgrims: 0 };
+      if (pkgStats[p.id].pnrs.indexOf(f.pnr) === -1) pkgStats[p.id].pnrs.push(f.pnr);
+      var pils = pilgrimMap[p.id] || [];
+      pkgStats[p.id].pilgrims = pils.length;
+    });
+  });
+
+  var totalPilgrims = 0;
+  for (var pkId in pkgStats) {
+    var ps = pkgStats[pkId];
+    var pi = pkgMap[pkId] || {};
+    totalPilgrims += ps.pilgrims;
+    pkg.push([pi.nameAr || ps.name, pkId, pi.startDate || '', pi.endDate || '', pi.cityStart || '', ps.pnrs.join(', '), ps.pilgrims]);
   }
-  
-  csv += '\n=== ' + t.titleAirlines + ' ===\n';
-  csv += t.thAirline + ',' + t.thPnrs + ',' + t.thPax + ',' + t.thSold + ',' + t.thRemaining + ',' + t.thPct + '\n';
-  for (var j = 0; j < reportData.airlines.length; j++) {
-    var a = reportData.airlines[j];
-    csv += '"' + a.name + '",' + a.pnrs + ',' + a.pax + ',' + a.sold + ',' + a.remaining + ',' + a.salesPct + '%\n';
+  pkg.push([t.total, '', '', '', '', '', totalPilgrims]);
+
+  var ws3 = XLSX.utils.aoa_to_sheet(pkg);
+  styleSheet(ws3, pkg, [0]);
+  ws3['!cols'] = [{wch:30},{wch:10},{wch:11},{wch:11},{wch:8},{wch:20},{wch:10}];
+  XLSX.utils.book_append_sheet(wb, ws3, t.shPackages);
+
+  // ─── Sheet 4: Pilgrims ───
+  var plg = [];
+  plg.push([t.thPnr, t.thPackage, t.thNuskNo, t.thPilgrimName, t.thPassport, t.filterResidence, t.filterGuide]);
+  filteredFlights.forEach(function(f) {
+    f.packages.forEach(function(p) {
+      var pils = pilgrimMap[p.id]||[];
+      if (pils.length === 0) { plg.push([f.pnr, p.name||p.id, p.id, '', '', '', '']); }
+      else { pils.forEach(function(pl) { plg.push([f.pnr, p.name||p.id, p.id, pl.name, pl.passport, pl.residence||'', pl.guide||'']); }); }
+    });
+  });
+  var ws4 = XLSX.utils.aoa_to_sheet(plg);
+  styleSheet(ws4, plg, [0]);
+  ws4['!cols'] = [{wch:15},{wch:25},{wch:10},{wch:25},{wch:15},{wch:15},{wch:20}];
+  XLSX.utils.book_append_sheet(wb, ws4, t.shPilgrims);
+
+  // ─── Sheets 5+: Per-PNR Passenger Lists (for airline ticketing) ───
+  var pnrPilgrims = {};
+  filteredFlights.forEach(function(f) {
+    var fns = [];
+    if (f.dep1) fns.push(f.dep1.flight);
+    if (f.dep2) fns.push(f.dep2.flight);
+    f.packages.forEach(function(p) {
+      var pils = pilgrimMap[p.id] || [];
+      pils.forEach(function(pl) {
+        if (fns.length === 0 || fns.indexOf(pl.flightNo) !== -1) {
+          if (!pnrPilgrims[f.pnr]) pnrPilgrims[f.pnr] = [];
+          // تجنب التكرار بالجواز
+          var dup = false;
+          for (var d = 0; d < pnrPilgrims[f.pnr].length; d++) {
+            if (pnrPilgrims[f.pnr][d].passport === pl.passport) { dup = true; break; }
+          }
+          if (!dup) pnrPilgrims[f.pnr].push(pl);
+        }
+      });
+    });
+  });
+
+  var pnrHdr = ['No.', 'Family Name', 'First Name', 'Nationality', 'Passport Number', 'Date of Birth', 'Gender', 'Passport Expiry Date'];
+  for (var pnr in pnrPilgrims) {
+    var rows = [pnrHdr];
+    var list = pnrPilgrims[pnr];
+    for (var pi = 0; pi < list.length; pi++) {
+      var pl = list[pi];
+      rows.push([pi + 1, pl.familyName || '', pl.firstName || '', pl.nationality || '', pl.passport || '', pl.dob || '', pl.gender || '', pl.passportExpiry || '']);
+    }
+    var wsPnr = XLSX.utils.aoa_to_sheet(rows);
+    styleSheet(wsPnr, rows, [0]);
+    wsPnr['!cols'] = [{wch:5},{wch:20},{wch:20},{wch:18},{wch:15},{wch:12},{wch:8},{wch:15}];
+    // اسم الشيت: PNR code (max 31 حرف)
+    var sheetName = String(pnr).substring(0, 31);
+    XLSX.utils.book_append_sheet(wb, wsPnr, sheetName);
   }
-  
-  csv += '\n=== ' + t.titleSuppliers + ' ===\n';
-  csv += t.thSupplier + ',' + t.thPnrs + ',' + t.thPax + ',' + t.thSold + ',' + t.thRemaining + ',' + t.thPct + ',' + t.thCountries + '\n';
-  for (var k = 0; k < reportData.suppliers.length; k++) {
-    var s = reportData.suppliers[k];
-    csv += '"' + s.name + '",' + s.pnrs + ',' + s.pax + ',' + s.sold + ',' + s.remaining + ',' + s.salesPct + '%,"' + (s.countries || []).join('; ') + '"\n';
+
+  // تنزيل
+  XLSX.writeFile(wb, 'SalesReport_' + new Date().toISOString().slice(0,10) + '.xlsx');
+  } catch (e) { alert('Excel build error: ' + e.message + '\n' + e.stack); }
+}
+
+// ─── Guide Mode Excel Export ───
+
+function buildGuideXlsx(gData) {
+  try {
+    var t = L[currentLang];
+    var wb = XLSX.utils.book_new();
+    var pils = gData.pilgrims || [];
+    var guide = gData.guide || '';
+
+    // ─── Sheet 1: Guide Summary ───
+    var sum = [];
+    sum.push(['Guide Report — ' + guide + ' — ' + new Date().toLocaleDateString()]);
+    sum.push([]);
+    sum.push(['Guide', 'Pilgrims', 'Packages', 'Flights', 'Countries']);
+    sum.push([guide, pils.length, Object.keys(gData.stats.pkgs||{}).length, Object.keys(gData.stats.flights||{}).length, Object.keys(gData.stats.countries||{}).length]);
+    sum.push([]);
+
+    // إحصائيات بالجنسية
+    sum.push(['Nationality', 'Count']);
+    var countries = gData.stats.countries || {};
+    for (var nat in countries) {
+      sum.push([nat, countries[nat]]);
+    }
+
+    var ws1 = XLSX.utils.aoa_to_sheet(sum);
+    styleSheet(ws1, sum, [0, 2, 5]);
+    ws1['!cols'] = [{wch:30},{wch:12},{wch:12},{wch:12},{wch:12}];
+    XLSX.utils.book_append_sheet(wb, ws1, 'Summary');
+
+    // ─── Sheet 2: Pilgrims ───
+    var plg = [];
+    plg.push(['No.', 'Family Name', 'First Name', 'Passport', 'DOB', 'Gender', 'Passport Expiry', 'Package', 'Flight', 'Dep City', 'Dep Date', 'Residence', 'Nationality']);
+    for (var i = 0; i < pils.length; i++) {
+      var pl = pils[i];
+      plg.push([i + 1, pl.familyName||'', pl.firstName||'', pl.passport||'', pl.dob||'', pl.gender||'', pl.passportExpiry||'', pl.pkgName||pl.pkgNo||'', pl.flightNo||'', pl.depCity||'', pl.depDate||'', pl.residence||'', pl.nationality||'']);
+    }
+
+    var ws2 = XLSX.utils.aoa_to_sheet(plg);
+    styleSheet(ws2, plg, [0]);
+    ws2['!cols'] = [{wch:5},{wch:20},{wch:20},{wch:15},{wch:12},{wch:8},{wch:15},{wch:25},{wch:10},{wch:12},{wch:12},{wch:15},{wch:15}];
+    ws2['!autofilter'] = { ref: XLSX.utils.encode_range({s:{r:0,c:0},e:{r:0,c:12}}) };
+    XLSX.utils.book_append_sheet(wb, ws2, 'Pilgrims');
+
+    XLSX.writeFile(wb, 'GuideReport_' + guide.replace(/[^a-zA-Z0-9\u0600-\u06FF]/g,'_') + '_' + new Date().toISOString().slice(0,10) + '.xlsx');
+  } catch (e) { alert('Guide Excel error: ' + e.message); }
+}
+
+// ─── Excel Styling Helpers ───
+
+function styleSheet(ws, data, headerRows) {
+  var whiteFill = { fgColor: { rgb: 'FFFFFF' } };
+  var range = XLSX.utils.decode_range(ws['!ref']);
+  for (var r = range.s.r; r <= range.e.r; r++) {
+    var isHeader = headerRows.indexOf(r) !== -1;
+    var isAlt = !isHeader && r % 2 === 0;
+    for (var c = range.s.c; c <= range.e.c; c++) {
+      var addr = XLSX.utils.encode_cell({r:r,c:c});
+      if (!ws[addr]) ws[addr] = {v:'',t:'s'};
+      ws[addr].s = {
+        font: isHeader ? BRAND.hdrFont : { name: 'Cairo', sz: 10, color: { rgb: '000000' } },
+        fill: isHeader ? BRAND.hdrFill : isAlt ? BRAND.altFill : whiteFill,
+        border: BRAND.border,
+        alignment: { vertical: 'center', horizontal: 'center' }
+      };
+      if (!isHeader && c === 0) ws[addr].s.alignment.horizontal = 'left';
+    }
   }
-  
-  csv += '\n=== ' + t.titlePnrDetails + ' ===\n';
-  csv += t.thPnr + ',' + t.thCountry + ',' + t.thCity + ',' + t.thAirline + ',' + t.thSupplier + ',' + t.thPax + ',' + t.thSold + ',' + t.thRemaining + ',' + t.thPct + '\n';
-  for (var m = 0; m < filteredFlights.length; m++) {
-    var f = filteredFlights[m];
-    csv += '"' + f.pnr + '","' + f.country + '","' + f.city + '","' + f.airline + '","' + f.supplier + '",' + f.pax + ',' + f.sold + ',' + f.remaining + ',' + f.salesPct + '%\n';
+}
+
+function styleDetailSheet(ws, data) {
+  var whiteFill = { fgColor: { rgb: 'FFFFFF' } };
+  var range = XLSX.utils.decode_range(ws['!ref']);
+  for (var r = range.s.r; r <= range.e.r; r++) {
+    var isHeader = r === 0;
+    var status = r > 0 && data[r] ? String(data[r][1]) : '';
+    var isCancel = status === 'CANCEL';
+    for (var c = range.s.c; c <= range.e.c; c++) {
+      var addr = XLSX.utils.encode_cell({r:r,c:c});
+      if (!ws[addr]) ws[addr] = {v:'',t:'s'};
+      var fill = whiteFill;
+      if (isHeader) fill = BRAND.hdrFill;
+      else if (isCancel) fill = BRAND.cancelFill;
+      else if (r % 2 === 0) fill = BRAND.altFill;
+
+      ws[addr].s = {
+        font: isHeader ? BRAND.hdrFont : isCancel ? { name:'Cairo', sz:10, color:{rgb:'C62828'} } : { name:'Cairo', sz:10, color:{rgb:'000000'} },
+        fill: fill,
+        border: BRAND.border,
+        alignment: { vertical: 'center', horizontal: 'center' }
+      };
+      if (!isHeader && c === 0) ws[addr].s.alignment.horizontal = 'left';
+    }
   }
-  
-  var tot = reportData.totals;
-  csv += '"TOTAL","","","","",'+tot.pax+','+tot.sold+','+tot.remaining+','+tot.salesPct+'%\n';
-  
-  var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  var link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = 'SalesReport_' + new Date().toISOString().slice(0,10) + '.csv';
-  link.click();
 }
 </script>

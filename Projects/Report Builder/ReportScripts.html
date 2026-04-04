@@ -1,0 +1,860 @@
+<script>
+// ══════════════════════════════════════════════
+//  Ikram Report Builder v2.0 — بحث شامل
+// ══════════════════════════════════════════════
+
+var currentLang = 'ar';
+var allSheets = [];         // [{sheetName, nameEn, icon, columns:[{index,name,type}], rowCount}]
+var selectedColumns = [];   // [{sheetName, colIndex, colName, colType}]
+var lastReportData = null;
+var chartInstance = null;
+
+// ══════════════════════════════════════════════
+//  i18n
+// ══════════════════════════════════════════════
+
+var L = {
+  ar: {
+    headerSub: 'مصمم التقارير الشامل — اختر أعمدتك من أي شيت',
+    searchPlaceholder: '🔍 بحث في الأعمدة...',
+    loadingSheetsText: 'جاري تحميل الشيتات...',
+    lblSelected: 'عمود محدد',
+    lblFilters: 'الفلاتر', btnAddFilter: '+ إضافة فلتر',
+    lblGroupBy: 'تجميع حسب', lblAgg: 'التجميعات',
+    lblSortBy: 'ترتيب حسب', lblTemplates: 'القوالب',
+    lblGenerate: 'توليد التقرير', lblExport: 'تصدير Excel',
+    lblSave: 'حفظ قالب', lblPrint: 'طباعة', lblClear: 'مسح الكل',
+    loadingText: 'جاري تحميل البيانات...', emptyTitle: 'مصمم التقارير الشامل',
+    emptyDesc: 'حدد الأعمدة التي تحتاجها من أي شيت في القائمة الجانبية، ثم اضغط "توليد التقرير"',
+    noColumns: 'لم يتم تحديد أعمدة', page: 'صفحة', of: 'من', rowsOf: 'صف من',
+    selectAll: 'الكل', deselectAll: 'إلغاء',
+    filterEquals: 'يساوي', filterContains: 'يحتوي', filterStartsWith: 'يبدأ بـ',
+    filterGt: 'أكبر من', filterLt: 'أصغر من', filterBetween: 'بين',
+    filterNotEmpty: 'غير فارغ', filterEmpty: 'فارغ',
+    filterAfter: 'بعد', filterBefore: 'قبل',
+    noGroup: '-- بدون تجميع --', noSort: '-- بدون ترتيب --',
+    kpiTotalRowsLabel: 'إجمالي الصفوف', kpiGroupsLabel: 'المجموعات',
+    savedSuccess: 'تم حفظ القالب', rows: 'صف'
+  },
+  en: {
+    headerSub: 'Universal Report Designer — pick columns from any sheet',
+    searchPlaceholder: '🔍 Search columns...',
+    loadingSheetsText: 'Loading sheets...',
+    lblSelected: 'columns selected',
+    lblFilters: 'Filters', btnAddFilter: '+ Add Filter',
+    lblGroupBy: 'Group By', lblAgg: 'Aggregations',
+    lblSortBy: 'Sort By', lblTemplates: 'Templates',
+    lblGenerate: 'Generate Report', lblExport: 'Export Excel',
+    lblSave: 'Save Template', lblPrint: 'Print', lblClear: 'Clear All',
+    loadingText: 'Loading data...', emptyTitle: 'Universal Report Designer',
+    emptyDesc: 'Select columns from any sheet in the sidebar, then click "Generate Report"',
+    noColumns: 'No columns selected', page: 'Page', of: 'of', rowsOf: 'rows of',
+    selectAll: 'All', deselectAll: 'None',
+    filterEquals: 'Equals', filterContains: 'Contains', filterStartsWith: 'Starts with',
+    filterGt: 'Greater than', filterLt: 'Less than', filterBetween: 'Between',
+    filterNotEmpty: 'Not empty', filterEmpty: 'Empty',
+    filterAfter: 'After', filterBefore: 'Before',
+    noGroup: '-- No Grouping --', noSort: '-- No Sorting --',
+    kpiTotalRowsLabel: 'Total Rows', kpiGroupsLabel: 'Groups',
+    savedSuccess: 'Template saved', rows: 'rows'
+  }
+};
+
+function t(k) { return L[currentLang][k] || k; }
+
+function changeLang(lang) {
+  currentLang = lang;
+  document.body.className = lang === 'ar' ? 'rtl' : 'ltr';
+  document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+  document.documentElement.lang = lang;
+
+  // تحديث النصوص
+  var map = {headerSub:1,lblFilters:1,lblGroupBy:1,lblAgg:1,lblSortBy:1,lblTemplates:1,
+    lblGenerate:1,lblExport:1,lblSave:1,lblPrint:1,lblClear:1,loadingText:1,
+    emptyTitle:1,emptyDesc:1,kpiTotalRowsLabel:1,kpiGroupsLabel:1};
+  for (var id in map) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = t(id);
+  }
+  document.getElementById('columnSearch').placeholder = t('searchPlaceholder');
+  document.getElementById('lblSelected').textContent = t('lblSelected');
+  document.getElementById('btnAddFilter').textContent = t('btnAddFilter');
+
+  if (allSheets.length > 0) renderSheets(allSheets);
+  updateGroupSortOptions();
+}
+
+// ══════════════════════════════════════════════
+//  Helpers
+// ══════════════════════════════════════════════
+
+function esc(s) { return !s ? '' : String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function fmtN(n) { return n == null ? '0' : Number(n).toLocaleString('en-US'); }
+
+// ══════════════════════════════════════════════
+//  Init
+// ══════════════════════════════════════════════
+
+document.addEventListener('DOMContentLoaded', function() {
+  loadAllSheets();
+  loadTemplateList();
+});
+
+function loadAllSheets() {
+  google.script.run.withSuccessHandler(function(json) {
+    allSheets = JSON.parse(json);
+    renderSheets(allSheets);
+  }).withFailureHandler(function(err) {
+    document.getElementById('sheetsContainer').innerHTML =
+      '<div style="padding:20px;color:red">Error: ' + esc(err.message) + '</div>';
+  }).getAllSheets();
+}
+
+// ══════════════════════════════════════════════
+//  Render Sheets in Sidebar
+// ══════════════════════════════════════════════
+
+function renderSheets(sheets) {
+  var container = document.getElementById('sheetsContainer');
+  container.innerHTML = '';
+
+  sheets.forEach(function(sheet) {
+    var div = document.createElement('div');
+    div.className = 'col-group';
+    div.dataset.sheetName = sheet.sheetName;
+
+    // Header
+    var header = document.createElement('div');
+    header.className = 'col-group-header';
+
+    var sheetLabel = sheet.icon + ' ' + (currentLang === 'en' && sheet.nameEn ? sheet.nameEn : sheet.nameAr);
+    header.innerHTML = '<span class="arrow">▸</span> ' + esc(sheetLabel) +
+      ' <span class="sheet-row-badge">' + fmtN(sheet.rowCount) + ' ' + t('rows') + '</span>' +
+      '<span class="select-all" data-sheet="' + esc(sheet.sheetName) + '">' + t('selectAll') + '</span>';
+
+    header.onclick = function(e) {
+      if (e.target.classList.contains('select-all')) return;
+      var body = div.querySelector('.col-group-body');
+      var arrow = header.querySelector('.arrow');
+      body.classList.toggle('open');
+      arrow.classList.toggle('open');
+    };
+
+    // Select All
+    header.querySelector('.select-all').onclick = function(e) {
+      e.stopPropagation();
+      var body = div.querySelector('.col-group-body');
+      if (!body.classList.contains('open')) {
+        body.classList.add('open');
+        header.querySelector('.arrow').classList.add('open');
+      }
+      var checkboxes = body.querySelectorAll('input[type="checkbox"]');
+      var allChecked = Array.from(checkboxes).every(function(cb) { return cb.checked; });
+      checkboxes.forEach(function(cb) {
+        cb.checked = !allChecked;
+        toggleColumn(sheet.sheetName, parseInt(cb.dataset.index), cb.dataset.name, cb.dataset.coltype, !allChecked);
+      });
+      this.textContent = allChecked ? t('selectAll') : t('deselectAll');
+    };
+
+    div.appendChild(header);
+
+    // Body — columns
+    var body = document.createElement('div');
+    body.className = 'col-group-body';
+
+    sheet.columns.forEach(function(col) {
+      var item = document.createElement('label');
+      item.className = 'col-item';
+      item.dataset.searchText = col.name.toLowerCase();
+
+      var cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.dataset.index = col.index;
+      cb.dataset.name = col.name;
+      cb.dataset.coltype = col.type;
+      cb.checked = isSelected(sheet.sheetName, col.index);
+      cb.onchange = function() {
+        toggleColumn(sheet.sheetName, col.index, col.name, col.type, this.checked);
+      };
+
+      var typeLabel = col.type === 'number' ? '#' : col.type === 'currency' ? '$' :
+        col.type === 'date' ? '📅' : col.type === 'percentage' ? '%' : 'A';
+      var typeBadge = '<span class="col-type-badge type-' + col.type + '">' + typeLabel + '</span>';
+
+      item.appendChild(cb);
+      item.insertAdjacentHTML('beforeend', ' ' + esc(col.name) + typeBadge);
+      body.appendChild(item);
+    });
+
+    div.appendChild(body);
+    container.appendChild(div);
+  });
+}
+
+// ══════════════════════════════════════════════
+//  Column Selection
+// ══════════════════════════════════════════════
+
+function isSelected(sheetName, colIndex) {
+  return selectedColumns.some(function(c) {
+    return c.sheetName === sheetName && c.colIndex === colIndex;
+  });
+}
+
+function toggleColumn(sheetName, colIndex, colName, colType, checked) {
+  if (checked) {
+    if (!isSelected(sheetName, colIndex)) {
+      selectedColumns.push({ sheetName: sheetName, colIndex: colIndex, colName: colName, colType: colType });
+    }
+  } else {
+    selectedColumns = selectedColumns.filter(function(c) {
+      return !(c.sheetName === sheetName && c.colIndex === colIndex);
+    });
+  }
+  updateSelectedSummary();
+  updateGroupSortOptions();
+
+  // إظهار الفلاتر والتجميع عند وجود أعمدة
+  var show = selectedColumns.length > 0;
+  document.getElementById('filtersSection').style.display = show ? '' : 'none';
+  document.getElementById('groupSection').style.display = show ? '' : 'none';
+  document.getElementById('sortSection').style.display = show ? '' : 'none';
+}
+
+function updateSelectedSummary() {
+  var summary = document.getElementById('selectedSummary');
+  var count = document.getElementById('selectedCount');
+  if (selectedColumns.length > 0) {
+    summary.style.display = '';
+    count.textContent = selectedColumns.length;
+  } else {
+    summary.style.display = 'none';
+  }
+}
+
+function clearAllSelections() {
+  selectedColumns = [];
+  // إلغاء كل الـ checkboxes
+  document.querySelectorAll('.col-group-body input[type="checkbox"]').forEach(function(cb) {
+    cb.checked = false;
+  });
+  updateSelectedSummary();
+  updateGroupSortOptions();
+  document.getElementById('filtersSection').style.display = 'none';
+  document.getElementById('groupSection').style.display = 'none';
+  document.getElementById('sortSection').style.display = 'none';
+}
+
+// ══════════════════════════════════════════════
+//  Column Search
+// ══════════════════════════════════════════════
+
+function filterColumnSearch(query) {
+  var q = query.toLowerCase();
+  document.querySelectorAll('.col-group').forEach(function(group) {
+    var items = group.querySelectorAll('.col-item');
+    var anyVisible = false;
+    items.forEach(function(item) {
+      var match = !q || item.dataset.searchText.indexOf(q) > -1;
+      item.style.display = match ? '' : 'none';
+      if (match) anyVisible = true;
+    });
+    // إظهار/إخفاء المجموعة + فتحها تلقائياً عند البحث
+    group.style.display = anyVisible || !q ? '' : 'none';
+    if (q && anyVisible) {
+      group.querySelector('.col-group-body').classList.add('open');
+      group.querySelector('.arrow').classList.add('open');
+    }
+    if (!q) {
+      group.querySelector('.col-group-body').classList.remove('open');
+      group.querySelector('.arrow').classList.remove('open');
+    }
+  });
+}
+
+// ══════════════════════════════════════════════
+//  Group & Sort Options
+// ══════════════════════════════════════════════
+
+function updateGroupSortOptions() {
+  var groupSel = document.getElementById('groupBySelect');
+  var sortSel = document.getElementById('sortBySelect');
+  var prevG = groupSel.value, prevS = sortSel.value;
+
+  while (groupSel.options.length > 1) groupSel.remove(1);
+  while (sortSel.options.length > 1) sortSel.remove(1);
+  groupSel.options[0].textContent = t('noGroup');
+  sortSel.options[0].textContent = t('noSort');
+
+  selectedColumns.forEach(function(col) {
+    var label = col.colName + ' [' + col.sheetName + ']';
+    var val = col.sheetName + '|' + col.colIndex;
+
+    // Sort: كل الأعمدة
+    var sOpt = document.createElement('option');
+    sOpt.value = val;
+    sOpt.textContent = label;
+    sortSel.appendChild(sOpt);
+
+    // Group: نصية فقط
+    if (col.colType === 'text') {
+      var gOpt = document.createElement('option');
+      gOpt.value = val;
+      gOpt.textContent = label;
+      groupSel.appendChild(gOpt);
+    }
+  });
+
+  if (prevG) groupSel.value = prevG;
+  if (prevS) sortSel.value = prevS;
+}
+
+function onGroupByChange() {
+  var val = document.getElementById('groupBySelect').value;
+  var aggContainer = document.getElementById('aggContainer');
+  var aggOptions = document.getElementById('aggOptions');
+
+  if (!val) { aggContainer.style.display = 'none'; return; }
+
+  aggContainer.style.display = '';
+  aggOptions.innerHTML = '';
+
+  // أعمدة رقمية
+  selectedColumns.forEach(function(col) {
+    if (col.colType !== 'number' && col.colType !== 'currency' && col.colType !== 'percentage') return;
+    var id = col.sheetName + '|' + col.colIndex;
+    if (id === val) return;
+
+    var row = document.createElement('div');
+    row.style.marginBottom = '6px';
+    row.innerHTML = '<div style="font-size:.73rem;font-weight:600;margin-bottom:2px">' +
+      esc(col.colName) + ' <span style="color:#999">[' + esc(col.sheetName) + ']</span></div>';
+
+    var chips = document.createElement('div');
+    chips.className = 'agg-options';
+    ['SUM','AVG','COUNT','MIN','MAX'].forEach(function(func) {
+      var chip = document.createElement('span');
+      chip.className = 'agg-chip';
+      chip.textContent = func;
+      chip.dataset.sheet = col.sheetName;
+      chip.dataset.col = col.colIndex;
+      chip.dataset.func = func;
+      chip.onclick = function() { this.classList.toggle('active'); };
+      chips.appendChild(chip);
+    });
+    row.appendChild(chips);
+    aggOptions.appendChild(row);
+  });
+
+  if (!aggOptions.children.length) {
+    aggOptions.innerHTML = '<p style="font-size:.73rem;color:#999">' +
+      (currentLang === 'ar' ? 'لا توجد أعمدة رقمية' : 'No numeric columns') + '</p>';
+  }
+}
+
+// ══════════════════════════════════════════════
+//  Filters
+// ══════════════════════════════════════════════
+
+function addFilter() {
+  var container = document.getElementById('filtersContainer');
+  var fid = 'f_' + Date.now();
+
+  var row = document.createElement('div');
+  row.className = 'filter-row';
+  row.id = fid;
+
+  // Column select
+  var colSel = document.createElement('select');
+  colSel.innerHTML = '<option value="">--</option>';
+  selectedColumns.forEach(function(col) {
+    var val = col.sheetName + '|' + col.colIndex;
+    colSel.innerHTML += '<option value="' + esc(val) + '">' + esc(col.colName) + ' [' + esc(col.sheetName) + ']</option>';
+  });
+  colSel.onchange = function() { updateFilterOps(fid, this.value); };
+
+  var opSel = document.createElement('select');
+  opSel.className = 'filter-op';
+  opSel.innerHTML = '<option value="contains">' + t('filterContains') + '</option>';
+
+  var valIn = document.createElement('input');
+  valIn.type = 'text'; valIn.className = 'filter-val'; valIn.placeholder = '...';
+
+  var val2In = document.createElement('input');
+  val2In.type = 'text'; val2In.className = 'filter-val2'; val2In.placeholder = '...'; val2In.style.display = 'none';
+
+  var rmBtn = document.createElement('button');
+  rmBtn.className = 'filter-remove'; rmBtn.textContent = '✕';
+  rmBtn.onclick = function() { row.remove(); };
+
+  row.appendChild(colSel); row.appendChild(opSel); row.appendChild(valIn); row.appendChild(val2In); row.appendChild(rmBtn);
+  container.appendChild(row);
+}
+
+function updateFilterOps(fid, val) {
+  var row = document.getElementById(fid);
+  if (!row || !val) return;
+  var opSel = row.querySelector('.filter-op');
+  var valIn = row.querySelector('.filter-val');
+  var val2In = row.querySelector('.filter-val2');
+
+  var parts = val.split('|');
+  var sheetName = parts[0], colIdx = parseInt(parts[1]);
+  var col = selectedColumns.find(function(c) { return c.sheetName === sheetName && c.colIndex === colIdx; });
+  var type = col ? col.colType : 'text';
+
+  opSel.innerHTML = '';
+  val2In.style.display = 'none';
+
+  if (type === 'number' || type === 'currency' || type === 'percentage') {
+    valIn.type = 'number';
+    opSel.innerHTML = '<option value="equals">' + t('filterEquals') + '</option>' +
+      '<option value="gt">' + t('filterGt') + '</option>' +
+      '<option value="lt">' + t('filterLt') + '</option>' +
+      '<option value="between">' + t('filterBetween') + '</option>' +
+      '<option value="notEmpty">' + t('filterNotEmpty') + '</option>';
+  } else if (type === 'date') {
+    valIn.type = 'date';
+    opSel.innerHTML = '<option value="equals">' + t('filterEquals') + '</option>' +
+      '<option value="after">' + t('filterAfter') + '</option>' +
+      '<option value="before">' + t('filterBefore') + '</option>' +
+      '<option value="between">' + t('filterBetween') + '</option>' +
+      '<option value="notEmpty">' + t('filterNotEmpty') + '</option>';
+  } else {
+    valIn.type = 'text';
+    opSel.innerHTML = '<option value="equals">' + t('filterEquals') + '</option>' +
+      '<option value="contains">' + t('filterContains') + '</option>' +
+      '<option value="startsWith">' + t('filterStartsWith') + '</option>' +
+      '<option value="notEmpty">' + t('filterNotEmpty') + '</option>' +
+      '<option value="empty">' + t('filterEmpty') + '</option>';
+
+    // Autocomplete
+    google.script.run.withSuccessHandler(function(json) {
+      var values = JSON.parse(json);
+      if (values.length > 0 && values.length <= 50) {
+        var dl = document.createElement('datalist');
+        dl.id = 'dl_' + fid;
+        values.forEach(function(v) { var o = document.createElement('option'); o.value = v; dl.appendChild(o); });
+        row.appendChild(dl);
+        valIn.setAttribute('list', 'dl_' + fid);
+      }
+    }).getUniqueValues(sheetName, colIdx);
+  }
+
+  opSel.onchange = function() {
+    val2In.style.display = this.value === 'between' ? '' : 'none';
+    if (this.value === 'between') val2In.type = valIn.type;
+  };
+}
+
+function collectFilters() {
+  var result = [];
+  document.querySelectorAll('.filter-row').forEach(function(row) {
+    var colSel = row.querySelector('select');
+    if (!colSel.value) return;
+    var parts = colSel.value.split('|');
+    result.push({
+      sheetName: parts[0],
+      colIndex: parseInt(parts[1]),
+      operator: row.querySelector('.filter-op').value,
+      value: row.querySelector('.filter-val').value,
+      value2: row.querySelector('.filter-val2') ? row.querySelector('.filter-val2').value : ''
+    });
+  });
+  return result;
+}
+
+// ══════════════════════════════════════════════
+//  Generate Report
+// ══════════════════════════════════════════════
+
+function generateReport(page) {
+  if (selectedColumns.length === 0) { alert(t('noColumns')); return; }
+
+  showLoading(true);
+
+  // بناء selections — تجميع الأعمدة حسب الشيت
+  var selMap = {};
+  selectedColumns.forEach(function(col) {
+    if (!selMap[col.sheetName]) selMap[col.sheetName] = [];
+    selMap[col.sheetName].push(col.colIndex);
+  });
+  var selections = [];
+  for (var sn in selMap) {
+    selections.push({ sheetName: sn, columns: selMap[sn] });
+  }
+
+  // GroupBy
+  var groupVal = document.getElementById('groupBySelect').value;
+  var groupBy = null;
+  if (groupVal) {
+    var gp = groupVal.split('|');
+    groupBy = { sheetName: gp[0], colIndex: parseInt(gp[1]) };
+  }
+
+  // SortBy
+  var sortVal = document.getElementById('sortBySelect').value;
+  var sortBy = null;
+  if (sortVal) {
+    var sp = sortVal.split('|');
+    sortBy = { sheetName: sp[0], colIndex: parseInt(sp[1]) };
+  }
+
+  // Aggregations
+  var aggregations = [];
+  document.querySelectorAll('.agg-chip.active').forEach(function(chip) {
+    aggregations.push({
+      sheetName: chip.dataset.sheet,
+      colIndex: parseInt(chip.dataset.col),
+      func: chip.dataset.func
+    });
+  });
+
+  var params = {
+    selections: selections,
+    filters: collectFilters(),
+    groupBy: groupBy,
+    aggregations: aggregations,
+    sortBy: sortBy,
+    sortDir: document.getElementById('sortDirSelect').value,
+    page: page || 1,
+    pageSize: 100
+  };
+
+  google.script.run
+    .withSuccessHandler(function(json) {
+      lastReportData = JSON.parse(json);
+      lastReportData._params = params;
+
+      if (lastReportData.error === 'noJoin') {
+        showLoading(false);
+        var msg = currentLang === 'ar' ? lastReportData.errorAr : lastReportData.errorEn;
+        alert(msg);
+        return;
+      }
+
+      renderReport(lastReportData, params);
+      showLoading(false);
+      document.getElementById('btnExport').disabled = false;
+      document.getElementById('btnSave').disabled = false;
+      document.getElementById('btnPrint').disabled = false;
+    })
+    .withFailureHandler(function(err) {
+      showLoading(false);
+      alert('Error: ' + err.message);
+    })
+    .getReportData(JSON.stringify(params));
+}
+
+// ══════════════════════════════════════════════
+//  Render
+// ══════════════════════════════════════════════
+
+function renderReport(data, params) {
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('reportSection').style.display = '';
+
+  if (data.grouped) {
+    renderGrouped(data);
+  } else {
+    renderFlat(data, params);
+  }
+}
+
+function renderFlat(data, params) {
+  var thead = document.getElementById('reportHead');
+  var tbody = document.getElementById('reportBody');
+  var tfoot = document.getElementById('reportFoot');
+
+  // أعمدة من columnsMeta (اسم فعلي من الشيت)
+  var cols = data.columnsMeta || selectedColumns.map(function(c) { return {name: c.colName, type: c.colType, sheetName: c.sheetName}; });
+
+  // Header
+  var hRow = '<tr>';
+  cols.forEach(function(col, i) {
+    hRow += '<th title="' + esc(col.sheetName || '') + '">' + esc(col.name) + '</th>';
+  });
+  hRow += '</tr>';
+  thead.innerHTML = hRow;
+
+  // Body
+  var html = '';
+  var rows = data.rows || [];
+  for (var r = 0; r < rows.length; r++) {
+    html += '<tr>';
+    for (var c = 0; c < rows[r].length; c++) {
+      html += '<td>' + formatCell(rows[r][c], cols[c]) + '</td>';
+    }
+    html += '</tr>';
+  }
+  tbody.innerHTML = html;
+  tfoot.innerHTML = '';
+
+  document.getElementById('reportCount').textContent =
+    rows.length + ' ' + t('rowsOf') + ' ' + fmtN(data.totalRows);
+
+  renderPagination(data);
+  document.getElementById('kpiStrip').style.display = 'none';
+  document.getElementById('chartSection').style.display = 'none';
+}
+
+function renderGrouped(data) {
+  var thead = document.getElementById('reportHead');
+  var tbody = document.getElementById('reportBody');
+  var tfoot = document.getElementById('reportFoot');
+  var cols = data.groupColumns || [];
+
+  var hRow = '<tr>';
+  cols.forEach(function(col) { hRow += '<th>' + esc(col.name) + '</th>'; });
+  thead.innerHTML = hRow + '</tr>';
+
+  var html = '';
+  (data.rows || []).forEach(function(row) {
+    html += '<tr>';
+    row.forEach(function(v, i) { html += '<td>' + formatCell(v, cols[i]) + '</td>'; });
+    html += '</tr>';
+  });
+  tbody.innerHTML = html;
+
+  if (data.totals && data.totals.length) {
+    var fRow = '<tr>';
+    data.totals.forEach(function(v) { fRow += '<td>' + fmtN(v) + '</td>'; });
+    tfoot.innerHTML = fRow + '</tr>';
+  } else tfoot.innerHTML = '';
+
+  document.getElementById('reportCount').textContent =
+    data.totalGroups + ' ' + t('kpiGroupsLabel') + ' | ' + fmtN(data.totalRows) + ' ' + t('kpiTotalRowsLabel');
+
+  document.getElementById('kpiStrip').style.display = '';
+  document.getElementById('kpiTotalRows').textContent = fmtN(data.totalRows);
+  document.getElementById('kpiGroups').textContent = fmtN(data.totalGroups);
+
+  if (data.totals && data.totals.length > 2) {
+    document.getElementById('kpiAgg1Card').style.display = '';
+    document.getElementById('kpiAgg1').textContent = fmtN(data.totals[2]);
+    document.getElementById('kpiAgg1Label').textContent = cols[2] ? cols[2].name : '';
+  } else document.getElementById('kpiAgg1Card').style.display = 'none';
+
+  document.getElementById('paginationBar').innerHTML = '';
+  renderChart(data, cols);
+}
+
+function formatCell(val, meta) {
+  if (val === null || val === undefined || val === '') return '<span style="color:#ccc">—</span>';
+  if (!meta) return esc(String(val));
+
+  if (meta.type === 'number' || meta.type === 'currency') return fmtN(val);
+  if (meta.type === 'percentage') {
+    var pct = Number(val) || 0;
+    var cls = pct >= 75 ? 'high' : pct >= 50 ? 'medium' : 'low';
+    return '<div style="display:flex;align-items:center;gap:6px;min-width:100px">' +
+      '<div class="mini-bar"><div class="mini-bar-fill ' + cls + '" style="width:' + Math.min(pct,100) + '%"></div></div>' +
+      '<span class="pct-badge ' + cls + '">' + pct + '%</span></div>';
+  }
+  return esc(String(val));
+}
+
+// ══════════════════════════════════════════════
+//  Pagination
+// ══════════════════════════════════════════════
+
+function renderPagination(data) {
+  var bar = document.getElementById('paginationBar');
+  if (!data.totalPages || data.totalPages <= 1) { bar.innerHTML = ''; return; }
+
+  var html = '';
+  html += '<button class="page-btn" ' + (data.page <= 1 ? 'disabled' : 'onclick="generateReport(' + (data.page-1) + ')"') + '>◀</button>';
+
+  var start = Math.max(1, data.page - 2), end = Math.min(data.totalPages, data.page + 2);
+  if (start > 1) html += '<button class="page-btn" onclick="generateReport(1)">1</button>';
+  if (start > 2) html += '<span class="page-info">...</span>';
+  for (var p = start; p <= end; p++) {
+    html += '<button class="page-btn' + (p === data.page ? ' active' : '') + '" onclick="generateReport(' + p + ')">' + p + '</button>';
+  }
+  if (end < data.totalPages - 1) html += '<span class="page-info">...</span>';
+  if (end < data.totalPages) html += '<button class="page-btn" onclick="generateReport(' + data.totalPages + ')">' + data.totalPages + '</button>';
+
+  html += '<button class="page-btn" ' + (data.page >= data.totalPages ? 'disabled' : 'onclick="generateReport(' + (data.page+1) + ')"') + '>▶</button>';
+  html += '<span class="page-info">' + t('page') + ' ' + data.page + ' ' + t('of') + ' ' + data.totalPages + '</span>';
+
+  bar.innerHTML = html;
+}
+
+// ══════════════════════════════════════════════
+//  Chart
+// ══════════════════════════════════════════════
+
+function renderChart(data, cols) {
+  document.getElementById('chartSection').style.display = '';
+  if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+
+  var canvas = document.getElementById('reportChart');
+  var rows = data.rows || [];
+  if (!rows.length) return;
+
+  var labels = rows.map(function(r) { return String(r[0]); });
+  var counts = rows.map(function(r) { return r[1]; });
+  var colors = ['#1a4d2e','#3c7b44','#4caf50','#81c784','#c8e6c9','#1565c0','#42a5f5','#90caf9','#fd7e14','#ffc107','#dc3545','#e91e63','#9c27b0','#00bcd4','#607d8b'];
+
+  var datasets = [{ label: cols[1] ? cols[1].name : 'Count', data: counts,
+    backgroundColor: labels.map(function(_,i) { return colors[i % colors.length]; }), borderRadius: 4 }];
+
+  if (cols.length > 2 && rows[0].length > 2) {
+    datasets.push({ label: cols[2].name, data: rows.map(function(r) { return r[2]; }),
+      backgroundColor: 'rgba(21,101,192,.6)', borderRadius: 4 });
+  }
+
+  var horiz = labels.length > 8;
+  chartInstance = new Chart(canvas, {
+    type: 'bar',
+    data: { labels: labels, datasets: datasets },
+    options: {
+      responsive: true, indexAxis: horiz ? 'y' : 'x',
+      animation: { duration: 0 },
+      plugins: { legend: { display: datasets.length > 1, labels: { font: { family: 'Cairo' } } } },
+      scales: {
+        x: { ticks: { font: { family: 'Cairo', size: 11 } } },
+        y: { ticks: { font: { family: 'Cairo', size: 11 } } }
+      }
+    }
+  });
+  if (horiz) canvas.style.height = Math.max(300, labels.length * 30) + 'px';
+}
+
+// ══════════════════════════════════════════════
+//  Export
+// ══════════════════════════════════════════════
+
+function exportToExcel() {
+  if (!lastReportData || !lastReportData._params) return;
+  var btn = document.getElementById('btnExport');
+  btn.disabled = true; btn.innerHTML = '<span>⏳</span> ...';
+
+  var ep = JSON.parse(JSON.stringify(lastReportData._params));
+  ep.page = 1; ep.pageSize = 999999;
+
+  google.script.run
+    .withSuccessHandler(function(json) {
+      var r = JSON.parse(json);
+      btn.disabled = false; btn.innerHTML = '<span>📥</span> ' + t('lblExport');
+      if (r.success) window.open(r.url, '_blank');
+    })
+    .withFailureHandler(function(err) {
+      btn.disabled = false; btn.innerHTML = '<span>📥</span> ' + t('lblExport');
+      alert('Error: ' + err.message);
+    })
+    .exportReport(JSON.stringify(ep));
+}
+
+// ══════════════════════════════════════════════
+//  Templates
+// ══════════════════════════════════════════════
+
+function loadTemplateList() {
+  google.script.run.withSuccessHandler(function(json) {
+    var tpls = JSON.parse(json);
+    var sel = document.getElementById('templateSelect');
+    while (sel.options.length > 1) sel.remove(1);
+    tpls.forEach(function(t) {
+      var o = document.createElement('option');
+      o.value = t.name; o.textContent = t.name + ' (' + t.lastUsed + ')';
+      sel.appendChild(o);
+    });
+  }).loadTemplates();
+}
+
+function showSaveModal() { document.getElementById('saveModal').classList.add('active'); document.getElementById('templateName').focus(); }
+function closeSaveModal() { document.getElementById('saveModal').classList.remove('active'); }
+
+function saveCurrentTemplate() {
+  var name = document.getElementById('templateName').value.trim();
+  if (!name) return;
+
+  var config = {
+    selectedColumns: selectedColumns,
+    filters: collectFilters(),
+    groupBy: document.getElementById('groupBySelect').value || null,
+    sortBy: document.getElementById('sortBySelect').value || null,
+    sortDir: document.getElementById('sortDirSelect').value
+  };
+
+  google.script.run.withSuccessHandler(function() {
+    closeSaveModal();
+    document.getElementById('templateName').value = '';
+    loadTemplateList();
+    alert(t('savedSuccess'));
+  }).saveTemplate(name, JSON.stringify(config));
+}
+
+function onTemplateSelect(name) {
+  if (!name) return;
+  google.script.run.withSuccessHandler(function(json) {
+    var cfg = JSON.parse(json);
+    if (!cfg) return;
+
+    // تطبيق
+    clearAllSelections();
+    selectedColumns = cfg.selectedColumns || [];
+    updateSelectedSummary();
+
+    // تحديد الـ checkboxes
+    selectedColumns.forEach(function(col) {
+      var groups = document.querySelectorAll('.col-group');
+      groups.forEach(function(group) {
+        if (group.dataset.sheetName !== col.sheetName) return;
+        var cbs = group.querySelectorAll('input[type="checkbox"]');
+        cbs.forEach(function(cb) {
+          if (parseInt(cb.dataset.index) === col.colIndex) cb.checked = true;
+        });
+      });
+    });
+
+    document.getElementById('filtersSection').style.display = selectedColumns.length ? '' : 'none';
+    document.getElementById('groupSection').style.display = selectedColumns.length ? '' : 'none';
+    document.getElementById('sortSection').style.display = selectedColumns.length ? '' : 'none';
+    updateGroupSortOptions();
+
+    if (cfg.groupBy) document.getElementById('groupBySelect').value = cfg.groupBy;
+    if (cfg.sortBy) document.getElementById('sortBySelect').value = cfg.sortBy;
+    if (cfg.sortDir) document.getElementById('sortDirSelect').value = cfg.sortDir;
+  }).loadTemplate(name);
+}
+
+// ══════════════════════════════════════════════
+//  UI Helpers
+// ══════════════════════════════════════════════
+
+function showLoading(show) {
+  document.getElementById('loadingBox').style.display = show ? '' : 'none';
+  document.getElementById('emptyState').style.display = 'none';
+  if (show) {
+    document.getElementById('reportSection').style.display = 'none';
+    document.getElementById('chartSection').style.display = 'none';
+    document.getElementById('kpiStrip').style.display = 'none';
+  }
+}
+
+function clearAll() {
+  clearAllSelections();
+  lastReportData = null;
+  document.getElementById('filtersContainer').innerHTML = '';
+  document.getElementById('reportSection').style.display = 'none';
+  document.getElementById('chartSection').style.display = 'none';
+  document.getElementById('kpiStrip').style.display = 'none';
+  document.getElementById('emptyState').style.display = '';
+  document.getElementById('btnExport').disabled = true;
+  document.getElementById('btnSave').disabled = true;
+  document.getElementById('btnPrint').disabled = true;
+  if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+}
+
+function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
+
+document.addEventListener('click', function(e) {
+  var sb = document.getElementById('sidebar'), tog = document.getElementById('sidebarToggle');
+  if (window.innerWidth <= 768 && sb.classList.contains('open') && !sb.contains(e.target) && !tog.contains(e.target)) {
+    sb.classList.remove('open');
+  }
+});
+</script>

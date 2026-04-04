@@ -15,18 +15,17 @@ var CONFIG = {
   SPREADSHEET_ID: '1z4b3BmTLDLvYUs8H8cPU8MJrOuvuN5GztZ9pLlYhF6s',
   
   SHEETS: {
-    TOUR_GUIDE: 'Tour Guide',
+    TOUR_GUIDE: 'Guide Rabih',
     PILGRIMS: 'رحلة الحاج',
     ROOM_TYPE: 'Room Type Preview',
     GUIDE_GROUPING: 'Guide Grouping',
     GUIDE_LINKS: 'روابط المرشدين'
   },
   
+  // Guide Rabih columns (0-based) — same structure as Presonal Details
   GUIDE: {
-    NAME: 0,
-    PASSPORT: 4,
-    REGISTERED: 9,
-    UNIQUE: 10
+    NAME: 15,       // P: اسم المرشد
+    PASSPORT: 5     // F: رقم جواز السفر
   },
   
   PILGRIM: {
@@ -463,15 +462,12 @@ function generateGuideLinks() {
   var ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
   var guideSheet = ss.getSheetByName(CONFIG.SHEETS.TOUR_GUIDE);
   var lastRow = guideSheet.getLastRow();
-  var data = guideSheet.getRange(2, 1, lastRow - 1, 11).getValues();
-  
+  var data = guideSheet.getRange(2, 1, lastRow - 1, 33).getValues();
+
   var guidesMap = {};
   for (var i = 0; i < data.length; i++) {
-    var name = String(data[i][0]).trim();
-    var registered = String(data[i][9]);
-    var unique = String(data[i][10]);
+    var name = String(data[i][15]).trim(); // P: اسم المرشد
     if (!name) continue;
-    if (registered.indexOf('✅') === -1 || unique.indexOf('✅') === -1) continue;
     if (!guidesMap[name]) guidesMap[name] = { name: name, count: 0 };
     guidesMap[name].count++;
   }
@@ -567,13 +563,11 @@ function getGuidePassports_(ss, guideName) {
   if (!sheet) return [];
   var lastRow = sheet.getLastRow();
   if (lastRow < CONFIG.START_ROW) return [];
-  var data = sheet.getRange(CONFIG.START_ROW, 1, lastRow - 1, 11).getValues();
+  var data = sheet.getRange(CONFIG.START_ROW, 1, lastRow - 1, 33).getValues();
   var passports = [];
   for (var i = 0; i < data.length; i++) {
     var row = data[i];
-    if (String(row[CONFIG.GUIDE.NAME]).trim() === guideName &&
-        String(row[CONFIG.GUIDE.REGISTERED]).indexOf('✅') !== -1 &&
-        String(row[CONFIG.GUIDE.UNIQUE]).indexOf('✅') !== -1) {
+    if (String(row[CONFIG.GUIDE.NAME]).trim() === guideName) {
       var passport = String(row[CONFIG.GUIDE.PASSPORT]).trim();
       if (passport) passports.push(passport);
     }

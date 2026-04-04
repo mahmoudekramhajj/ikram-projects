@@ -162,10 +162,18 @@ function sendNotif_arrival_reminder_(chatId, lang, r, guide) {
       '✈️ Vol: <b>' + flight + '</b>\n🛫 De: ' + from + '\n🛬 À: ' + to +
       '\n📅 Date: ' + date + '\n🕐 Départ: ' + time + guideLine +
       '\n\n🤲 Bon voyage',
-    nl: '📢 <b>Herinnering — Uw vlucht is over 2 dagen!</b>\n━━━━━━━━━━━━━━\n' +
-      '✈️ Vlucht: <b>' + flight + '</b>\n🛫 Van: ' + from + '\n🛬 Naar: ' + to +
-      '\n📅 Datum: ' + date + '\n🕐 Vertrek: ' + time + guideLine +
-      '\n\n🤲 Goede reis'
+    de: '📢 <b>Erinnerung — Ihr Flug ist in 2 Tagen!</b>\n━━━━━━━━━━━━━━\n' +
+      '✈️ Flug: <b>' + flight + '</b>\n🛫 Von: ' + from + '\n🛬 Nach: ' + to +
+      '\n📅 Datum: ' + date + '\n🕐 Abflug: ' + time + guideLine +
+      '\n\n🤲 Gute Reise',
+    it: '📢 <b>Promemoria — Il tuo volo è tra 2 giorni!</b>\n━━━━━━━━━━━━━━\n' +
+      '✈️ Volo: <b>' + flight + '</b>\n🛫 Da: ' + from + '\n🛬 A: ' + to +
+      '\n📅 Data: ' + date + '\n🕐 Partenza: ' + time + guideLine +
+      '\n\n🤲 Buon viaggio',
+    es: '📢 <b>Recordatorio — ¡Tu vuelo es en 2 días!</b>\n━━━━━━━━━━━━━━\n' +
+      '✈️ Vuelo: <b>' + flight + '</b>\n🛫 Desde: ' + from + '\n🛬 A: ' + to +
+      '\n📅 Fecha: ' + date + '\n🕐 Salida: ' + time + guideLine +
+      '\n\n🤲 Buen viaje'
   };
   sendMessage_(chatId, msgs[lang] || msgs['en']);
 }
@@ -204,10 +212,18 @@ function sendNotif_arrival_tomorrow_(chatId, lang, r, guide) {
       '✈️ Vol: <b>' + flight + '</b>\n🛫 De: ' + from + '\n🛬 À: ' + to +
       '\n🕐 Départ: ' + time + '\n\n🏨 Votre hôtel: <b>' + hotel + '</b>' + guideLine +
       '\n\n📦 Préparez vos bagages\n🤲 Bon voyage',
-    nl: '📢 <b>Uw vlucht is morgen!</b>\n━━━━━━━━━━━━━━\n' +
-      '✈️ Vlucht: <b>' + flight + '</b>\n🛫 Van: ' + from + '\n🛬 Naar: ' + to +
-      '\n🕐 Vertrek: ' + time + '\n\n🏨 Uw hotel: <b>' + hotel + '</b>' + guideLine +
-      '\n\n📦 Bereid uw bagage voor\n🤲 Goede reis'
+    de: '📢 <b>Ihr Flug ist morgen!</b>\n━━━━━━━━━━━━━━\n' +
+      '✈️ Flug: <b>' + flight + '</b>\n🛫 Von: ' + from + '\n🛬 Nach: ' + to +
+      '\n🕐 Abflug: ' + time + '\n\n🏨 Ihr Hotel: <b>' + hotel + '</b>' + guideLine +
+      '\n\n📦 Bereiten Sie Ihr Gepäck vor\n🤲 Gute Reise',
+    it: '📢 <b>Il tuo volo è domani!</b>\n━━━━━━━━━━━━━━\n' +
+      '✈️ Volo: <b>' + flight + '</b>\n🛫 Da: ' + from + '\n🛬 A: ' + to +
+      '\n🕐 Partenza: ' + time + '\n\n🏨 Il tuo hotel: <b>' + hotel + '</b>' + guideLine +
+      '\n\n📦 Prepara i bagagli e i documenti\n🤲 Buon viaggio',
+    es: '📢 <b>¡Tu vuelo es mañana!</b>\n━━━━━━━━━━━━━━\n' +
+      '✈️ Vuelo: <b>' + flight + '</b>\n🛫 Desde: ' + from + '\n🛬 A: ' + to +
+      '\n🕐 Salida: ' + time + '\n\n🏨 Tu hotel: <b>' + hotel + '</b>' + guideLine +
+      '\n\n📦 Prepara tu equipaje y documentos\n🤲 Buen viaje'
   };
   sendMessage_(chatId, msgs[lang] || msgs['en']);
 }
@@ -241,9 +257,15 @@ function sendNotif_welcome_(chatId, lang, r, guide) {
     fr: '🕋 <b>Bienvenue en Arabie Saoudite!</b>\n━━━━━━━━━━━━━━\n' +
       '🏨 Votre hôtel: <b>' + hotel + '</b>\n📍 Premier séjour: ' + house1 + mapLine + guideLine +
       '\n\n🚌 Notre équipe vous attend à l\'aéroport\n🤲 Hajj béni',
-    nl: '🕋 <b>Welkom in Saudi-Arabië!</b>\n━━━━━━━━━━━━━━\n' +
-      '🏨 Uw hotel: <b>' + hotel + '</b>\n📍 Eerste verblijf: ' + house1 + mapLine + guideLine +
-      '\n\n🚌 Ons team wacht op u\n🤲 Gezegende Hadj'
+    de: '🕋 <b>Willkommen in Saudi-Arabien!</b>\n━━━━━━━━━━━━━━\n' +
+      '🏨 Ihr Hotel: <b>' + hotel + '</b>\n📍 Erster Aufenthalt: ' + house1 + mapLine + guideLine +
+      '\n\n🚌 Unser Team erwartet Sie am Flughafen\n🤲 Möge Ihre Hadsch gesegnet sein',
+    it: '🕋 <b>Benvenuto in Arabia Saudita!</b>\n━━━━━━━━━━━━━━\n' +
+      '🏨 Il tuo hotel: <b>' + hotel + '</b>\n📍 Primo soggiorno: ' + house1 + mapLine + guideLine +
+      '\n\n🚌 Il nostro team ti aspetta in aeroporto\n🤲 Che il tuo Hajj sia benedetto',
+    es: '🕋 <b>¡Bienvenido a Arabia Saudita!</b>\n━━━━━━━━━━━━━━\n' +
+      '🏨 Tu hotel: <b>' + hotel + '</b>\n📍 Primera estancia: ' + house1 + mapLine + guideLine +
+      '\n\n🚌 Nuestro equipo te espera en el aeropuerto\n🤲 Que tu Hajj sea bendecido'
   };
   sendMessage_(chatId, msgs[lang] || msgs['en']);
 }
@@ -273,8 +295,14 @@ function sendNotif_emergency_info_(chatId, lang, guide) {
     fr: '📋 <b>Infos importantes — Conservez ce message</b>\n━━━━━━━━━━━━━━\n\n' +
       '🔴 Urgences: <code>911</code>\n🕋 Aide aux pèlerins: <code>1966</code>\n🏥 Croissant-Rouge: <code>997</code>\n\n' +
       '📞 Ikram Al-Dayf: <code>8001111061</code>' + guideLine,
-    nl: '📋 <b>Belangrijke info — Bewaar dit bericht</b>\n━━━━━━━━━━━━━━\n\n' +
-      '🔴 Noodgevallen: <code>911</code>\n🕋 Pelgrimhulp: <code>1966</code>\n🏥 Rode Halve Maan: <code>997</code>\n\n' +
+    de: '📋 <b>Wichtige Infos — Speichern Sie diese Nachricht</b>\n━━━━━━━━━━━━━━\n\n' +
+      '🔴 Notruf: <code>911</code>\n🕋 Pilger-Hilfe: <code>1966</code>\n🏥 Roter Halbmond: <code>997</code>\n\n' +
+      '📞 Ikram Al-Dayf: <code>8001111061</code>' + guideLine,
+    it: '📋 <b>Informazioni importanti — Salva questo messaggio</b>\n━━━━━━━━━━━━━━\n\n' +
+      '🔴 Emergenza: <code>911</code>\n🕋 Assistenza pellegrini: <code>1966</code>\n🏥 Mezzaluna Rossa: <code>997</code>\n\n' +
+      '📞 Ikram Al-Dayf: <code>8001111061</code>' + guideLine,
+    es: '📋 <b>Información importante — Guarda este mensaje</b>\n━━━━━━━━━━━━━━\n\n' +
+      '🔴 Emergencias: <code>911</code>\n🕋 Ayuda al peregrino: <code>1966</code>\n🏥 Media Luna Roja: <code>997</code>\n\n' +
       '📞 Ikram Al-Dayf: <code>8001111061</code>' + guideLine
   };
   sendMessage_(chatId, msgs[lang] || msgs['en']);
@@ -312,10 +340,18 @@ function sendNotif_hotel_change_tomorrow_(chatId, lang, r) {
       '📍 De: ' + house1 + '\n📍 À: ' + house2 + '\n🏨 Nouvel hôtel: <b>' + hotel2 + '</b>\n' +
       transportIcon + ' Transport: <b>' + transportEn + '</b>\n\n' +
       '📦 Préparez vos bagages, checkout avant 12h00',
-    nl: '🔔 <b>Melding — Hotelverhuizing morgen!</b>\n━━━━━━━━━━━━━━\n' +
-      '📍 Van: ' + house1 + '\n📍 Naar: ' + house2 + '\n🏨 Nieuw hotel: <b>' + hotel2 + '</b>\n' +
-      transportIcon + ' Vervoer: <b>' + transportEn + '</b>\n\n' +
-      '📦 Pak uw bagage in, uitchecken voor 12:00'
+    de: '🔔 <b>Hinweis — Hotelwechsel morgen!</b>\n━━━━━━━━━━━━━━\n' +
+      '📍 Von: ' + house1 + '\n📍 Nach: ' + house2 + '\n🏨 Neues Hotel: <b>' + hotel2 + '</b>\n' +
+      transportIcon + ' Transport: <b>' + transportEn + '</b>\n\n' +
+      '📦 Packen Sie Ihr Gepäck, Checkout vor 12:00 Uhr',
+    it: '🔔 <b>Avviso — Trasferimento hotel domani!</b>\n━━━━━━━━━━━━━━\n' +
+      '📍 Da: ' + house1 + '\n📍 A: ' + house2 + '\n🏨 Nuovo hotel: <b>' + hotel2 + '</b>\n' +
+      transportIcon + ' Trasporto: <b>' + transportEn + '</b>\n\n' +
+      '📦 Prepara i bagagli, checkout entro le 12:00',
+    es: '🔔 <b>¡Aviso — Traslado de hotel mañana!</b>\n━━━━━━━━━━━━━━\n' +
+      '📍 Desde: ' + house1 + '\n📍 A: ' + house2 + '\n🏨 Nuevo hotel: <b>' + hotel2 + '</b>\n' +
+      transportIcon + ' Transporte: <b>' + transportEn + '</b>\n\n' +
+      '📦 Prepara tu equipaje, checkout antes de las 12:00'
   };
   sendMessage_(chatId, msgs[lang] || msgs['en']);
 }
@@ -343,10 +379,18 @@ function sendNotif_hotel_change_today_(chatId, lang, r) {
       '📍 De: ' + house1 + '\n📍 À: ' + house2 + '\n' +
       transportIcon + ' Via: <b>' + transportEn + '</b>\n\n' +
       '⏰ Rendez la clé de chambre\n📦 Vérifiez vos bagages',
-    nl: '🚌 <b>Verhuisdag!</b>\n━━━━━━━━━━━━━━\n' +
-      '📍 Van: ' + house1 + '\n📍 Naar: ' + house2 + '\n' +
+    de: '🚌 <b>Umzugstag!</b>\n━━━━━━━━━━━━━━\n' +
+      '📍 Von: ' + house1 + '\n📍 Nach: ' + house2 + '\n' +
       transportIcon + ' Via: <b>' + transportEn + '</b>\n\n' +
-      '⏰ Lever uw kamersleutel in\n📦 Controleer al uw bagage'
+      '⏰ Geben Sie Ihren Zimmerschlüssel ab\n📦 Überprüfen Sie Ihr gesamtes Gepäck',
+    it: '🚌 <b>Giorno del trasferimento!</b>\n━━━━━━━━━━━━━━\n' +
+      '📍 Da: ' + house1 + '\n📍 A: ' + house2 + '\n' +
+      transportIcon + ' Via: <b>' + transportEn + '</b>\n\n' +
+      '⏰ Restituisci la chiave della camera\n📦 Controlla tutti i tuoi bagagli',
+    es: '🚌 <b>¡Día de traslado!</b>\n━━━━━━━━━━━━━━\n' +
+      '📍 Desde: ' + house1 + '\n📍 A: ' + house2 + '\n' +
+      transportIcon + ' Via: <b>' + transportEn + '</b>\n\n' +
+      '⏰ Entrega la llave de tu habitación\n📦 Asegúrate de tener todo tu equipaje'
   };
   sendMessage_(chatId, msgs[lang] || msgs['en']);
 }
@@ -376,8 +420,12 @@ function sendNotif_new_hotel_info_(chatId, lang, r) {
       '🏢 <b>' + hotel2 + '</b>\n📅 Check-in: ' + checkIn + '\n📅 Check-out: ' + checkOut + mapLine,
     fr: '🏨 <b>Bienvenue dans votre nouvel hôtel</b>\n━━━━━━━━━━━━━━\n' +
       '🏢 <b>' + hotel2 + '</b>\n📅 Arrivée: ' + checkIn + '\n📅 Départ: ' + checkOut + mapLine,
-    nl: '🏨 <b>Welkom in uw nieuwe hotel</b>\n━━━━━━━━━━━━━━\n' +
-      '🏢 <b>' + hotel2 + '</b>\n📅 Inchecken: ' + checkIn + '\n📅 Uitchecken: ' + checkOut + mapLine
+    de: '🏨 <b>Willkommen in Ihrem neuen Hotel</b>\n━━━━━━━━━━━━━━\n' +
+      '🏢 <b>' + hotel2 + '</b>\n📅 Check-in: ' + checkIn + '\n📅 Check-out: ' + checkOut + mapLine,
+    it: '🏨 <b>Benvenuto nel tuo nuovo hotel</b>\n━━━━━━━━━━━━━━\n' +
+      '🏢 <b>' + hotel2 + '</b>\n📅 Check-in: ' + checkIn + '\n📅 Check-out: ' + checkOut + mapLine,
+    es: '🏨 <b>Bienvenido a tu nuevo hotel</b>\n━━━━━━━━━━━━━━\n' +
+      '🏢 <b>' + hotel2 + '</b>\n📅 Check-in: ' + checkIn + '\n📅 Check-out: ' + checkOut + mapLine
   };
   sendMessage_(chatId, msgs[lang] || msgs['en']);
 }
@@ -388,7 +436,9 @@ function sendNotif_ask_room_(chatId, lang, hotelNum) {
     ar: '🏨 هل وصلت لغرفتك؟ أرسل لنا <b>رقم الغرفة</b> لنحفظه في ملفك:',
     en: '🏨 Have you reached your room? Send us your <b>room number</b>:',
     fr: '🏨 Êtes-vous dans votre chambre? Envoyez votre <b>numéro de chambre</b>:',
-    nl: '🏨 Bent u in uw kamer? Stuur uw <b>kamernummer</b>:'
+    de: '🏨 Sind Sie in Ihrem Zimmer? Senden Sie uns Ihre <b>Zimmernummer</b>:',
+    it: '🏨 Sei arrivato nella tua stanza? Inviaci il <b>numero della camera</b>:',
+    es: '🏨 ¿Has llegado a tu habitación? Envíanos el <b>número de habitación</b>:'
   };
   sendMessage_(chatId, msgs[lang] || msgs['en'], {
     inline_keyboard: [[{ text: T_('btn_add_room', lang), callback_data: 'room_hotel_' + hotelNum }]]
@@ -416,10 +466,18 @@ function sendNotif_departure_2days_(chatId, lang, r) {
       '✈️ Vol: <b>' + flight + '</b>\n📅 Date: ' + date + '\n🕐 Heure: ' + time +
       '\n🛫 De: ' + from + '\n🛬 À: ' + to +
       '\n\n📦 Commencez à préparer vos bagages',
-    nl: '📢 <b>Herinnering — Terugvlucht over 2 dagen</b>\n━━━━━━━━━━━━━━\n' +
-      '✈️ Vlucht: <b>' + flight + '</b>\n📅 Datum: ' + date + '\n🕐 Tijd: ' + time +
-      '\n🛫 Van: ' + from + '\n🛬 Naar: ' + to +
-      '\n\n📦 Begin met inpakken'
+    de: '📢 <b>Erinnerung — Rückflug in 2 Tagen</b>\n━━━━━━━━━━━━━━\n' +
+      '✈️ Flug: <b>' + flight + '</b>\n📅 Datum: ' + date + '\n🕐 Zeit: ' + time +
+      '\n🛫 Von: ' + from + '\n🛬 Nach: ' + to +
+      '\n\n📦 Beginnen Sie mit dem Packen',
+    it: '📢 <b>Promemoria — Volo di ritorno tra 2 giorni</b>\n━━━━━━━━━━━━━━\n' +
+      '✈️ Volo: <b>' + flight + '</b>\n📅 Data: ' + date + '\n🕐 Ora: ' + time +
+      '\n🛫 Da: ' + from + '\n🛬 A: ' + to +
+      '\n\n📦 Inizia a preparare i bagagli',
+    es: '📢 <b>Recordatorio — Vuelo de regreso en 2 días</b>\n━━━━━━━━━━━━━━\n' +
+      '✈️ Vuelo: <b>' + flight + '</b>\n📅 Fecha: ' + date + '\n🕐 Hora: ' + time +
+      '\n🛫 Desde: ' + from + '\n🛬 A: ' + to +
+      '\n\n📦 Comienza a preparar tu equipaje'
   };
   sendMessage_(chatId, msgs[lang] || msgs['en']);
 }
@@ -445,10 +503,18 @@ function sendNotif_departure_tomorrow_(chatId, lang, r) {
       '✈️ Vol: <b>' + flight + '</b>\n🛫 De: ' + from + '\n🛬 À: ' + to +
       '\n📅 Date: ' + date + '\n🕐 Départ: ' + time +
       '\n\n🚌 Transfert hôtel-aéroport assuré\n⏰ Soyez prêt à l\'heure\n🤲 Hajj accepté inchallah',
-    nl: '📢 <b>Uw terugvlucht is morgen!</b>\n━━━━━━━━━━━━━━\n' +
-      '✈️ Vlucht: <b>' + flight + '</b>\n🛫 Van: ' + from + '\n🛬 Naar: ' + to +
-      '\n📅 Datum: ' + date + '\n🕐 Vertrek: ' + time +
-      '\n\n🚌 Transfer hotel-luchthaven\n⏰ Wees op tijd klaar\n🤲 Moge Allah uw Hadj accepteren'
+    de: '📢 <b>Ihr Rückflug ist morgen!</b>\n━━━━━━━━━━━━━━\n' +
+      '✈️ Flug: <b>' + flight + '</b>\n🛫 Von: ' + from + '\n🛬 Nach: ' + to +
+      '\n📅 Datum: ' + date + '\n🕐 Abflug: ' + time +
+      '\n\n🚌 Transfer Hotel-Flughafen\n⏰ Seien Sie rechtzeitig bereit\n🤲 Möge Allah Ihre Hadsch annehmen',
+    it: '📢 <b>Il tuo volo di ritorno è domani!</b>\n━━━━━━━━━━━━━━\n' +
+      '✈️ Volo: <b>' + flight + '</b>\n🛫 Da: ' + from + '\n🛬 A: ' + to +
+      '\n📅 Data: ' + date + '\n🕐 Partenza: ' + time +
+      '\n\n🚌 Trasferimento hotel-aeroporto\n⏰ Sii pronto in orario\n🤲 Che Allah accetti il tuo Hajj',
+    es: '📢 <b>¡Tu vuelo de regreso es mañana!</b>\n━━━━━━━━━━━━━━\n' +
+      '✈️ Vuelo: <b>' + flight + '</b>\n🛫 Desde: ' + from + '\n🛬 A: ' + to +
+      '\n📅 Fecha: ' + date + '\n🕐 Salida: ' + time +
+      '\n\n🚌 Traslado hotel-aeropuerto\n⏰ Esté listo a tiempo\n🤲 Que Allah acepte tu Hajj'
   };
   sendMessage_(chatId, msgs[lang] || msgs['en']);
 }
@@ -469,9 +535,15 @@ function sendNotif_departure_today_(chatId, lang, r) {
     fr: '✈️ <b>Votre départ est aujourd\'hui!</b>\n━━━━━━━━━━━━━━\n' +
       '🛫 Vol: <b>' + flight + '</b>\n🕐 Départ: ' + time + '\n📍 Aéroport: ' + from +
       '\n\n⏰ Checkout de la chambre\n📦 Vérifiez tous vos bagages\n🤲 Bon retour',
-    nl: '✈️ <b>Vandaag is uw vertrekdag!</b>\n━━━━━━━━━━━━━━\n' +
-      '🛫 Vlucht: <b>' + flight + '</b>\n🕐 Vertrek: ' + time + '\n📍 Luchthaven: ' + from +
-      '\n\n⏰ Check uit uw kamer\n📦 Controleer al uw bagage\n🤲 Veilige thuiskomst'
+    de: '✈️ <b>Heute ist Ihr Abreisetag!</b>\n━━━━━━━━━━━━━━\n' +
+      '🛫 Flug: <b>' + flight + '</b>\n🕐 Abflug: ' + time + '\n📍 Flughafen: ' + from +
+      '\n\n⏰ Checken Sie aus Ihrem Zimmer aus\n📦 Überprüfen Sie Ihr gesamtes Gepäck\n🤲 Sichere Heimkehr',
+    it: '✈️ <b>Oggi è il giorno della partenza!</b>\n━━━━━━━━━━━━━━\n' +
+      '🛫 Volo: <b>' + flight + '</b>\n🕐 Partenza: ' + time + '\n📍 Aeroporto: ' + from +
+      '\n\n⏰ Fai il check-out dalla camera\n📦 Controlla tutti i tuoi bagagli\n🤲 Buon rientro a casa',
+    es: '✈️ <b>¡Hoy es tu día de partida!</b>\n━━━━━━━━━━━━━━\n' +
+      '🛫 Vuelo: <b>' + flight + '</b>\n🕐 Salida: ' + time + '\n📍 Aeropuerto: ' + from +
+      '\n\n⏰ Haz el checkout de tu habitación\n📦 Asegúrate de tener todo tu equipaje\n🤲 Que regreses con bien'
   };
   sendMessage_(chatId, msgs[lang] || msgs['en']);
 }
@@ -482,7 +554,9 @@ function sendNotif_ask_passport_photo_(chatId, lang) {
     ar: '📸 نرجو منك إرسال <b>صورة جواز السفر</b> لحفظها في ملفك.\n\nاضغط الزر أدناه ثم أرسل الصورة:',
     en: '📸 Please send a <b>photo of your passport</b> for our records.\n\nTap the button below then send the photo:',
     fr: '📸 Veuillez envoyer une <b>photo de votre passeport</b>.\n\nAppuyez sur le bouton ci-dessous:',
-    nl: '📸 Stuur een <b>foto van uw paspoort</b>.\n\nDruk op de knop hieronder:'
+    de: '📸 Bitte senden Sie ein <b>Foto Ihres Reisepasses</b>.\n\nTippen Sie auf die Schaltfläche unten:',
+    it: '📸 Per favore invia una <b>foto del tuo passaporto</b>.\n\nPremi il pulsante qui sotto:',
+    es: '📸 Por favor envía una <b>foto de tu pasaporte</b>.\n\nPresiona el botón de abajo:'
   };
   sendMessage_(chatId, msgs[lang] || msgs['en'], {
     inline_keyboard: [[{ text: T_('btn_add_photo', lang), callback_data: 'add_passport_photo' }]]

@@ -15,7 +15,7 @@ const HOTEL_CONFIG = {
     JOURNEY: 'رحلة الحاج ',
     ROOM_TYPE: 'Room Type Preview',
     PACKAGES: 'الباقات',
-    TOUR_GUIDE: 'Tour Guide',
+    TOUR_GUIDE: 'Guide Rabih',
     ROOM_MAPPING: 'Room Mapping',
     PRE_ASSIGN_LOG: 'PA_Log'
   },
@@ -79,13 +79,11 @@ const HOTEL_CONFIG = {
     SHARED_BEDS_MAK2: 29
   },
   
-  // Tour Guide sheet (0-based) — reads columns A-K (11 columns)
-  // Structure: Guide name (A) → Pilgrim passport (E) → Registered (J) → Unique (K)
+  // Guide Rabih sheet (0-based) — same structure as Presonal Details (33 columns)
+  // Column P = اسم المرشد (authoritative source)
   GUIDE_COLS: {
-    GUIDE_NAME: 0,     // A: اسم المرشد
-    PASSPORT: 4,        // E: رقم جواز الحاج
-    REG_STATUS: 9,      // J: حالة التسجيل (✅ Registered)
-    UNIQUE_CHECK: 10    // K: فحص التكرار (✅ Unique)
+    GUIDE_NAME: 15,    // P: اسم المرشد
+    PASSPORT: 5         // F: رقم جواز السفر
   },
   GUIDE_START_ROW: 2,
   

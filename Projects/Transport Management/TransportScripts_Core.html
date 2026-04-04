@@ -1,0 +1,1012 @@
+<script>
+/**
+ * Transport Management — Core Scripts
+ * State, Login, Tab Navigation, Helpers
+ */
+
+// ============================================================
+// STATE
+// ============================================================
+
+var state = {
+  user: null,
+  token: null,
+  city: '',
+  locationId: '',
+  locationName: '',
+  currentTab: 'plan',
+  trips: [],
+  selectedTrip: null,
+  boardingRecords: [],
+  incidents: [],
+  dashboardStats: null,
+  todayDate: new Date().toISOString().substring(0, 10),
+  isScanning: false,
+  // Plan state
+  planData: null,
+  planDate: new Date().toISOString().substring(0, 10),
+  planCategory: 'all',
+  planSummaryLoaded: false,
+  planSummaryData: null,
+  currentPilgrims: null  // for modal
+};
+
+// ============================================================
+// INITIALIZATION
+// ============================================================
+
+(function init() {
+  var saved = sessionStorage.getItem('transportSession');
+  if (saved) {
+    try {
+      var session = JSON.parse(saved);
+      if (session.user && session.token && session.locationId) {
+        state.user = session.user;
+        state.token = session.token;
+        state.city = session.city;
+        state.locationId = session.locationId;
+        state.locationName = session.locationName;
+        showApp();
+        return;
+      }
+    } catch (e) {}
+  }
+  showLogin();
+})();
+
+// ============================================================
+// LOGIN
+// ============================================================
+
+function showLogin() {
+  document.getElementById('loginScreen').style.display = '';
+  document.getElementById('appScreen').style.display = 'none';
+}
+
+function showApp() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('appScreen').style.display = '';
+
+  // Update header
+  document.getElementById('headerLocation').textContent = state.locationName;
+  document.getElementById('headerUser').textContent = state.user ? state.user.name : '';
+
+  // Setup tabs based on role
+  setupTabs();
+
+  // Load initial data
+  switchTab('plan');
+}
+
+function selectCity(city) {
+  state.city = city;
+
+  // Update city buttons
+  document.querySelectorAll('.city-btn').forEach(function(btn) {
+    btn.classList.toggle('active', btn.dataset.city === city);
+  });
+
+  // Populate location dropdown
+  var select = document.getElementById('locationSelect');
+  select.innerHTML = '<option value="">-- اختر الموقع --</option>';
+
+  var locations = {
+    madinah: [
+      { id: 'madinah_airport', name: 'مطار المدينة' },
+      { id: 'madinah_station', name: 'محطة قطار المدينة' },
+      { id: 'madinah_hotels', name: 'فنادق المدينة' }
+    ],
+    makkah: [
+      { id: 'jeddah_t1', name: 'مطار جدة صالة 1' },
+      { id: 'jeddah_north', name: 'مطار جدة الشمالية' },
+      { id: 'makkah_station', name: 'محطة قطار مكة' },
+      { id: 'makkah_hotels', name: 'فنادق مكة' }
+    ],
+    mashaaer: [
+      { id: 'camp_maisam', name: 'مخيم المعيصم' },
+      { id: 'camp_mujar', name: 'مخيم مجر الكبش' },
+      { id: 'camp_72', name: 'مخيم 72' },
+      { id: 'arafat', name: 'عرفة' },
+      { id: 'muzdalifah', name: 'مزدلفة' }
+    ]
+  };
+
+  var sites = locations[city] || [];
+  for (var i = 0; i < sites.length; i++) {
+    var opt = document.createElement('option');
+    opt.value = sites[i].id;
+    opt.textContent = sites[i].name;
+    select.appendChild(opt);
+  }
+
+  select.style.display = '';
+}
+
+function doLogin() {
+  var select = document.getElementById('locationSelect');
+  var locationId = select.value;
+  var locationName = select.options[select.selectedIndex].text;
+
+  if (!locationId) {
+    showToast('اختر الموقع أولاً', 'error');
+    return;
+  }
+
+  showLoading(true);
+
+  google.script.run
+    .withSuccessHandler(function(result) {
+      showLoading(false);
+      if (result.success) {
+        state.user = result.user;
+        state.token = result.token;
+        state.locationId = locationId;
+        state.locationName = locationName;
+
+        // Save session
+        sessionStorage.setItem('transportSession', JSON.stringify({
+          user: state.user,
+          token: state.token,
+          city: state.city,
+          locationId: state.locationId,
+          locationName: state.locationName
+        }));
+
+        showApp();
+      } else {
+        showToast(result.error || 'فشل تسجيل الدخول', 'error');
+      }
+    })
+    .withFailureHandler(function(err) {
+      showLoading(false);
+      showToast('خطأ: ' + err.message, 'error');
+    })
+    .getLoginUser();
+}
+
+function doLogout() {
+  sessionStorage.removeItem('transportSession');
+  state.user = null;
+  state.token = null;
+  state.locationId = '';
+  showLogin();
+}
+
+// ============================================================
+// TAB NAVIGATION
+// ============================================================
+
+function setupTabs() {
+  var role = state.user ? state.user.role : 'field';
+  var allowedTabs = {
+    ops_manager: ['plan', 'trips', 'scanner', 'incidents', 'dashboard'],
+    guide: ['plan', 'trips', 'scanner', 'incidents'],
+    field: ['plan', 'trips', 'scanner', 'incidents'],
+    airport_staff: ['plan', 'trips', 'scanner', 'incidents'],
+    hotel_staff: ['plan', 'trips', 'scanner', 'incidents']
+  };
+
+  var tabs = allowedTabs[role] || allowedTabs.field;
+
+  document.querySelectorAll('.tab-btn').forEach(function(btn) {
+    var tabName = btn.dataset.tab;
+    btn.style.display = tabs.indexOf(tabName) >= 0 ? '' : 'none';
+  });
+}
+
+function switchTab(tabName) {
+  state.currentTab = tabName;
+
+  // Update tab buttons
+  document.querySelectorAll('.tab-btn').forEach(function(btn) {
+    btn.classList.toggle('active', btn.dataset.tab === tabName);
+  });
+
+  // Update tab content
+  document.querySelectorAll('.tab-content').forEach(function(el) {
+    el.classList.toggle('active', el.id === 'tab-' + tabName);
+  });
+
+  // Load data for tab
+  if (tabName === 'plan') loadPlan();
+  else if (tabName === 'trips') loadTrips();
+  else if (tabName === 'incidents') loadIncidents();
+  else if (tabName === 'dashboard') loadDashboard();
+}
+
+// ============================================================
+// LOAD DATA
+// ============================================================
+
+function loadTrips() {
+  showLoading(true);
+  var locationId = (state.user && state.user.role === 'ops_manager') ? 'all' : state.locationId;
+
+  google.script.run
+    .withSuccessHandler(function(trips) {
+      showLoading(false);
+      state.trips = trips || [];
+      renderTrips();
+    })
+    .withFailureHandler(function(err) {
+      showLoading(false);
+      showToast('خطأ في تحميل الرحلات: ' + err.message, 'error');
+    })
+    .getTripsForLocation(locationId, state.todayDate);
+}
+
+function loadIncidents() {
+  google.script.run
+    .withSuccessHandler(function(incidents) {
+      state.incidents = incidents || [];
+      renderIncidents();
+    })
+    .withFailureHandler(function(err) {
+      showToast('خطأ: ' + err.message, 'error');
+    })
+    .getIncidents('open');
+}
+
+function loadDashboard() {
+  showLoading(true);
+  google.script.run
+    .withSuccessHandler(function(stats) {
+      showLoading(false);
+      state.dashboardStats = stats;
+      renderDashboard();
+    })
+    .withFailureHandler(function(err) {
+      showLoading(false);
+      showToast('خطأ: ' + err.message, 'error');
+    })
+    .getDashboardStats(state.todayDate);
+}
+
+// ============================================================
+// RENDER: TRIPS
+// ============================================================
+
+function renderTrips() {
+  var container = document.getElementById('tripsList');
+
+  if (!state.trips.length) {
+    container.innerHTML = '<div class="empty-state">' +
+      '<div class="empty-state-icon">🚌</div>' +
+      '<div class="empty-state-text">لا توجد رحلات اليوم</div>' +
+      '</div>';
+    return;
+  }
+
+  // Stats
+  var totalAssigned = 0, totalBoarded = 0;
+  state.trips.forEach(function(t) {
+    totalAssigned += t.assignedCount;
+    totalBoarded += t.boardedCount;
+  });
+
+  var html = '<div class="stats-bar">' +
+    '<div class="stat-card"><div class="stat-value">' + state.trips.length + '</div><div class="stat-label">رحلة</div></div>' +
+    '<div class="stat-card"><div class="stat-value">' + totalAssigned + '</div><div class="stat-label">حاج</div></div>' +
+    '<div class="stat-card"><div class="stat-value">' + totalBoarded + '</div><div class="stat-label">ركب</div></div>' +
+    '<div class="stat-card"><div class="stat-value">' + (totalAssigned > 0 ? Math.round(totalBoarded / totalAssigned * 100) : 0) + '%</div><div class="stat-label">النسبة</div></div>' +
+    '</div>';
+
+  // Trip cards
+  for (var i = 0; i < state.trips.length; i++) {
+    var t = state.trips[i];
+    var progress = t.assignedCount > 0 ? Math.round(t.boardedCount / t.assignedCount * 100) : 0;
+
+    html += '<div class="trip-card status-' + t.status + '" onclick="openTripDetail(\'' + t.tripId + '\')">' +
+      '<div class="trip-header">' +
+        '<div>' +
+          '<div class="trip-operation">' + t.operationName + '</div>' +
+          '<div class="trip-route">' + t.origin + ' → ' + t.destination + '</div>' +
+        '</div>' +
+        '<div style="text-align:left">' +
+          '<div class="trip-time">' + (t.scheduledTime || '--:--') + '</div>' +
+          '<span class="status-badge ' + t.status + '">' + getStatusLabel(t.status) + '</span>' +
+        '</div>' +
+      '</div>' +
+      '<div class="trip-meta">' +
+        '<span>🚌 ' + (t.vehiclePlate || 'غير محدد') + '</span>' +
+        '<span>👥 ' + t.boardedCount + '/' + t.assignedCount + '</span>' +
+        (t.linkedFlight ? '<span>✈️ ' + t.linkedFlight + '</span>' : '') +
+      '</div>' +
+      '<div class="trip-progress"><div class="trip-progress-bar" style="width:' + progress + '%"></div></div>' +
+      '</div>';
+  }
+
+  container.innerHTML = html;
+}
+
+// ============================================================
+// RENDER: INCIDENTS
+// ============================================================
+
+function renderIncidents() {
+  var container = document.getElementById('incidentsList');
+
+  if (!state.incidents.length) {
+    container.innerHTML = '<div class="empty-state">' +
+      '<div class="empty-state-icon">✅</div>' +
+      '<div class="empty-state-text">لا توجد مشاكل مفتوحة</div>' +
+      '</div>';
+    return;
+  }
+
+  var html = '';
+  for (var i = 0; i < state.incidents.length; i++) {
+    var inc = state.incidents[i];
+    html += '<div class="trip-card">' +
+      '<div class="trip-header">' +
+        '<div>' +
+          '<div class="trip-operation">' + getIncidentTypeLabel(inc.type) + '</div>' +
+          '<div class="trip-route">' + inc.description + '</div>' +
+        '</div>' +
+        '<span class="severity-badge ' + inc.severity + '">' + getSeverityLabel(inc.severity) + '</span>' +
+      '</div>' +
+      '<div class="trip-meta">' +
+        '<span>📅 ' + inc.reportedAt + '</span>' +
+        '<span>👤 ' + inc.reportedBy + '</span>' +
+        (inc.affectedPilgrims > 0 ? '<span>👥 ' + inc.affectedPilgrims + ' متأثر</span>' : '') +
+      '</div>' +
+      '</div>';
+  }
+
+  container.innerHTML = html;
+}
+
+// ============================================================
+// RENDER: DASHBOARD
+// ============================================================
+
+function renderDashboard() {
+  var stats = state.dashboardStats;
+  if (!stats) return;
+
+  // Summary stats
+  document.getElementById('dashStats').innerHTML =
+    '<div class="stat-card"><div class="stat-value">' + stats.totalTrips + '</div><div class="stat-label">إجمالي الرحلات</div></div>' +
+    '<div class="stat-card"><div class="stat-value">' + stats.totalAssigned + '</div><div class="stat-label">إجمالي الحجاج</div></div>' +
+    '<div class="stat-card"><div class="stat-value">' + stats.totalBoarded + '</div><div class="stat-label">ركبوا</div></div>' +
+    '<div class="stat-card"><div class="stat-value">' + stats.completedTrips + '</div><div class="stat-label">مكتملة</div></div>' +
+    '<div class="stat-card"><div class="stat-value">' + stats.incidents + '</div><div class="stat-label">مشاكل</div></div>';
+
+  // Operations grid
+  var opsHtml = '';
+  for (var opId = 1; opId <= 28; opId++) {
+    var opStats = stats.operationStats[String(opId)] || { trips: 0, assigned: 0, boarded: 0, status: 'gray' };
+    var opDef = window._operations ? window._operations[opId] : null;
+    var opName = opDef ? opDef.name : 'عملية ' + opId;
+
+    opsHtml += '<div class="ops-card ' + opStats.status + '">' +
+      '<div class="ops-card-name">' + opName + '</div>' +
+      '<div class="ops-card-count">' + opStats.trips + '</div>' +
+      '<div class="ops-card-label">' + opStats.boarded + '/' + opStats.assigned + ' حاج</div>' +
+      '</div>';
+  }
+  document.getElementById('opsGrid').innerHTML = opsHtml;
+}
+
+// ============================================================
+// TRIP DETAIL MODAL
+// ============================================================
+
+function openTripDetail(tripId) {
+  var trip = state.trips.find(function(t) { return t.tripId === tripId; });
+  if (!trip) return;
+
+  state.selectedTrip = trip;
+
+  document.getElementById('modalTitle').textContent = trip.operationName;
+  document.getElementById('modalTripInfo').innerHTML =
+    '<p><strong>الرحلة:</strong> ' + trip.tripId + '</p>' +
+    '<p><strong>المسار:</strong> ' + trip.origin + ' → ' + trip.destination + '</p>' +
+    '<p><strong>الوقت:</strong> ' + (trip.scheduledTime || '--:--') + '</p>' +
+    '<p><strong>المركبة:</strong> ' + (trip.vehiclePlate || 'غير محدد') + '</p>' +
+    '<p><strong>الحالة:</strong> <span class="status-badge ' + trip.status + '">' + getStatusLabel(trip.status) + '</span></p>' +
+    '<p><strong>الركاب:</strong> ' + trip.boardedCount + ' / ' + trip.assignedCount + '</p>';
+
+  // Load boarding records
+  document.getElementById('modalBoardingList').innerHTML = '<div class="empty-state"><div class="spinner"></div></div>';
+
+  google.script.run
+    .withSuccessHandler(function(records) {
+      state.boardingRecords = records || [];
+      renderBoardingList();
+    })
+    .withFailureHandler(function(err) {
+      document.getElementById('modalBoardingList').innerHTML = '<div class="empty-state">خطأ في التحميل</div>';
+    })
+    .getBoardingForTrip(tripId);
+
+  // Show status action buttons
+  renderTripActions(trip);
+
+  document.getElementById('tripModal').classList.add('active');
+}
+
+function closeTripModal() {
+  document.getElementById('tripModal').classList.remove('active');
+  state.selectedTrip = null;
+}
+
+function renderBoardingList() {
+  var container = document.getElementById('modalBoardingList');
+
+  if (!state.boardingRecords.length) {
+    container.innerHTML = '<div class="empty-state"><div class="empty-state-text">لم يتم تسجيل أي حاج بعد</div></div>';
+    return;
+  }
+
+  var html = '<ul class="pilgrim-list">';
+  for (var i = 0; i < state.boardingRecords.length; i++) {
+    var r = state.boardingRecords[i];
+    html += '<li class="pilgrim-item">' +
+      '<div>' +
+        '<div class="pilgrim-name">' + r.pilgrimName + '</div>' +
+        '<div class="pilgrim-passport">' + r.passport + ' | ' + r.scanTime + '</div>' +
+      '</div>' +
+      '<span class="status-badge ' + (r.boardingStatus === 'boarded' ? 'arrived' : 'cancelled') + '">' +
+        (r.boardingStatus === 'boarded' ? 'ركب' : 'لم يركب') +
+      '</span>' +
+      '</li>';
+  }
+  html += '</ul>';
+  container.innerHTML = html;
+}
+
+function renderTripActions(trip) {
+  var container = document.getElementById('modalActions');
+  var html = '';
+
+  if (trip.status === 'scheduled') {
+    html += '<button class="btn btn-warning btn-block" onclick="changeTripStatus(\'' + trip.tripId + '\', \'boarding\')">بدء الركوب</button>';
+  } else if (trip.status === 'boarding') {
+    html += '<button class="btn btn-primary btn-block" onclick="changeTripStatus(\'' + trip.tripId + '\', \'departed\')">انطلقت</button>';
+  } else if (trip.status === 'departed') {
+    html += '<button class="btn btn-success btn-block" onclick="changeTripStatus(\'' + trip.tripId + '\', \'arrived\')">وصلت</button>';
+  }
+
+  var role = state.user ? state.user.role : '';
+  if (role === 'ops_manager' && trip.status !== 'cancelled' && trip.status !== 'arrived') {
+    html += '<button class="btn btn-danger btn-sm" style="margin-top:8px" onclick="changeTripStatus(\'' + trip.tripId + '\', \'cancelled\')">إلغاء الرحلة</button>';
+  }
+
+  container.innerHTML = html;
+}
+
+function changeTripStatus(tripId, newStatus) {
+  showLoading(true);
+  google.script.run
+    .withSuccessHandler(function(result) {
+      showLoading(false);
+      if (result.success) {
+        showToast('تم تحديث الحالة', 'success');
+        closeTripModal();
+        loadTrips();
+      } else {
+        showToast(result.error, 'error');
+      }
+    })
+    .withFailureHandler(function(err) {
+      showLoading(false);
+      showToast('خطأ: ' + err.message, 'error');
+    })
+    .updateTripStatus(tripId, newStatus);
+}
+
+// ============================================================
+// SCANNER (basic — full scanner in TransportScripts_Scanner.html)
+// ============================================================
+
+function startManualScan() {
+  var input = document.getElementById('manualPassport');
+  var value = input.value.trim();
+  if (!value) {
+    showToast('أدخل رقم الجواز أو BookingId', 'error');
+    return;
+  }
+
+  if (!state.selectedTrip) {
+    showToast('اختر رحلة أولاً', 'error');
+    return;
+  }
+
+  showLoading(true);
+  google.script.run
+    .withSuccessHandler(function(result) {
+      showLoading(false);
+      if (result.success) {
+        showScanResult(result, 'success');
+        input.value = '';
+      } else {
+        showScanResult(result, result.alreadyBoarded ? 'warning' : 'error');
+      }
+    })
+    .withFailureHandler(function(err) {
+      showLoading(false);
+      showToast('خطأ: ' + err.message, 'error');
+    })
+    .recordBoarding(state.selectedTrip.tripId, value, 'manual', state.user ? state.user.name : '');
+}
+
+function showScanResult(result, type) {
+  var container = document.getElementById('scanResult');
+  if (result.success && result.pilgrim) {
+    container.innerHTML = '<div class="scan-result ' + type + '">' +
+      '<div class="scan-pilgrim-name">' + result.pilgrim.name + '</div>' +
+      '<div class="scan-pilgrim-info">' + result.pilgrim.passport + ' | ' + result.pilgrim.nationalityEn + '</div>' +
+      '<div class="scan-pilgrim-info" style="margin-top:8px;color:var(--success);font-weight:700">' + result.message + '</div>' +
+      '</div>';
+  } else {
+    container.innerHTML = '<div class="scan-result ' + type + '">' +
+      '<div class="scan-pilgrim-name" style="color:var(--danger)">' + (result.error || 'خطأ') + '</div>' +
+      (result.pilgrim ? '<div class="scan-pilgrim-info">' + result.pilgrim.name + '</div>' : '') +
+      '</div>';
+  }
+
+  container.style.display = '';
+  setTimeout(function() { container.style.display = 'none'; }, 5000);
+}
+
+// ============================================================
+// INCIDENT FORM
+// ============================================================
+
+function showIncidentForm() {
+  document.getElementById('incidentModal').classList.add('active');
+}
+
+function closeIncidentModal() {
+  document.getElementById('incidentModal').classList.remove('active');
+}
+
+function submitIncident() {
+  var data = {
+    tripId: document.getElementById('incTripId').value,
+    type: document.getElementById('incType').value,
+    severity: document.getElementById('incSeverity').value,
+    description: document.getElementById('incDescription').value,
+    affectedPilgrims: Number(document.getElementById('incAffected').value) || 0,
+    reportedBy: state.user ? state.user.name : ''
+  };
+
+  if (!data.description) {
+    showToast('أدخل وصف المشكلة', 'error');
+    return;
+  }
+
+  showLoading(true);
+  google.script.run
+    .withSuccessHandler(function(result) {
+      showLoading(false);
+      if (result.success) {
+        showToast('تم الإبلاغ عن المشكلة', 'success');
+        closeIncidentModal();
+        loadIncidents();
+      } else {
+        showToast(result.error, 'error');
+      }
+    })
+    .withFailureHandler(function(err) {
+      showLoading(false);
+      showToast('خطأ: ' + err.message, 'error');
+    })
+    .reportIncident(data);
+}
+
+// ============================================================
+// LABELS
+// ============================================================
+
+function getStatusLabel(status) {
+  var labels = {
+    scheduled: 'مجدولة',
+    boarding: 'جاري الركوب',
+    departed: 'انطلقت',
+    arrived: 'وصلت',
+    cancelled: 'ملغاة'
+  };
+  return labels[status] || status;
+}
+
+function getIncidentTypeLabel(type) {
+  var labels = {
+    delay: 'تأخير',
+    breakdown: 'عطل مركبة',
+    no_show: 'حاج غائب',
+    flight_change: 'تغيير رحلة',
+    accident: 'حادث',
+    other: 'أخرى'
+  };
+  return labels[type] || type;
+}
+
+function getSeverityLabel(severity) {
+  var labels = { low: 'منخفض', medium: 'متوسط', high: 'عالي', critical: 'حرج' };
+  return labels[severity] || severity;
+}
+
+// ============================================================
+// UI HELPERS
+// ============================================================
+
+function showLoading(show) {
+  document.getElementById('loadingOverlay').classList.toggle('active', show);
+}
+
+function showToast(msg, type) {
+  var toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.className = 'toast' + (type ? ' ' + type : '');
+  toast.style.display = 'block';
+  setTimeout(function() { toast.style.display = 'none'; }, 3000);
+}
+
+// ============================================================
+// PLAN: خطة النقل التلقائية
+// ============================================================
+
+function loadPlan() {
+  var dateInput = document.getElementById('planDate');
+
+  // أول تحميل — نجلب ملخص التواريخ أولاً
+  if (!state.planSummaryLoaded) {
+    document.getElementById('planOperations').innerHTML =
+      '<div class="empty-state"><div class="spinner"></div><div class="empty-state-text">جاري تحليل بيانات 6000+ حاج...</div></div>';
+
+    google.script.run
+      .withSuccessHandler(function(json) {
+        try {
+          state.planSummaryData = JSON.parse(json);
+          state.planSummaryLoaded = true;
+
+          // اختر أول تاريخ فيه عمليات
+          var dates = Object.keys(state.planSummaryData).sort();
+          if (dates.length > 0) {
+            state.planDate = dates[0];
+            dateInput.value = state.planDate;
+          }
+
+          renderDateSummary_();
+          loadPlanForDate_();
+        } catch (e) {
+          document.getElementById('planOperations').innerHTML =
+            '<div class="empty-state"><div class="empty-state-text">خطأ في تحليل البيانات: ' + e.message + '</div></div>';
+        }
+      })
+      .withFailureHandler(function(err) {
+        document.getElementById('planOperations').innerHTML =
+          '<div class="empty-state"><div class="empty-state-text">خطأ: ' + err.message + '</div></div>';
+      })
+      .getTransportSummary(state.locationId);
+    return;
+  }
+
+  state.planDate = dateInput.value;
+  loadPlanForDate_();
+}
+
+function renderDateSummary_() {
+  var summary = state.planSummaryData;
+  if (!summary) return;
+
+  var dates = Object.keys(summary).sort();
+  var totalArrivals = 0, totalDepartures = 0, totalTransfers = 0;
+  dates.forEach(function(d) {
+    totalArrivals += summary[d].arrivals || 0;
+    totalDepartures += summary[d].departures || 0;
+    totalTransfers += summary[d].transfers || 0;
+  });
+
+  document.getElementById('planSummary').innerHTML =
+    '<div class="stat-card"><div class="stat-value">' + dates.length + '</div><div class="stat-label">يوم</div></div>' +
+    '<div class="stat-card"><div class="stat-value">' + (totalArrivals + totalDepartures + totalTransfers) + '</div><div class="stat-label">إجمالي العمليات</div></div>' +
+    '<div class="stat-card" style="border-color:var(--success)"><div class="stat-value" style="color:var(--success)">' + totalArrivals + '</div><div class="stat-label">وصول</div></div>' +
+    '<div class="stat-card" style="border-color:var(--warning)"><div class="stat-value" style="color:var(--warning)">' + totalDepartures + '</div><div class="stat-label">مغادرة</div></div>';
+}
+
+function loadPlanForDate_() {
+  document.getElementById('planOperations').innerHTML =
+    '<div class="empty-state"><div class="spinner"></div><div class="empty-state-text">جاري تحليل يوم ' + state.planDate + '...</div></div>';
+
+  google.script.run
+    .withSuccessHandler(function(json) {
+      try {
+        state.planData = JSON.parse(json);
+        renderPlan();
+      } catch (e) {
+        document.getElementById('planOperations').innerHTML =
+          '<div class="empty-state"><div class="empty-state-text">خطأ: ' + e.message + '</div></div>';
+      }
+    })
+    .withFailureHandler(function(err) {
+      document.getElementById('planOperations').innerHTML =
+        '<div class="empty-state"><div class="empty-state-text">خطأ: ' + err.message + '</div></div>';
+    })
+    .getTransportPlan(state.planDate, state.locationId);
+}
+
+function changePlanDate(delta) {
+  var d = new Date(state.planDate);
+  d.setDate(d.getDate() + delta);
+  state.planDate = d.toISOString().substring(0, 10);
+  document.getElementById('planDate').value = state.planDate;
+  loadPlan();
+}
+
+function setPlanDateToday() {
+  state.planDate = state.todayDate;
+  document.getElementById('planDate').value = state.planDate;
+  loadPlan();
+}
+
+function filterPlanCategory(cat) {
+  state.planCategory = cat;
+  document.querySelectorAll('.plan-filter-btn').forEach(function(btn) {
+    btn.classList.toggle('active', btn.dataset.cat === cat);
+  });
+  renderPlan();
+}
+
+function renderPlan() {
+  var data = state.planData;
+  if (!data) return;
+
+  var dateEntry = null;
+  for (var i = 0; i < data.dates.length; i++) {
+    if (data.dates[i].date === state.planDate) {
+      dateEntry = data.dates[i];
+      break;
+    }
+  }
+
+  // Summary
+  var totalOps = dateEntry ? dateEntry.operations.length : 0;
+  var totalPilgrims = dateEntry ? dateEntry.totalPilgrims : 0;
+
+  // Count by category
+  var catCounts = { arrival: 0, intercity: 0, shifting: 0, hajj: 0, departure: 0 };
+  if (dateEntry) {
+    dateEntry.operations.forEach(function(op) {
+      var cat = getCategoryGroup_(op.category);
+      catCounts[cat] = (catCounts[cat] || 0) + op.count;
+    });
+  }
+
+  document.getElementById('planSummary').innerHTML =
+    '<div class="stat-card"><div class="stat-value">' + totalOps + '</div><div class="stat-label">عملية</div></div>' +
+    '<div class="stat-card"><div class="stat-value">' + totalPilgrims + '</div><div class="stat-label">حاج</div></div>' +
+    '<div class="stat-card" style="border-color:var(--success)"><div class="stat-value" style="color:var(--success)">' + catCounts.arrival + '</div><div class="stat-label">وصول</div></div>' +
+    '<div class="stat-card" style="border-color:var(--warning)"><div class="stat-value" style="color:var(--warning)">' + catCounts.departure + '</div><div class="stat-label">مغادرة</div></div>';
+
+  if (!dateEntry || !dateEntry.operations.length) {
+    document.getElementById('planOperations').innerHTML =
+      '<div class="empty-state"><div class="empty-state-icon">📅</div><div class="empty-state-text">لا توجد عمليات نقل في هذا التاريخ</div></div>';
+    return;
+  }
+
+  // Filter by category
+  var ops = dateEntry.operations;
+  if (state.planCategory !== 'all') {
+    ops = ops.filter(function(op) {
+      return getCategoryGroup_(op.category) === state.planCategory;
+    });
+  }
+
+  if (!ops.length) {
+    document.getElementById('planOperations').innerHTML =
+      '<div class="empty-state"><div class="empty-state-text">لا توجد عمليات في هذا التصنيف</div></div>';
+    return;
+  }
+
+  var html = '';
+  for (var i = 0; i < ops.length; i++) {
+    var op = ops[i];
+    var catColor = getCategoryColor_(op.category);
+    var catLabel = getCategoryLabel_(op.category);
+
+    html += '<div class="plan-op-card" onclick="openPilgrimList(\'' + (op.planKey || op.opId) + '\')">' +
+      '<div class="plan-op-header">' +
+        '<div>' +
+          '<span class="plan-op-badge" style="background:' + catColor + '">' + catLabel + '</span>' +
+          '<div class="plan-op-name">' + op.opName + '</div>' +
+        '</div>' +
+        '<div class="plan-op-count">' + op.count + '<small> حاج</small></div>' +
+      '</div>';
+
+    // Flight groups
+    if (op.flightGroups && op.flightGroups.length > 0) {
+      html += '<div class="plan-op-groups">';
+      for (var f = 0; f < Math.min(op.flightGroups.length, 5); f++) {
+        var fg = op.flightGroups[f];
+        html += '<span class="plan-op-group-chip">&#9992; ' + fg.flight + ' (' + fg.count + ')</span>';
+      }
+      if (op.flightGroups.length > 5) html += '<span class="plan-op-group-chip">+' + (op.flightGroups.length - 5) + '</span>';
+      html += '</div>';
+    }
+
+    // Hotel badges
+    if (op.originHotel && op.destHotel) {
+      html += '<div class="plan-op-groups"><span class="plan-op-group-chip hotel">&#127976; ' + op.originHotel + ' → ' + op.destHotel + '</span></div>';
+    } else if (op.destHotel) {
+      html += '<div class="plan-op-groups"><span class="plan-op-group-chip hotel">&#127976; → ' + op.destHotel + '</span></div>';
+    } else if (op.originHotel) {
+      html += '<div class="plan-op-groups"><span class="plan-op-group-chip hotel">&#127976; ' + op.originHotel + ' →</span></div>';
+    }
+
+    html += '</div>';
+  }
+
+  document.getElementById('planOperations').innerHTML = html;
+}
+
+function getCategoryGroup_(cat) {
+  if (!cat) return 'other';
+  if (cat.indexOf('arrival') >= 0) return 'arrival';
+  if (cat.indexOf('intercity') >= 0) return 'intercity';
+  if (cat.indexOf('shifting') >= 0) return 'shifting';
+  if (cat.indexOf('hajj') >= 0) return 'hajj';
+  if (cat.indexOf('departure') >= 0) return 'departure';
+  return 'other';
+}
+
+function getCategoryColor_(cat) {
+  var colors = {
+    arrival: '#28a745', intercity: '#6f42c1', intercity_train: '#6f42c1',
+    shifting: '#fd7e14', hajj: '#dc3545', hajj_ritual: '#dc3545',
+    departure: '#0d6efd', departure_train: '#0d6efd'
+  };
+  return colors[cat] || '#6c757d';
+}
+
+function getCategoryLabel_(cat) {
+  var labels = {
+    arrival: 'وصول', intercity: 'بين المدن', intercity_train: 'قطار',
+    shifting: 'تحويل', hajj: 'حج', hajj_ritual: 'مناسك',
+    departure: 'مغادرة', departure_train: 'مغادرة قطار'
+  };
+  return labels[cat] || cat;
+}
+
+// ============================================================
+// PILGRIM LIST MODAL
+// ============================================================
+
+function openPilgrimList(planKey) {
+  if (!state.planData) return;
+
+  var dateEntry = null;
+  for (var i = 0; i < state.planData.dates.length; i++) {
+    if (state.planData.dates[i].date === state.planDate) {
+      dateEntry = state.planData.dates[i];
+      break;
+    }
+  }
+  if (!dateEntry) return;
+
+  var op = null;
+  for (var i = 0; i < dateEntry.operations.length; i++) {
+    var o = dateEntry.operations[i];
+    if ((o.planKey || String(o.opId)) === String(planKey)) {
+      op = o;
+      break;
+    }
+  }
+  if (!op) return;
+
+  state.currentPilgrims = op;
+
+  document.getElementById('pilgrimModalTitle').textContent = op.opName;
+  document.getElementById('pilgrimModalSubtitle').textContent = state.planDate;
+  document.getElementById('pilgrimCount').textContent = op.count + ' حاج';
+
+  // Group tabs
+  var tabsHtml = '<button class="plan-filter-btn active" onclick="renderPilgrimTable(\'all\', this)">الكل (' + op.count + ')</button>';
+  if (op.flightGroups) {
+    for (var f = 0; f < op.flightGroups.length; f++) {
+      var fg = op.flightGroups[f];
+      tabsHtml += '<button class="plan-filter-btn" onclick="renderPilgrimTable(\'' + fg.flight.replace(/'/g, "\\'") + '\', this)">&#9992; ' + fg.flight + ' (' + fg.count + ')</button>';
+    }
+  }
+  if (op.hotelGroups) {
+    for (var h = 0; h < op.hotelGroups.length; h++) {
+      var hg = op.hotelGroups[h];
+      tabsHtml += '<button class="plan-filter-btn" onclick="renderPilgrimTable(\'' + hg.hotel.replace(/'/g, "\\'") + '\', this)">&#127976; ' + hg.hotel + ' (' + hg.count + ')</button>';
+    }
+  }
+  document.getElementById('pilgrimGroupTabs').innerHTML = tabsHtml;
+
+  renderPilgrimTable('all', null);
+  document.getElementById('pilgrimModal').classList.add('active');
+}
+
+function closePilgrimModal() {
+  document.getElementById('pilgrimModal').classList.remove('active');
+}
+
+function renderPilgrimTable(filter, btn) {
+  if (btn) {
+    btn.parentElement.querySelectorAll('.plan-filter-btn').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+  }
+
+  var op = state.currentPilgrims;
+  if (!op) return;
+
+  var pilgrims = op.pilgrims;
+  if (filter !== 'all') {
+    pilgrims = pilgrims.filter(function(p) {
+      var flightKey = (p.flight || '') + (p.time ? ' ' + p.time : '');
+      return flightKey === filter || p.hotel === filter;
+    });
+  }
+
+  document.getElementById('pilgrimCount').textContent = pilgrims.length + ' حاج';
+
+  var html = '';
+  for (var i = 0; i < pilgrims.length; i++) {
+    var p = pilgrims[i];
+    html += '<tr>' +
+      '<td>' + (i + 1) + '</td>' +
+      '<td>' + (p.name || '-') + '</td>' +
+      '<td style="direction:ltr;text-align:center">' + (p.passport || '-') + '</td>' +
+      '<td>' + (p.nationalityEn || '-') + '</td>' +
+      '<td>' + (p.packageId || '-') + '</td>' +
+      '<td>' + (p.guide || '-') + '</td>' +
+      '<td style="direction:ltr;text-align:center">' + (p.flight || '-') + '</td>' +
+      '<td>' + (p.hotel || '-') + '</td>' +
+      '</tr>';
+  }
+
+  document.getElementById('pilgrimTableBody').innerHTML = html || '<tr><td colspan="8" style="text-align:center">لا توجد بيانات</td></tr>';
+}
+
+// ============================================================
+// EXPORT: تصدير كشوفات
+// ============================================================
+
+function exportPilgrimList(format) {
+  var op = state.currentPilgrims;
+  if (!op || !op.pilgrims || !op.pilgrims.length) {
+    showToast('لا توجد بيانات للتصدير', 'error');
+    return;
+  }
+
+  if (format === 'print') {
+    var printWin = window.open('', '_blank');
+    var table = document.getElementById('pilgrimTableWrapper').innerHTML;
+    printWin.document.write(
+      '<html dir="rtl"><head><title>' + op.opName + ' - ' + state.planDate + '</title>' +
+      '<style>body{font-family:Arial,sans-serif;direction:rtl}table{width:100%;border-collapse:collapse;font-size:12px}' +
+      'th,td{border:1px solid #ddd;padding:6px;text-align:right}th{background:#0D4A3A;color:#fff}' +
+      'h2{color:#0D4A3A}tr:nth-child(even){background:#f9f9f9}</style></head>' +
+      '<body><h2>' + op.opName + '</h2><p>التاريخ: ' + state.planDate + ' | العدد: ' + op.count + ' حاج</p>' +
+      table + '</body></html>'
+    );
+    printWin.document.close();
+    printWin.print();
+    return;
+  }
+
+  if (format === 'excel') {
+    // Build CSV
+    var csv = '\uFEFF'; // BOM for Arabic
+    csv += '#,الاسم,الجواز,الجنسية,الباقة,المرشد,الرحلة,الفندق,الجوال\n';
+    for (var i = 0; i < op.pilgrims.length; i++) {
+      var p = op.pilgrims[i];
+      csv += (i + 1) + ',' + (p.name || '') + ',' + (p.passport || '') + ',' +
+        (p.nationalityEn || '') + ',' + (p.packageId || '') + ',' + (p.guide || '') + ',' +
+        (p.flight || '') + ',' + (p.hotel || '') + ',' + (p.phone || '') + '\n';
+    }
+
+    var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    var link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = op.opName.replace(/[^\u0600-\u06FFa-zA-Z0-9 ]/g, '') + '_' + state.planDate + '.csv';
+    link.click();
+    showToast('تم تصدير الكشف', 'success');
+  }
+}
+</script>

@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>إدارة النقل | إكرام الضيف</title>
+  <?!= include('TransportStyles') ?>
+</head>
+<body>
+
+<!-- ============================================================
+     LOGIN SCREEN
+     ============================================================ -->
+<div id="loginScreen">
+  <div class="login-container">
+    <img src="https://lh3.googleusercontent.com/d/1Bk8VGH6VQxLx7Yr0Rg_h6Z5F5l5H3_Ni" alt="Logo" class="login-logo" onerror="this.style.display='none'">
+    <div class="login-title">إدارة النقل</div>
+    <div class="login-subtitle">Ikram AlDyf for Hajj</div>
+
+    <div class="login-card">
+      <h3>تسجيل الدخول</h3>
+
+      <!-- City Selector -->
+      <div class="city-selector">
+        <button class="city-btn" data-city="madinah" onclick="selectCity('madinah')">المدينة</button>
+        <button class="city-btn" data-city="makkah" onclick="selectCity('makkah')">مكة</button>
+        <button class="city-btn" data-city="mashaaer" onclick="selectCity('mashaaer')">المشاعر</button>
+      </div>
+
+      <!-- Location Dropdown -->
+      <select id="locationSelect" class="location-select" style="display:none">
+        <option value="">-- اختر الموقع --</option>
+      </select>
+
+      <!-- Login Button -->
+      <button class="login-btn" onclick="doLogin()">دخول</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     APP SCREEN
+     ============================================================ -->
+<div id="appScreen" style="display:none">
+
+  <!-- Header -->
+  <div class="header">
+    <div>
+      <div class="header-title">إدارة النقل</div>
+      <div class="header-location" id="headerLocation"></div>
+    </div>
+    <div style="text-align:left">
+      <div class="header-user" id="headerUser"></div>
+      <button class="btn btn-sm" style="background:rgba(255,255,255,0.15);color:#fff;margin-top:4px;padding:4px 10px;font-size:11px" onclick="doLogout()">خروج</button>
+    </div>
+  </div>
+
+  <!-- Tab Navigation -->
+  <div class="tab-nav">
+    <button class="tab-btn active" data-tab="plan" onclick="switchTab('plan')">خطة النقل</button>
+    <button class="tab-btn" data-tab="trips" onclick="switchTab('trips')">الرحلات</button>
+    <button class="tab-btn" data-tab="scanner" onclick="switchTab('scanner')">مسح QR</button>
+    <button class="tab-btn" data-tab="incidents" onclick="switchTab('incidents')">المشاكل</button>
+    <button class="tab-btn" data-tab="dashboard" onclick="switchTab('dashboard')">لوحة التحكم</button>
+  </div>
+
+  <!-- ============================================================
+       TAB 0: خطة النقل التلقائية
+       ============================================================ -->
+  <div id="tab-plan" class="tab-content active">
+    <!-- Date Navigation -->
+    <div class="plan-date-nav">
+      <button class="btn btn-sm" onclick="changePlanDate(-1)">&larr;</button>
+      <input type="date" id="planDate" class="form-input plan-date-input" onchange="loadPlan()">
+      <button class="btn btn-sm" onclick="changePlanDate(1)">&rarr;</button>
+      <button class="btn btn-sm btn-outline" onclick="setPlanDateToday()">اليوم</button>
+    </div>
+
+    <!-- Summary -->
+    <div id="planSummary" class="stats-bar"></div>
+
+    <!-- Category Filter -->
+    <div class="plan-filter" id="planCategoryFilter">
+      <button class="plan-filter-btn active" data-cat="all" onclick="filterPlanCategory('all')">الكل</button>
+      <button class="plan-filter-btn" data-cat="arrival" onclick="filterPlanCategory('arrival')">وصول</button>
+      <button class="plan-filter-btn" data-cat="intercity" onclick="filterPlanCategory('intercity')">بين المدن</button>
+      <button class="plan-filter-btn" data-cat="shifting" onclick="filterPlanCategory('shifting')">تحويل</button>
+      <button class="plan-filter-btn" data-cat="hajj" onclick="filterPlanCategory('hajj')">حج</button>
+      <button class="plan-filter-btn" data-cat="departure" onclick="filterPlanCategory('departure')">مغادرة</button>
+    </div>
+
+    <!-- Operations List -->
+    <div id="planOperations">
+      <div class="empty-state">
+        <div class="spinner"></div>
+        <div class="empty-state-text">جاري تحليل بيانات الحجاج...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       TAB 1: الرحلات النشطة
+       ============================================================ -->
+  <div id="tab-trips" class="tab-content">
+    <div id="tripsList">
+      <div class="empty-state">
+        <div class="spinner"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       TAB 2: مسح QR
+       ============================================================ -->
+  <div id="tab-scanner" class="tab-content">
+    <div class="scanner-container">
+
+      <!-- Trip selector for scanning -->
+      <div class="form-group">
+        <label class="form-label">اختر الرحلة للمسح</label>
+        <select id="scanTripSelect" class="form-select" onchange="selectTripForScan(this.value)">
+          <option value="">-- اختر رحلة --</option>
+        </select>
+      </div>
+
+      <!-- QR Reader -->
+      <div id="qr-reader"></div>
+
+      <button class="btn btn-primary btn-block" id="startScanBtn" onclick="toggleQrScanner()" style="margin-bottom:16px">
+        تشغيل الكاميرا
+      </button>
+
+      <!-- Scan Result -->
+      <div id="scanResult" style="display:none"></div>
+
+      <!-- Manual Input -->
+      <div class="manual-input">
+        <input type="text" id="manualPassport" placeholder="رقم الجواز أو BookingId" onkeydown="if(event.key==='Enter')startManualScan()">
+        <button class="btn btn-primary" onclick="startManualScan()">بحث</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- تاب الجدول تم استبداله بخطة النقل -->
+
+  <!-- ============================================================
+       TAB 4: المشاكل
+       ============================================================ -->
+  <div id="tab-incidents" class="tab-content">
+    <div style="margin-bottom:16px">
+      <button class="btn btn-danger" onclick="showIncidentForm()">إبلاغ عن مشكلة</button>
+    </div>
+    <div id="incidentsList">
+      <div class="empty-state">
+        <div class="empty-state-icon">✅</div>
+        <div class="empty-state-text">لا توجد مشاكل</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       TAB 5: لوحة التحكم
+       ============================================================ -->
+  <div id="tab-dashboard" class="tab-content">
+    <div class="stats-bar" id="dashStats"></div>
+    <h3 style="margin:16px 0 8px;font-size:16px">حالة الـ 28 عملية</h3>
+    <div class="ops-grid" id="opsGrid"></div>
+  </div>
+
+</div>
+
+<!-- ============================================================
+     PILGRIM LIST MODAL (from Transport Plan)
+     ============================================================ -->
+<div id="pilgrimModal" class="modal-overlay" onclick="if(event.target===this)closePilgrimModal()">
+  <div class="modal" style="max-width:700px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="pilgrimModalTitle"></div>
+        <div style="font-size:12px;color:#666;margin-top:4px" id="pilgrimModalSubtitle"></div>
+      </div>
+      <button class="modal-close" onclick="closePilgrimModal()">&#x2715;</button>
+    </div>
+
+    <!-- Group Tabs (Flight / Hotel) -->
+    <div class="plan-filter" id="pilgrimGroupTabs" style="margin-bottom:12px"></div>
+
+    <!-- Pilgrim Count -->
+    <div id="pilgrimCount" style="font-weight:700;margin-bottom:12px;font-size:18px;color:var(--primary)"></div>
+
+    <!-- Export Buttons -->
+    <div style="margin-bottom:16px;display:flex;gap:8px">
+      <button class="btn btn-primary btn-sm" onclick="exportPilgrimList('excel')">Excel</button>
+      <button class="btn btn-outline btn-sm" onclick="exportPilgrimList('print')">طباعة</button>
+    </div>
+
+    <!-- Pilgrim Table -->
+    <div id="pilgrimTableWrapper" style="overflow-x:auto">
+      <table class="pilgrim-table" id="pilgrimTable">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>الاسم</th>
+            <th>الجواز</th>
+            <th>الجنسية</th>
+            <th>الباقة</th>
+            <th>المرشد</th>
+            <th>الرحلة</th>
+            <th>الفندق</th>
+          </tr>
+        </thead>
+        <tbody id="pilgrimTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     TRIP DETAIL MODAL
+     ============================================================ -->
+<div id="tripModal" class="modal-overlay" onclick="if(event.target===this)closeTripModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle"></div>
+      <button class="modal-close" onclick="closeTripModal()">✕</button>
+    </div>
+    <div id="modalTripInfo"></div>
+    <div id="modalActions" style="margin:16px 0"></div>
+    <h4 style="margin:16px 0 8px">سجل الركوب</h4>
+    <div id="modalBoardingList"></div>
+  </div>
+</div>
+
+<!-- ============================================================
+     INCIDENT FORM MODAL
+     ============================================================ -->
+<div id="incidentModal" class="modal-overlay" onclick="if(event.target===this)closeIncidentModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">إبلاغ عن مشكلة</div>
+      <button class="modal-close" onclick="closeIncidentModal()">✕</button>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">رقم الرحلة (اختياري)</label>
+      <input type="text" id="incTripId" class="form-input" placeholder="TR-XXXXXX-XXXX">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">نوع المشكلة</label>
+      <select id="incType" class="form-select">
+        <option value="delay">تأخير</option>
+        <option value="breakdown">عطل مركبة</option>
+        <option value="no_show">حاج غائب</option>
+        <option value="flight_change">تغيير رحلة طيران</option>
+        <option value="accident">حادث</option>
+        <option value="other">أخرى</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">الخطورة</label>
+      <select id="incSeverity" class="form-select">
+        <option value="low">منخفض</option>
+        <option value="medium" selected>متوسط</option>
+        <option value="high">عالي</option>
+        <option value="critical">حرج</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">الوصف</label>
+      <textarea id="incDescription" class="form-textarea" placeholder="صف المشكلة بالتفصيل..."></textarea>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">عدد الحجاج المتأثرين</label>
+      <input type="number" id="incAffected" class="form-input" value="0" min="0">
+    </div>
+
+    <button class="btn btn-danger btn-block" onclick="submitIncident()">إرسال البلاغ</button>
+  </div>
+</div>
+
+<!-- ============================================================
+     LOADING & TOAST
+     ============================================================ -->
+<div id="loadingOverlay" class="loading-overlay">
+  <div class="spinner"></div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<!-- ============================================================
+     SCRIPTS
+     ============================================================ -->
+<?!= include('TransportScripts_Core') ?>
+
+<script>
+// Trip selector for QR scanning
+function selectTripForScan(tripId) {
+  if (!tripId) {
+    state.selectedTrip = null;
+    return;
+  }
+  state.selectedTrip = state.trips.find(function(t) { return t.tripId === tripId; }) || null;
+}
+
+// Populate scan trip dropdown when switching to scanner tab
+var origSwitchTab = switchTab;
+switchTab = function(tabName) {
+  origSwitchTab(tabName);
+  if (tabName === 'scanner') {
+    var select = document.getElementById('scanTripSelect');
+    select.innerHTML = '<option value="">-- اختر رحلة --</option>';
+    for (var i = 0; i < state.trips.length; i++) {
+      var t = state.trips[i];
+      if (t.status === 'cancelled' || t.status === 'arrived') continue;
+      var opt = document.createElement('option');
+      opt.value = t.tripId;
+      opt.textContent = t.scheduledTime + ' | ' + t.operationName;
+      select.appendChild(opt);
+    }
+  }
+};
+
+// QR Scanner placeholder — full implementation in Phase 3
+function toggleQrScanner() {
+  showToast('سيتم تفعيل كاميرا QR في المرحلة 3 — استخدم الإدخال اليدوي حالياً', 'warning');
+}
+</script>
+
+</body>
+</html>

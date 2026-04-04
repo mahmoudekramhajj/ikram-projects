@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style/dist/xlsx.bundle.min.js"></script>
   <?!= include('SalesStyles'); ?>
 </head>
 <body class="ltr">
@@ -52,11 +53,25 @@
     <div class="kpi-value" id="kpiPct">0%</div>
     <div class="kpi-label" id="kpiPctLabel">Sales %</div>
   </div>
+  <div class="kpi-card kpi-res" style="display:none; border: 2px solid var(--blue-600);">
+    <div class="kpi-icon">🏠</div>
+    <div class="kpi-value" id="kpiResCount" style="color:var(--blue-600);">0</div>
+    <div class="kpi-label" id="kpiResLabel">Pilgrims</div>
+  </div>
+  <div class="kpi-card kpi-guide" style="display:none; border: 2px solid #8B5CF6;">
+    <div class="kpi-icon">👤</div>
+    <div class="kpi-value" id="kpiGuideCount" style="color:#8B5CF6;">0</div>
+    <div class="kpi-label" id="kpiGuideLabel">Guide</div>
+  </div>
 </section>
 
 <!-- Filters -->
 <section class="filters-bar">
   <div class="filters-inner">
+    <div class="filter-item">
+      <label id="lblFilterStatus">Status</label>
+      <select id="fStatus" onchange="applyFilters()"></select>
+    </div>
     <div class="filter-item">
       <label id="lblFilterCountry">Country</label>
       <select id="fCountry" onchange="applyFilters()"></select>
@@ -69,8 +84,23 @@
       <label id="lblFilterSupplier">Supplier</label>
       <select id="fSupplier" onchange="applyFilters()"></select>
     </div>
+    <div class="filter-item">
+      <label id="lblFilterPackage">Package</label>
+      <select id="fPackage" onchange="applyFilters()"></select>
+    </div>
+    <div class="filter-item">
+      <label id="lblFilterResidence">Residence</label>
+      <select id="fResidence" onchange="applyFilters()"></select>
+    </div>
+    <div class="filter-item">
+      <label id="lblFilterDepCity">Dep City</label>
+      <select id="fDepCity" onchange="applyFilters()"></select>
+    </div>
+    <div class="filter-item">
+      <label id="lblFilterGuide">Guide</label>
+      <select id="fGuide" onchange="applyFilters()"></select>
+    </div>
     <div class="filter-actions">
-      <button class="btn-filter" onclick="applyFilters()" id="btnApply">Apply</button>
       <button class="btn-clear" onclick="clearFilters()" id="btnClear">Clear</button>
       <button class="btn-export" onclick="exportAllExcel()" id="btnExport">📊 Excel</button>
       <button class="btn-print" onclick="window.print()" id="btnPrint">🖨️ Print</button>
@@ -80,16 +110,83 @@
 
 <!-- Main Content -->
 <main class="main-content">
-  
+
   <!-- Loading -->
   <div id="loadingArea" class="loading-box">
     <div class="spinner"></div>
     <p id="txtLoading">Loading data...</p>
   </div>
-  
+
   <!-- Tables Section -->
   <div id="contentArea" style="display:none;">
-    
+
+    <!-- ══════ Guide Mode — يظهر فقط عند اختيار مرشد ══════ -->
+    <div id="guideModeArea" style="display:none;">
+
+      <!-- Guide KPIs -->
+      <section class="kpi-section" id="guideKpiSection" style="margin-bottom:1.5rem;">
+        <div class="kpi-card" style="border:2px solid #8B5CF6;">
+          <div class="kpi-icon">👤</div>
+          <div class="kpi-value" id="gKpiGuide" style="color:#8B5CF6; font-size:1.2rem;">-</div>
+          <div class="kpi-label">Guide</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon">👥</div>
+          <div class="kpi-value" id="gKpiPilgrims" style="color:var(--green-600);">0</div>
+          <div class="kpi-label" id="gKpiPilgrimsLbl">Pilgrims</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon">📦</div>
+          <div class="kpi-value" id="gKpiPackages" style="color:#2563EB;">0</div>
+          <div class="kpi-label">Packages</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon">✈️</div>
+          <div class="kpi-value" id="gKpiFlights" style="color:#EA580C;">0</div>
+          <div class="kpi-label">Flights</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon">🌍</div>
+          <div class="kpi-value" id="gKpiCountries" style="color:#059669;">0</div>
+          <div class="kpi-label">Countries</div>
+        </div>
+      </section>
+
+      <!-- Guide Loading -->
+      <div id="guideLoading" style="text-align:center; padding:2rem; display:none;">
+        <div class="spinner"></div>
+        <p>Loading guide data...</p>
+      </div>
+
+      <!-- Guide Pilgrims Table -->
+      <section class="report-section" id="guidePilgrimSection">
+        <div class="section-header">
+          <h2 id="gTableTitle">👤 Guide Pilgrims</h2>
+          <span class="section-count" id="gPilgrimCount"></span>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table pnr-detail-table">
+            <thead><tr>
+              <th>#</th>
+              <th>Family Name</th>
+              <th>First Name</th>
+              <th>Passport</th>
+              <th>Package</th>
+              <th>Flight</th>
+              <th>Dep City</th>
+              <th>Dep Date</th>
+              <th>Residence</th>
+              <th>Nationality</th>
+            </tr></thead>
+            <tbody id="gTbodyPilgrims"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <!-- ══════ Normal Mode — التقرير العادي ══════ -->
+    <div id="normalModeArea">
+
     <!-- Countries Table -->
     <section class="report-section">
       <div class="section-header">
@@ -98,23 +195,17 @@
       </div>
       <div class="table-wrap">
         <table class="data-table" id="tableCountries">
-          <thead>
-            <tr>
-              <th id="thCountry">Country</th>
-              <th id="thPnrs1">PNRs</th>
-              <th id="thPax1">PAX</th>
-              <th id="thSold1">Sold</th>
-              <th id="thRemaining1">Remaining</th>
-              <th id="thPct1">Sales %</th>
-              <th id="thBar1">Progress</th>
-            </tr>
-          </thead>
+          <thead><tr>
+            <th id="thCountry">Country</th>
+            <th id="thPnrs1">PNRs</th><th id="thPax1">PAX</th><th id="thSold1">Sold</th>
+            <th id="thRemaining1">Remaining</th><th id="thPct1">Sales %</th><th id="thBar1">Progress</th>
+          </tr></thead>
           <tbody id="tbodyCountries"></tbody>
           <tfoot id="tfootCountries"></tfoot>
         </table>
       </div>
     </section>
-    
+
     <!-- Airlines Table -->
     <section class="report-section">
       <div class="section-header">
@@ -123,23 +214,17 @@
       </div>
       <div class="table-wrap">
         <table class="data-table" id="tableAirlines">
-          <thead>
-            <tr>
-              <th id="thAirline">Airline</th>
-              <th id="thPnrs2">PNRs</th>
-              <th id="thPax2">PAX</th>
-              <th id="thSold2">Sold</th>
-              <th id="thRemaining2">Remaining</th>
-              <th id="thPct2">Sales %</th>
-              <th id="thBar2">Progress</th>
-            </tr>
-          </thead>
+          <thead><tr>
+            <th id="thAirline">Airline</th>
+            <th id="thPnrs2">PNRs</th><th id="thPax2">PAX</th><th id="thSold2">Sold</th>
+            <th id="thRemaining2">Remaining</th><th id="thPct2">Sales %</th><th id="thBar2">Progress</th>
+          </tr></thead>
           <tbody id="tbodyAirlines"></tbody>
           <tfoot id="tfootAirlines"></tfoot>
         </table>
       </div>
     </section>
-    
+
     <!-- Suppliers Table -->
     <section class="report-section">
       <div class="section-header">
@@ -148,24 +233,38 @@
       </div>
       <div class="table-wrap">
         <table class="data-table" id="tableSuppliers">
-          <thead>
-            <tr>
-              <th id="thSupplier">Supplier</th>
-              <th id="thPnrs3">PNRs</th>
-              <th id="thPax3">PAX</th>
-              <th id="thSold3">Sold</th>
-              <th id="thRemaining3">Remaining</th>
-              <th id="thPct3">Sales %</th>
-              <th id="thBar3">Progress</th>
-              <th id="thCountries3">Countries</th>
-            </tr>
-          </thead>
+          <thead><tr>
+            <th id="thSupplier">Supplier</th>
+            <th id="thPnrs3">PNRs</th><th id="thPax3">PAX</th><th id="thSold3">Sold</th>
+            <th id="thRemaining3">Remaining</th><th id="thPct3">Sales %</th><th id="thBar3">Progress</th>
+            <th id="thCountries3">Countries</th>
+          </tr></thead>
           <tbody id="tbodySuppliers"></tbody>
           <tfoot id="tfootSuppliers"></tfoot>
         </table>
       </div>
     </section>
-    
+
+    <!-- Packages Table -->
+    <section class="report-section">
+      <div class="section-header">
+        <h2 id="titlePackages">📦 By Package</h2>
+        <span class="section-count" id="countPackages"></span>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table" id="tablePackages">
+          <thead><tr>
+            <th id="thPackage">Package</th>
+            <th id="thPnrs5">PNRs</th><th id="thPax5">PAX</th><th id="thSold5">Sold</th>
+            <th id="thRemaining5">Remaining</th><th id="thPct5">Sales %</th><th id="thBar5">Progress</th>
+            <th id="thCountries5">Countries</th>
+          </tr></thead>
+          <tbody id="tbodyPackages"></tbody>
+          <tfoot id="tfootPackages"></tfoot>
+        </table>
+      </div>
+    </section>
+
     <!-- Charts Section -->
     <section class="report-section charts-section">
       <div class="section-header">
@@ -186,42 +285,45 @@
         </div>
       </div>
     </section>
-    
-    <!-- PNR Details Table -->
+
+    <!-- PNR Details Table (Enhanced) -->
     <section class="report-section">
       <div class="section-header">
         <h2 id="titlePnrDetails">📋 PNR Details</h2>
         <span class="section-count" id="countPnrs"></span>
       </div>
       <div class="table-wrap">
-        <table class="data-table" id="tablePnrDetails">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th id="thPnr4">PNR</th>
-              <th id="thCountry4">Country</th>
-              <th id="thCity4">City</th>
-              <th id="thAirline4">Airline</th>
-              <th id="thSupplier4">Supplier</th>
-              <th id="thPax4">PAX</th>
-              <th id="thSold4">Sold</th>
-              <th id="thRemaining4">Remaining</th>
-              <th id="thPct4">Sales %</th>
-            </tr>
-          </thead>
+        <table class="data-table pnr-detail-table" id="tablePnrDetails">
+          <thead><tr>
+            <th>#</th>
+            <th id="thPnr4">PNR</th>
+            <th id="thStatus4">Status</th>
+            <th id="thCountry4">Country</th>
+            <th id="thAirline4">Airline</th>
+            <th id="thSupplier4">Supplier</th>
+            <th id="thPax4">PAX</th>
+            <th id="thSold4">Sold</th>
+            <th id="thRemaining4">Remaining</th>
+            <th id="thPct4">Sales %</th>
+            <th id="thDep4">Departure</th>
+            <th id="thRet4">Return</th>
+            <th id="thPackage4">Package</th>
+            <th id="thCityStart4">First City</th>
+          </tr></thead>
           <tbody id="tbodyPnrDetails"></tbody>
           <tfoot id="tfootPnrDetails"></tfoot>
         </table>
       </div>
     </section>
-    
-  </div>
+
+    </div><!-- /normalModeArea -->
+  </div><!-- /contentArea -->
 </main>
 
 <!-- Footer -->
 <footer class="report-footer">
   <div class="footer-inner">
-    <span id="footerText">Ikram AlDyf for Hajj - Sales Report v1.0</span>
+    <span id="footerText">Ikram AlDyf for Hajj - Sales Report v3.0</span>
     <span class="auto-refresh-indicator">
       <span class="pulse-dot"></span>
       <span id="footerRefresh">Auto-refresh 30s</span>

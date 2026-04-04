@@ -11,7 +11,7 @@ var RT_CONFIG = {
   
   // أسماء الشيتات
   NUSK_SHEET: 'NUSK Room Type',
-  PD_SHEET: 'Presonal Details',
+  PD_SHEET: 'Guide Rabih',
   PKG_SHEET: 'الباقات',
   B2C_SHEET: 'B2C',
 OUTPUT_SHEET: 'Room Type Preview',

@@ -6,7 +6,7 @@
  * ───────────────────────────────────────────────────────────────
  * المشروع: Ikram (المرتبط بالشيت الرئيسي)
  * المشغّل: قائمة يدوية ⛺ مخيم مِنى (تُفعّل من onOpen)
- * يقرأ: شيت "رحلة الحاج " + شيت "Tour Guide"
+ * يقرأ: شيت "رحلة الحاج " + شيت "Guide Rabih"
  * يكتب: شيت "مخيم مني"
  * ═══════════════════════════════════════════════════════════════
  */
@@ -20,7 +20,7 @@ var MINA = {
   
   SHEETS: {
     JOURNEY: 'رحلة الحاج ',   // ⚠ مسافة في النهاية
-    GUIDE: 'Tour Guide',
+    GUIDE: 'Guide Rabih',
     MINA: 'مخيم مني'
   },
   
@@ -36,8 +36,8 @@ var MINA = {
     RESIDENCE: 14        // O: دولة الإقامة
   },
   
-  // أعمدة Tour Guide (0-based)
-  G: { NAME: 0, PASSPORT: 4, REG: 9, UNIQUE: 10 },
+  // أعمدة Guide Rabih (0-based) — نفس هيكل Presonal Details
+  G: { NAME: 15, PASSPORT: 5 },
   GUIDE_START_ROW: 2,
   
   // إعدادات التوزيع
@@ -205,23 +205,19 @@ function buildMinaGuideMap_(ss) {
   try {
     var sheet = ss.getSheetByName(MINA.SHEETS.GUIDE);
     if (!sheet) return map;
-    
+
     var lastRow = sheet.getLastRow();
     var startRow = MINA.GUIDE_START_ROW;
     if (lastRow < startRow) return map;
-    
-    var data = sheet.getRange(startRow, 1, lastRow - startRow + 1, 11).getValues();
+
+    var data = sheet.getRange(startRow, 1, lastRow - startRow + 1, 33).getValues();
     var G = MINA.G;
-    
+
     for (var i = 0; i < data.length; i++) {
       var guideName = String(data[i][G.NAME]).trim();
       var passport = String(data[i][G.PASSPORT]).trim().toUpperCase();
-      var regStatus = String(data[i][G.REG]).trim();
-      var dupCheck = String(data[i][G.UNIQUE]).trim();
-      
-      if (guideName && passport
-          && regStatus.indexOf('Registered') !== -1
-          && dupCheck.indexOf('Unique') !== -1) {
+
+      if (guideName && passport) {
         map[passport] = guideName;
       }
     }
