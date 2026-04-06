@@ -3,18 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#1B4332">
+<meta name="theme-color" content="#476831">
 <title>إكرام الضيف | المشاريع التقنية</title>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&family=Amiri:wght@400;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --gold: #C6A84C;
-    --gold-light: #E8D48B;
-    --green-deep: #1B4332;
-    --green-mid: #2D6A4F;
-    --cream: #FDF8EF;
+    --green-dark: #476831;
+    --green-light: #B3C79D;
+    --navy: #232E64;
+    --purple: #9B6FB1;
     --white: #FFFFFF;
-    --shadow: rgba(27, 67, 50, 0.12);
+    --gray-dark: #333333;
+    --cream: #F9F7F2;
+    --shadow: rgba(71, 104, 49, 0.12);
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -29,8 +30,8 @@
   .bg-pattern {
     position: fixed;
     inset: 0;
-    opacity: 0.04;
-    background-image: url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%231B4332' fill-rule='evenodd'%3E%3Cpath d='M40 0L80 40L40 80L0 40z' fill='none' stroke='%231B4332' stroke-width='1'/%3E%3Cpath d='M40 10L70 40L40 70L10 40z' fill='none' stroke='%231B4332' stroke-width='0.5'/%3E%3C/g%3E%3C/svg%3E");
+    opacity: 0.03;
+    background-image: url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23476831' fill-rule='evenodd'%3E%3Cpath d='M40 0L80 40L40 80L0 40z' fill='none' stroke='%23476831' stroke-width='1'/%3E%3Cpath d='M40 10L70 40L40 70L10 40z' fill='none' stroke='%23476831' stroke-width='0.5'/%3E%3C/g%3E%3C/svg%3E");
     pointer-events: none;
     z-index: 0;
   }
@@ -62,7 +63,7 @@
   .header h1 {
     font-family: 'Amiri', serif;
     font-size: 2rem;
-    color: var(--green-deep);
+    color: var(--navy);
     font-weight: 700;
     margin-bottom: 6px;
     animation: fadeDown 0.8s ease-out 0.1s both;
@@ -70,7 +71,7 @@
 
   .header .subtitle {
     font-size: 1.05rem;
-    color: var(--green-mid);
+    color: var(--green-dark);
     font-weight: 400;
     letter-spacing: 0.5px;
     animation: fadeDown 0.8s ease-out 0.2s both;
@@ -79,7 +80,7 @@
   .divider {
     width: 80px;
     height: 3px;
-    background: linear-gradient(90deg, var(--gold), var(--gold-light), var(--gold));
+    background: linear-gradient(90deg, var(--purple), var(--green-light));
     margin: 24px auto 40px;
     border-radius: 2px;
     animation: fadeDown 0.8s ease-out 0.3s both;
@@ -89,7 +90,7 @@
     text-align: center;
     font-family: 'Amiri', serif;
     font-size: 1.3rem;
-    color: var(--green-deep);
+    color: var(--navy);
     font-weight: 700;
     margin-bottom: 20px;
     position: relative;
@@ -101,7 +102,7 @@
     display: block;
     width: 40px;
     height: 2px;
-    background: var(--gold);
+    background: var(--purple);
     margin: 8px auto 0;
     border-radius: 1px;
   }
@@ -143,32 +144,32 @@
     right: 0;
     left: 0;
     height: 4px;
-    background: linear-gradient(90deg, var(--gold), var(--green-mid));
+    background: linear-gradient(90deg, var(--purple), var(--green-dark));
     opacity: 0;
     transition: opacity 0.3s;
   }
 
   .card:hover {
     transform: translateY(-8px);
-    box-shadow: 0 12px 40px rgba(27, 67, 50, 0.18);
+    box-shadow: 0 12px 40px rgba(71, 104, 49, 0.18);
   }
 
   .card:hover::before { opacity: 1; }
 
   .card:hover .icon-circle {
-    background: var(--green-deep);
+    background: var(--navy);
     transform: scale(1.1);
   }
 
   .card:hover .icon-circle svg {
-    stroke: var(--gold-light);
+    stroke: var(--green-light);
   }
 
   .icon-circle {
     width: 72px;
     height: 72px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--green-deep), var(--green-mid));
+    background: linear-gradient(135deg, var(--green-dark), var(--navy));
     display: flex;
     align-items: center;
     justify-content: center;
@@ -179,7 +180,7 @@
   .icon-circle svg {
     width: 34px;
     height: 34px;
-    stroke: var(--gold);
+    stroke: var(--green-light);
     stroke-width: 1.8;
     fill: none;
     transition: stroke 0.3s;
@@ -188,7 +189,7 @@
   .card h3 {
     font-size: 1.15rem;
     font-weight: 700;
-    color: var(--green-deep);
+    color: var(--navy);
     margin-bottom: 8px;
   }
 
@@ -214,20 +215,20 @@
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    color: var(--green-mid);
+    color: var(--green-dark);
     text-decoration: none;
     font-size: 0.95rem;
     font-weight: 500;
     padding: 12px 28px;
-    border: 2px solid var(--gold);
+    border: 2px solid var(--purple);
     border-radius: 50px;
     transition: all 0.3s;
   }
 
   .footer a:hover {
-    background: var(--green-deep);
-    color: var(--gold-light);
-    border-color: var(--green-deep);
+    background: var(--navy);
+    color: var(--green-light);
+    border-color: var(--navy);
   }
 
   .footer a svg {
@@ -237,8 +238,8 @@
 
   .season-badge {
     display: inline-block;
-    background: linear-gradient(135deg, var(--green-deep), var(--green-mid));
-    color: var(--gold-light);
+    background: linear-gradient(135deg, var(--green-dark), var(--navy));
+    color: var(--green-light);
     font-size: 0.8rem;
     font-weight: 600;
     padding: 6px 20px;
@@ -288,11 +289,11 @@
 
   <div class="divider"></div>
 
-  <!-- القسم 1: الإدارة والعمليات -->
-  <h2 class="section-title d1">الإدارة والعمليات</h2>
-  <div class="grid-3">
+  <!-- القسم 1: تطبيقات الحاج -->
+  <h2 class="section-title d1">تطبيقات الحاج</h2>
+  <div class="grid-2">
 
-    <a href="https://script.google.com/macros/s/AKfycbyBKuj5n7MCPGNHHYC2bOg7z_HEWoYpIevjz1sH2VcETiBJE1fHrp7ppRerwAoEyjiotA/exec" target="_blank" rel="noopener noreferrer" class="card d1">
+    <a href="https://script.google.com/macros/s/AKfycbxVLLuk8yxPHOSmXSqxfnYN7wg0YmF4NIb6ItY69VJQdWaOeMblq0nj7jzk9ayxCXtc7w/exec" target="_blank" rel="noopener noreferrer" class="card d1">
       <div class="icon-circle">
         <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="18" rx="2"/><path d="M2 8h20"/><path d="M8 8v13"/></svg>
       </div>
@@ -300,7 +301,21 @@
       <p>إدارة باقات الحج والرحلات والفنادق وبيانات الحجاج</p>
     </a>
 
-    <a href="https://script.google.com/macros/s/AKfycbxNDwq4pJxhpE7p5iey0F61NbI-N6aDTrG67jUuhzryRQRp4rwl1D2xEI438zf62Ple/exec" target="_blank" rel="noopener noreferrer" class="card d2">
+    <a href="https://t.me/IkramAlDayfBot" target="_blank" rel="noopener noreferrer" class="card d2">
+      <div class="icon-circle">
+        <svg viewBox="0 0 24 24"><path d="M21 3L1 11l7.5 3.5M21 3l-8 18-3.5-7.5M21 3L8.5 14.5"/></svg>
+      </div>
+      <h3>بوت تيليجرام</h3>
+      <p>خدمة ذاتية للحجاج عبر تيليجرام بدعم متعدد اللغات</p>
+    </a>
+
+  </div>
+
+  <!-- القسم 2: تطبيقات الإدارة -->
+  <h2 class="section-title d2">تطبيقات الإدارة</h2>
+  <div class="grid-3">
+
+    <a href="https://script.google.com/macros/s/AKfycbwyR0cuWT3fDo9MyJP_jfa4cJc5yAILZw8ix_OAyX7_OuRBs4lPw_RiwBtyavVCaekD/exec" target="_blank" rel="noopener noreferrer" class="card d2">
       <div class="icon-circle">
         <svg viewBox="0 0 24 24"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/><path d="M9 9h1"/><path d="M9 13h1"/><path d="M9 17h1"/></svg>
       </div>
@@ -316,13 +331,7 @@
       <p>تقارير المبيعات وتحليل أداء التذاكر والباقات</p>
     </a>
 
-  </div>
-
-  <!-- القسم 2: المطار والاستقبال -->
-  <h2 class="section-title d2">المطار والاستقبال</h2>
-  <div class="grid-3">
-
-    <a href="https://script.google.com/macros/s/AKfycby3C4-UVdtIVp2BGwta1YaR6hZqOG-BG5fOk0fifx0C9cHCedhbOG9Xt-EsESGrtudz/exec" target="_blank" rel="noopener noreferrer" class="card d2">
+    <a href="https://script.google.com/macros/s/AKfycby3C4-UVdtIVp2BGwta1YaR6hZqOG-BG5fOk0fifx0C9cHCedhbOG9Xt-EsESGrtudz/exec" target="_blank" rel="noopener noreferrer" class="card d4">
       <div class="icon-circle">
         <svg viewBox="0 0 24 24"><path d="M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.4-.1.9.3 1.1l5.5 3.2-2.8 2.8-2-.7c-.4-.1-.8 0-1 .3l-.2.3c-.2.3-.1.7.1.9l2.6 2.1 2.1 2.6c.2.3.6.4.9.1l.3-.2c.3-.3.4-.7.3-1l-.7-2 2.8-2.8 3.2 5.5c.2.4.8.5 1.1.3l.5-.3c.4-.2.6-.7.5-1.1z"/></svg>
       </div>
@@ -330,7 +339,7 @@
       <p>بحث بيانات الحجاج وتصدير التقارير</p>
     </a>
 
-    <a href="https://script.google.com/macros/s/AKfycbzX_6PAon6GgwGdA19ai-w3mmXHIKT4RglJlO6qs6qBBRtqqDKtfXDEs4ZksyIcRBWG/exec" target="_blank" rel="noopener noreferrer" class="card d3">
+    <a href="https://script.google.com/macros/s/AKfycbzX_6PAon6GgwGdA19ai-w3mmXHIKT4RglJlO6qs6qBBRtqqDKtfXDEs4ZksyIcRBWG/exec" target="_blank" rel="noopener noreferrer" class="card d2">
       <div class="icon-circle">
         <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
       </div>
@@ -338,7 +347,7 @@
       <p>تسجيل وصول الحجاج وتأكيد الاستلام</p>
     </a>
 
-    <a href="https://script.google.com/macros/s/AKfycbz1Nzfl9EwYc5VQaKyYW3cALetbGXbpbelW3kZA0_KdRaF9Bp6APMGxFW8ereKSW_nW/exec" target="_blank" rel="noopener noreferrer" class="card d4">
+    <a href="https://script.google.com/macros/s/AKfycbz1Nzfl9EwYc5VQaKyYW3cALetbGXbpbelW3kZA0_KdRaF9Bp6APMGxFW8ereKSW_nW/exec" target="_blank" rel="noopener noreferrer" class="card d3">
       <div class="icon-circle">
         <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
       </div>
@@ -346,43 +355,7 @@
       <p>إدارة الخيام وتوزيع الحجاج في المشاعر المقدسة</p>
     </a>
 
-  </div>
-
-  <!-- القسم 3: خدمات الحاج والمرشد -->
-  <h2 class="section-title d3">خدمات الحاج والمرشد</h2>
-  <div class="grid-3">
-
-    <a href="https://script.google.com/macros/s/AKfycby6wMDtgNToRFw0XQG40D_I0SWcoT9vMidueMMJm2B5ufPan6CVOnUhAH_GJvS4nveAXA/exec" target="_blank" rel="noopener noreferrer" class="card d3">
-      <div class="icon-circle">
-        <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-      </div>
-      <h3>تطبيق الحاج</h3>
-      <p>عرض بيانات الرحلة والفنادق والمواعيد للحاج</p>
-    </a>
-
-    <a href="https://script.google.com/macros/s/AKfycbwirA68K9peWAsnAmcYZV3sDU1Bpy9TWQKt9lvtlF0kDGcvtxgqvAmJzhBdvD_eUf9Bdg/exec" target="_blank" rel="noopener noreferrer" class="card d4">
-      <div class="icon-circle">
-        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-      </div>
-      <h3>تطبيق المرشد</h3>
-      <p>عرض بيانات المجموعة وقوائم الحجاج للمرشد</p>
-    </a>
-
-    <a href="https://t.me/IkramAlDayfBot" target="_blank" rel="noopener noreferrer" class="card d5">
-      <div class="icon-circle">
-        <svg viewBox="0 0 24 24"><path d="M21 3L1 11l7.5 3.5M21 3l-8 18-3.5-7.5M21 3L8.5 14.5"/></svg>
-      </div>
-      <h3>بوت تيليجرام</h3>
-      <p>خدمة ذاتية للحجاج عبر تيليجرام بدعم متعدد اللغات</p>
-    </a>
-
-  </div>
-
-  <!-- القسم 4: النقل والبحث -->
-  <h2 class="section-title d4">النقل والبحث</h2>
-  <div class="grid-2">
-
-    <a href="https://script.google.com/macros/s/AKfycby6ZFLTkmsKE-KFDNzLY2-jCigvrXBUg0-I9MacAGg8YxMxNo28PhB8UehDxrRX7Vj_/exec" target="_blank" rel="noopener noreferrer" class="card d4">
+    <a href="https://script.google.com/macros/s/AKfycbyUUw5q9zTG6PPTUjKYiIcdMUZi-_n9_jkDhkgXzja0yovSHtHnziUkgtasERxL1Uxq/exec" target="_blank" rel="noopener noreferrer" class="card d4">
       <div class="icon-circle">
         <svg viewBox="0 0 24 24"><path d="M8 6v6"/><path d="M15 6v6"/><path d="M2 12h19.6"/><path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-5C20.1 6.8 19.1 6 18 6H4a2 2 0 00-2 2v10h3"/><circle cx="7" cy="18" r="2"/><path d="M9 18h5"/><circle cx="16" cy="18" r="2"/></svg>
       </div>
@@ -390,7 +363,7 @@
       <p>تنظيم حافلات النقل بين المطار والفنادق والمشاعر</p>
     </a>
 
-    <a href="https://script.google.com/macros/s/AKfycbzekwok8gO8R29UkxDD_QX-tvKJ9E3vvd7buhIJsPTe65sEohfSJbtRDhwYVqapXT2XVg/exec" target="_blank" rel="noopener noreferrer" class="card d5">
+    <a href="https://script.google.com/macros/s/AKfycbzekwok8gO8R29UkxDD_QX-tvKJ9E3vvd7buhIJsPTe65sEohfSJbtRDhwYVqapXT2XVg/exec" target="_blank" rel="noopener noreferrer" class="card d2">
       <div class="icon-circle">
         <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/><path d="M11 8v6"/><path d="M8 11h6"/></svg>
       </div>
@@ -398,13 +371,7 @@
       <p>البحث المتقدم في قاعدة بيانات الحجاج متعدد المعايير</p>
     </a>
 
-  </div>
-
-  <!-- القسم 5: الجاهزية والموارد البشرية -->
-  <h2 class="section-title d5">الجاهزية والموارد البشرية</h2>
-  <div class="grid-2">
-
-    <a href="https://script.google.com/macros/s/AKfycbyWOio_NjQBUp5H4FBNCSMB4LehCc5dkmeWlu2rEyy6472ZKK_g1ED5VUt5VUfmMhmBBQ/exec" target="_blank" rel="noopener noreferrer" class="card d4">
+    <a href="https://script.google.com/macros/s/AKfycbyWOio_NjQBUp5H4FBNCSMB4LehCc5dkmeWlu2rEyy6472ZKK_g1ED5VUt5VUfmMhmBBQ/exec" target="_blank" rel="noopener noreferrer" class="card d3">
       <div class="icon-circle">
         <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
       </div>
@@ -412,7 +379,7 @@
       <p>تقييم جاهزية الفرق والموارد لموسم الحج</p>
     </a>
 
-    <a href="https://script.google.com/macros/s/AKfycbxxGMPD3ang8V5sVF5j1UeHiXVHfH7WdxrCnjUwAG_tbN96HU-eFGvKr4JHX7EwPMcG/exec" target="_blank" rel="noopener noreferrer" class="card d5">
+    <a href="https://script.google.com/macros/s/AKfycbzC_GWyXF79sBbcLM_QCTp6aso2RSd-3wC1fKfpAxWRTS84HS7MDGIWY-QxbtGri-Ed/exec" target="_blank" rel="noopener noreferrer" class="card d4">
       <div class="icon-circle">
         <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M20 8v6"/><path d="M23 11h-6"/></svg>
       </div>
