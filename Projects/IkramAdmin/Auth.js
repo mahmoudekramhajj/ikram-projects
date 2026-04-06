@@ -26,7 +26,7 @@ function handleLanguageSelection_(chatId, lang) {
     session.role = ROLES.ADMIN;
     session.name = 'Admin';
     session.userId = String(chatId);
-    saveSession_(session);
+    saveSession_(session); // كاش فقط — فوري
     sendMessage_(chatId, T_('auth_admin_auto', lang));
     sendMainMenu_(chatId, session);
     return;
@@ -127,38 +127,17 @@ function getUsersData_() {
 // ============================================
 
 /**
- * جلب الجلسة من الكاش أو إنشاء جديدة
+ * جلب الجلسة من الكاش أولاً (سريع)
+ * إذا لم توجد في الكاش، جلسة جديدة فوراً (بدون قراءة الشيت)
+ * الشيت يُقرأ فقط عند الحاجة عبر loadSessionFromSheet_
  */
 function getSession_(chatId) {
   var key = 'adm_session_' + String(chatId);
   var cached = getCache_(key);
   if (cached) return cached;
 
-  // البحث في الشيت
-  var sheet = getSessionSheet_();
-  if (sheet) {
-    var data = sheet.getDataRange().getValues();
-    for (var i = 1; i < data.length; i++) {
-      if (String(data[i][0]) === String(chatId)) {
-        var session = {
-          chatId: String(chatId),
-          userId: String(data[i][1] || ''),
-          name: String(data[i][2] || ''),
-          role: String(data[i][3] || ROLES.EMPLOYEE),
-          department: String(data[i][4] || ''),
-          language: String(data[i][5] || 'ar'),
-          status: String(data[i][6] || 'new'),
-          lastActivity: new Date().toISOString(),
-          inputState: ''
-        };
-        setCache_(key, session, CACHE_TTL);
-        return session;
-      }
-    }
-  }
-
-  // جلسة جديدة
-  return {
+  // جلسة جديدة فوراً — بدون فتح الشيت (سرعة)
+  var session = {
     chatId: String(chatId),
     userId: '',
     name: '',
@@ -169,17 +148,33 @@ function getSession_(chatId) {
     lastActivity: new Date().toISOString(),
     inputState: ''
   };
+
+  // للأدمن: تعيين فوري بدون شيت
+  if (isAdmin_(chatId)) {
+    session.status = 'verified';
+    session.role = ROLES.ADMIN;
+    session.name = 'Admin';
+    session.userId = String(chatId);
+  }
+
+  setCache_(key, session, CACHE_TTL);
+  return session;
 }
 
 /**
- * حفظ الجلسة في الكاش والشيت
+ * حفظ الجلسة في الكاش فقط (سريع)
+ * الكتابة في الشيت تتم عبر saveSessionToSheet_ لاحقاً
  */
 function saveSession_(session) {
   var key = 'adm_session_' + session.chatId;
   session.lastActivity = new Date().toISOString();
   setCache_(key, session, CACHE_TTL);
+}
 
-  // حفظ في الشيت (async-safe)
+/**
+ * حفظ الجلسة في الشيت (يُستدعى بعد الرد على المستخدم)
+ */
+function saveSessionToSheet_(session) {
   try {
     var sheet = getSessionSheet_();
     if (!sheet) return;
@@ -207,7 +202,7 @@ function saveSession_(session) {
       ]);
     }
   } catch (e) {
-    Logger.log('saveSession_ error: ' + e.message);
+    Logger.log('saveSessionToSheet_ error: ' + e.message);
   }
 }
 
@@ -236,28 +231,23 @@ function getSessionSheet_() {
 }
 
 /**
- * تسجيل نشاط في سجل البوت
+ * تسجيل نشاط — يُخزّن في الكاش ويُكتب بالدفعات لاحقاً
+ * لا يفتح الشيت أبداً أثناء الرد (سرعة)
  */
 function logActivity_(chatId, action, query, duration) {
   try {
-    var ss = SpreadsheetApp.openById(SHEET_ID);
-    var sheet = ss.getSheetByName(SHEETS.BOT_LOG);
-
-    if (!sheet) {
-      sheet = ss.insertSheet(SHEETS.BOT_LOG);
-      sheet.appendRow(['Timestamp', 'ChatID', 'Action', 'Query', 'Duration']);
-      sheet.getRange(1, 1, 1, 5).setFontWeight('bold');
-    }
-
-    sheet.appendRow([
-      new Date().toISOString(),
-      String(chatId),
-      action,
-      truncate_(query, 200),
-      duration || ''
-    ]);
+    var cache = CacheService.getScriptCache();
+    var logKey = 'adm_log_' + Date.now();
+    var entry = JSON.stringify({
+      ts: new Date().toISOString(),
+      chat: String(chatId),
+      action: action,
+      query: truncate_(query, 100),
+      dur: duration || ''
+    });
+    cache.put(logKey, entry, 3600); // ساعة واحدة
   } catch (e) {
-    Logger.log('logActivity_ error: ' + e.message);
+    // لا شيء — السجل غير حرج
   }
 }
 

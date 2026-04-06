@@ -4,18 +4,22 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>إدارة الفنادق | إكرام الضيف</title>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <meta name="description" content="نظام إدارة الفنادق — إكرام الضيف للسياحة | حج 1447هـ">
+  <meta property="og:title" content="إدارة الفنادق | إكرام الضيف">
+  <meta property="og:description" content="نظام إدارة فنادق الحج — تسجيل وصول، توزيع غرف، تقارير">
+  <meta property="og:type" content="website">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&display=swap" rel="stylesheet">
   <?!= include('HotelStyles') ?>
 </head>
 <body>
 
   <!-- ========== LOGIN SCREEN ========== -->
-  <div id="loginScreen" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:#0f172a;z-index:9999;justify-content:center;align-items:center;flex-direction:column">
-    <div style="text-align:center;padding:40px;background:#1e293b;border-radius:16px;border:1px solid #334155;max-width:400px">
+  <div id="loginScreen" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:#232E64;z-index:9999;justify-content:center;align-items:center;flex-direction:column">
+    <div style="text-align:center;padding:40px;background:#FFFFFF;border-radius:16px;border:1px solid #e0e0d8;max-width:400px">
       <div style="font-size:48px;margin-bottom:16px">🏨</div>
-      <div style="font-size:18px;font-weight:700;color:#e2e8f0;margin-bottom:8px">إدارة الفنادق</div>
-      <div style="font-size:13px;color:#94a3b8;margin-bottom:24px">إكرام الضيف للسياحة | حج 1447هـ</div>
-      <div id="loginError" style="color:#f87171;font-size:14px;font-weight:600;padding:12px;background:#7f1d1d22;border-radius:8px"></div>
+      <div style="font-size:18px;font-weight:700;color:#232E64;margin-bottom:8px">إدارة الفنادق</div>
+      <div style="font-size:13px;color:#666666;margin-bottom:24px">إكرام الضيف للسياحة | حج 1447هـ</div>
+      <div id="loginError" style="color:#dc2626;font-size:14px;font-weight:600;padding:12px;background:#fee2e2;border-radius:8px"></div>
     </div>
   </div>
 
@@ -29,7 +33,7 @@
       </div>
     </div>
     <div class="header-left" style="display:flex;align-items:center;gap:8px">
-      <span id="currentUserName" style="font-size:11px;color:#94a3b8"></span>
+      <span id="currentUserName" style="font-size:11px;color:rgba(255,255,255,0.7)"></span>
       <select id="roleSelector">
         <option value="hotel">مسؤول الفندق</option>
         <option value="ops">مشرف العمليات</option>
@@ -52,10 +56,10 @@
 
   <!-- ========== HOTEL ACTIONS ========== -->
   <div id="hotelActions" style="display:none;padding:0 16px;margin-bottom:8px;display:flex;gap:6px;align-items:center">
-    <button class="btn-primary" onclick="initHotelSheet()" style="background:#4c1d95;font-size:12px">📄 تهيئة شيت الفندق</button>
-    <button class="btn-primary" onclick="refreshData()" style="background:#065f46;font-size:12px" id="refreshBtn">🔄 تحديث البيانات</button>
-    <button class="btn-export" style="background:#065f46;color:#6ee7b7;border-color:#059669;font-size:12px" onclick="exportReport('all-hotels')">🏨 تقرير جميع الفنادق</button>
-    <span id="lastRefreshTime" style="font-size:10px;color:#64748b;margin-right:8px"></span>
+    <button class="btn-primary" onclick="initHotelSheet()" style="background:#9B6FB1;font-size:12px">📄 تهيئة شيت الفندق</button>
+    <button class="btn-primary" onclick="refreshData()" style="font-size:12px" id="refreshBtn">🔄 تحديث البيانات</button>
+    <button class="btn-export" style="font-size:12px" onclick="exportReport('all-hotels')">🏨 تقرير جميع الفنادق</button>
+    <span id="lastRefreshTime" style="font-size:10px;color:#888888;margin-right:8px"></span>
   </div>
 
   <!-- ========== TAB NAVIGATION ========== -->
@@ -95,8 +99,8 @@
       <select id="flightFilter">
         <option value="">كل الرحلات</option>
       </select>
-      <button class="btn-primary" onclick="applyCheckinFilters()" style="background:#065f46">🔍 بحث</button>
-      <button class="btn-primary" onclick="clearCheckinFilters()" style="background:#334155">✕ مسح</button>
+      <button class="btn-primary" onclick="applyCheckinFilters()">🔍 بحث</button>
+      <button class="btn-primary" onclick="clearCheckinFilters()" style="background:#888888">✕ مسح</button>
       <button class="btn-primary" onclick="bulkCheckInSelected()">✓ Check-in جماعي</button>
       <button class="btn-export" onclick="exportReport('pilgrims')">📥 تصدير Excel</button>
     </div>
@@ -121,9 +125,9 @@
     <!-- Auto-assign button -->
     <div class="filter-bar" id="roomingActions">
       <button class="btn-primary" onclick="runAutoAssign()">🤖 تجميع تلقائي</button>
-      <button class="btn-primary" style="background:#0e4429" onclick="runOptimization()">💡 تحسين الغرف</button>
-      <button class="btn-primary" style="background:#7c2d12" onclick="clearAllRoomGroups()">🗑️ إعادة تعيين الكل</button>
-      <select id="guideFilter" onchange="applyGuideFilter()" style="background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:8px;padding:6px 12px;font-family:inherit;font-size:12px">
+      <button class="btn-primary" style="background:#232E64" onclick="runOptimization()">💡 تحسين الغرف</button>
+      <button class="btn-primary" style="background:#dc2626" onclick="clearAllRoomGroups()">🗑️ إعادة تعيين الكل</button>
+      <select id="guideFilter" onchange="applyGuideFilter()" style="background:#FFFFFF;color:#333333;border:1px solid #d0d0c8;border-radius:8px;padding:6px 12px;font-family:inherit;font-size:12px">
         <option value="">🎯 كل المرشدين</option>
       </select>
     </div>
@@ -156,8 +160,8 @@
       <select id="departureDateFilter">
         <option value="">كل التواريخ</option>
       </select>
-      <button class="btn-primary" onclick="applyDepartureFilters()" style="background:#065f46">🔍 بحث</button>
-      <button class="btn-primary" onclick="clearDepartureFilters()" style="background:#334155">✕ مسح</button>
+      <button class="btn-primary" onclick="applyDepartureFilters()">🔍 بحث</button>
+      <button class="btn-primary" onclick="clearDepartureFilters()" style="background:#888888">✕ مسح</button>
       <button class="btn-export" onclick="exportReport('departures')">📥 تصدير Excel</button>
     </div>
 
@@ -172,7 +176,7 @@
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
       <div class="section-title" id="inventoryTitle"></div>
       <div style="display:flex;gap:6px">
-        <button class="btn-primary" onclick="generateRoomMappingUI()" style="background:#4c1d95;font-size:12px">🔑 توليد أرقام الغرف</button>
+        <button class="btn-primary" onclick="generateRoomMappingUI()" style="background:#9B6FB1;font-size:12px">🔑 توليد أرقام الغرف</button>
         <button class="btn-export" onclick="exportReport('inventory')">📥 تصدير Excel</button>
       </div>
     </div>
@@ -191,8 +195,8 @@
       <div class="section-title" style="margin-bottom:0">🎯 لوحة تحكم مشرف العمليات</div>
       <div style="display:flex;gap:6px">
         <button class="btn-export" onclick="exportReport('dashboard')">📥 تصدير Dashboard</button>
-        <button class="btn-export" style="background:#4c1d95;color:#c084fc;border-color:#7c3aed" onclick="exportReport('forecast')">📊 تقرير توقعي</button>
-        <button class="btn-export" style="background:#065f46;color:#6ee7b7;border-color:#059669" onclick="exportReport('all-hotels')">🏨 تقرير جميع الفنادق</button>
+        <button class="btn-export" style="background:#9B6FB1;border-color:#7c5a9b" onclick="exportReport('forecast')">📊 تقرير توقعي</button>
+        <button class="btn-export" onclick="exportReport('all-hotels')">🏨 تقرير جميع الفنادق</button>
         <button class="btn-primary" onclick="loadForecast()">📈 عرض التوقعات</button>
       </div>
     </div>

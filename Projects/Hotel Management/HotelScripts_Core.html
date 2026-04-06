@@ -211,8 +211,8 @@ function switchTab(tabId) {
 // ============================================================
 
 function statCard(label, value, color, bg) {
-  return '<div class="stat-card" style="background:' + bg + ';border:1px solid ' + color + '22">' +
-    '<div class="stat-label">' + label + '</div>' +
+  return '<div class="stat-card" style="background:' + bg + ';border:1px solid ' + color + '22;border-radius:12px">' +
+    '<div class="stat-label" style="color:#888888">' + label + '</div>' +
     '<div class="stat-value" style="color:' + color + '">' + value + '</div>' +
   '</div>';
 }
@@ -231,7 +231,7 @@ function departureBadge(type) {
     'early': '<span class="badge badge-dept-early">مغادرة مبكرة</span>',
     'late': '<span class="badge badge-dept-late">مغادرة متأخرة</span>',
     'normal': '<span class="badge badge-dept-normal">مغادرة عادية</span>',
-    'shifting': '<span style="background:#4c1d95;color:#c084fc;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700">🔄 تحويل</span>'
+    'shifting': '<span style="background:#f5f0fa;color:#9B6FB1;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700;border:1px solid rgba(155,111,177,0.3)">🔄 تحويل</span>'
   };
   return map[type] || '';
 }
@@ -285,7 +285,7 @@ function clearData() {
   
   document.getElementById('hotelActions').style.display = 'none';
   document.getElementById('checkinStats').innerHTML = '';
-  document.getElementById('pilgrimsList').innerHTML = '<div style="text-align:center;padding:40px;color:#64748b">اختر فندقاً لعرض البيانات</div>';
+  document.getElementById('pilgrimsList').innerHTML = '<div style="text-align:center;padding:40px;color:#888888">اختر فندقاً لعرض البيانات</div>';
   document.getElementById('expectedArrivals').style.display = 'none';
   document.getElementById('earlyArrivalAlert').style.display = 'none';
   document.getElementById('noShowAlert').style.display = 'none';

@@ -311,7 +311,9 @@ function calculateExpectedArrival_(row, hotelCity) {
     var marginKey = arrivalCity + '_' + firstHouse;
     var margin = HOTEL_CONFIG.MARGINS.ARRIVAL[marginKey];
 
-    if (!margin || !arrivalTime) return null;
+    if (!arrivalTime) return null;
+    // إذا لم يوجد margin محدد — نستخدم 3 ساعات كافتراضي
+    if (!margin) margin = 3;
     return addHoursToTime_(formatTime_(arrivalTime), margin);
   }
 
@@ -330,10 +332,12 @@ function calculateExpectedArrival_(row, hotelCity) {
 }
 
 function addHoursToTime_(timeStr, hours) {
-  if (!timeStr) return null;
-  var parts = timeStr.split(':');
+  if (!timeStr || !hours && hours !== 0) return null;
+  var parts = String(timeStr).split(':');
   var h = parseInt(parts[0]);
   var m = parseInt(parts[1]) || 0;
+
+  if (isNaN(h)) return null;
 
   h += Math.floor(hours);
   m += (hours % 1) * 60;
@@ -604,24 +608,39 @@ function generateRoomGroupId() {
 function formatDate_(dateVal) {
   if (!dateVal) return '';
   if (dateVal instanceof Date) {
+    // تجاهل تواريخ 1899/1900 — هذه أعمدة وقت وليست تواريخ
+    if (dateVal.getFullYear() < 1970) return '';
     return Utilities.formatDate(dateVal, 'Asia/Riyadh', 'yyyy-MM-dd');
   }
-  var str = String(dateVal);
-  if (str.length >= 10) return str.substring(0, 10);
+  var str = String(dateVal).trim();
+  // yyyy-MM-dd format
+  if (/^\d{4}-\d{2}-\d{2}/.test(str)) return str.substring(0, 10);
+  // محاولة parse
+  var parsed = new Date(str);
+  if (!isNaN(parsed.getTime()) && parsed.getFullYear() >= 1970) {
+    return Utilities.formatDate(parsed, 'Asia/Riyadh', 'yyyy-MM-dd');
+  }
   return str;
 }
 
 function formatTime_(timeVal) {
   if (!timeVal) return '';
-  var str = String(timeVal);
-  if (str.includes(':')) {
-    var parts = str.split(':');
-    return parts[0].padStart(2, '0') + ':' + parts[1].padStart(2, '0');
-  }
+  // Date object أولاً — Google Sheets يرجّع أعمدة الوقت كـ Date
   if (timeVal instanceof Date) {
     return Utilities.formatDate(timeVal, 'Asia/Riyadh', 'HH:mm');
   }
-  return str;
+  var str = String(timeVal).trim();
+  // HH:mm أو HH:mm:ss فقط — ليس Date string كامل
+  if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(str)) {
+    var parts = str.split(':');
+    return parts[0].padStart(2, '0') + ':' + parts[1].padStart(2, '0');
+  }
+  // محاولة parse كـ Date string (مثل "Sat Dec 30 1899 13:36:00")
+  var parsed = new Date(str);
+  if (!isNaN(parsed.getTime())) {
+    return Utilities.formatDate(parsed, 'Asia/Riyadh', 'HH:mm');
+  }
+  return '';
 }
 
 function subtractHours_(timeStr, hours) {

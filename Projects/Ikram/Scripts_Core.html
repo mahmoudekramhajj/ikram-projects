@@ -60,6 +60,7 @@ var T = {
     statPackages: 'باقات متاحة',
     statPilgrims: 'حجاج متبقي',
     statBookingPercent: 'نسبة الحجز',
+    statTotalPilgrims: 'إجمالي الحجاج',
     statTickets: 'تذاكر متبقية',
     tabPackages: '📦 الباقات',
     tabFlights: '✈️ الطيران',
@@ -153,6 +154,7 @@ var T = {
     statPackages: 'Packages',
     statPilgrims: 'Remaining',
     statBookingPercent: 'Booking %',
+    statTotalPilgrims: 'Total Pilgrims',
     statTickets: 'Tickets',
     tabPackages: '📦 Packages',
     tabFlights: '✈️ Flights',
@@ -354,6 +356,7 @@ function loadData() {
       document.getElementById('statPackages').textContent = fmtN(data.stats.availablePackages);
       document.getElementById('statPilgrims').textContent = fmtN(data.stats.remainingPilgrims);
       document.getElementById('statBookingPercent').textContent = data.stats.bookingPercent + '%';
+      document.getElementById('statTotalPilgrims').textContent = fmtN(data.stats.totalPilgrimsCount || 0);
       document.getElementById('statTickets').textContent = fmtN(data.stats.remainingTickets);
       initFilters();
       initFlightsFilters();
@@ -517,11 +520,10 @@ function restoreFilters() {
 // ==================== تحديث واجهة اللغة ====================
 function updateUILanguage() {
   var t = T[currentLang];
-  document.getElementById('headerTitle').textContent = t.headerTitle;
-  document.getElementById('headerSubtitle').textContent = t.headerSubtitle;
   document.getElementById('lblStatPackages').textContent = t.statPackages;
   document.getElementById('lblStatPilgrims').textContent = t.statPilgrims;
   document.getElementById('lblStatBookingPercent').textContent = t.statBookingPercent;
+  document.getElementById('lblStatTotalPilgrims').textContent = t.statTotalPilgrims;
   document.getElementById('lblStatTickets').textContent = t.statTickets;
   document.getElementById('tabPackages').textContent = t.tabPackages;
   document.getElementById('tabFlights').textContent = t.tabFlights;

@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <?!= include('Styles') ?>
+</head>
+<body>
+  <div id="loadingOverlay">
+    <div class="spinner"></div>
+    <div class="loading-text">جاري تحميل البيانات...</div>
+  </div>
+
+  <div class="page-layout" id="mainContent" style="display:none">
+    <header class="top-bar">
+      <div><h1>المخيمات — B2B/B2C — الجنس <span class="subtitle">إكرام الضيف</span></h1></div>
+      <div class="time-section">
+        <span class="badge" id="totalBadge">0 حاج</span>
+        <span class="last-update" id="lastUpdate"></span>
+        <span class="clock" id="clock"></span>
+      </div>
+    </header>
+
+    <div class="page-content">
+      <div class="camps-grid">
+        <!-- المخيمات -->
+        <div class="camps-panel">
+          <div class="camps-panel-header">توزيع المخيمات</div>
+          <div class="camps-panel-body">
+            <div style="flex:1;display:flex;align-items:center;justify-content:center;">
+              <canvas id="campChart"></canvas>
+            </div>
+            <div id="campTable"></div>
+          </div>
+        </div>
+
+        <!-- B2B vs B2C -->
+        <div class="camps-panel">
+          <div class="camps-panel-header">B2B vs B2C</div>
+          <div class="camps-panel-body">
+            <div style="height:180px;flex-shrink:0;display:flex;align-items:center;justify-content:center;">
+              <canvas id="flightChart"></canvas>
+            </div>
+            <div class="b2b-b2c-split">
+              <div class="b2b-b2c-col">
+                <h4>B2B حسب الدولة</h4>
+                <div id="b2bTable"></div>
+              </div>
+              <div class="b2b-b2c-col">
+                <h4>B2C حسب الدولة</h4>
+                <div id="b2cTable"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- الجنس -->
+        <div class="camps-panel">
+          <div class="camps-panel-header">توزيع الجنس</div>
+          <div class="camps-panel-body" style="align-items:center;justify-content:center;">
+            <canvas id="genderChart" style="max-width:300px;max-height:300px;"></canvas>
+            <div id="genderDetails" style="text-align:center;margin-top:12px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  var charts = {};
+  var COLORS = ['#10b981','#3b82f6','#8b5cf6','#f59e0b','#ec4899','#06b6d4','#ef4444','#84cc16'];
+
+  document.addEventListener('DOMContentLoaded', function() {
+    Chart.defaults.color = '#94a3b8';
+    Chart.defaults.font.family = "'Noto Kufi Arabic', sans-serif";
+    Chart.defaults.font.size = 11;
+    updateClock(); setInterval(updateClock, 1000);
+    loadData(); setInterval(loadData, 300000);
+  });
+
+  function updateClock() {
+    var n = new Date();
+    document.getElementById('clock').textContent =
+      String(n.getHours()).padStart(2,'0') + ':' + String(n.getMinutes()).padStart(2,'0') + ':' + String(n.getSeconds()).padStart(2,'0');
+  }
+
+  function loadData() {
+    google.script.run.withSuccessHandler(function(json) {
+      var r = JSON.parse(json);
+      if (!r.success) return;
+      render(r.data);
+      document.getElementById('totalBadge').textContent = r.data.total.toLocaleString('en-US') + ' حاج';
+      document.getElementById('lastUpdate').textContent = 'آخر تحديث: ' + new Date(r.data.timestamp).toLocaleTimeString('ar-SA');
+      document.getElementById('loadingOverlay').style.display = 'none';
+      document.getElementById('mainContent').style.display = 'flex';
+    }).withFailureHandler(function(e) { console.error(e); }).getPilgrimStats();
+  }
+
+  function render(data) {
+    renderCampChart(data.byCamp);
+    renderCampTable(data.byCamp);
+    renderFlightChart(data.flightType);
+    renderCountryList('b2bTable', data.b2bByCountry);
+    renderCountryList('b2cTable', data.b2cByCountry);
+    renderGenderChart(data.gender);
+    renderGenderDetails(data.gender);
+  }
+
+  function renderCampChart(camps) {
+    var labels = camps.map(function(c) { return c.name; });
+    var values = camps.map(function(c) { return c.count; });
+    var colors = camps.map(function(c, i) {
+      return c.name.indexOf('72') !== -1 ? '#ef4444' : COLORS[i % COLORS.length];
+    });
+
+    if (charts.camp) {
+      charts.camp.data.labels = labels;
+      charts.camp.data.datasets[0].data = values;
+      charts.camp.data.datasets[0].backgroundColor = colors;
+      charts.camp.update('none');
+      return;
+    }
+    charts.camp = new Chart(document.getElementById('campChart').getContext('2d'), {
+      type: 'doughnut',
+      data: { labels: labels, datasets: [{ data: values, backgroundColor: colors, borderColor: '#1e293b', borderWidth: 2 }] },
+      options: {
+        responsive: true, maintainAspectRatio: true, cutout: '50%',
+        plugins: {
+          legend: { position: 'bottom', rtl: true, labels: { font: { size: 12 }, padding: 10 } },
+          tooltip: { rtl: true, callbacks: { label: function(ctx) {
+            var t = ctx.dataset.data.reduce(function(a,b){return a+b;},0);
+            return ctx.label + ': ' + ctx.parsed.toLocaleString('en-US') + ' (' + (t>0?(ctx.parsed/t*100).toFixed(1):0) + '%)';
+          }}}
+        }
+      }
+    });
+  }
+
+  function renderCampTable(camps) {
+    var html = '<table class="stats-table"><thead><tr><th>المخيم</th><th>العدد</th><th>%</th></tr></thead><tbody>';
+    for (var i = 0; i < camps.length; i++) {
+      var c = camps[i];
+      var isCourt = c.name.indexOf('72') !== -1;
+      html += '<tr class="' + (isCourt ? 'camp-courtesy' : '') + '">' +
+        '<td>' + esc(c.name) + (isCourt ? ' (مجاملة)' : '') + '</td>' +
+        '<td class="count-cell">' + c.count.toLocaleString('en-US') + '</td>' +
+        '<td class="pct-cell">' + c.pct + '%</td></tr>';
+    }
+    html += '</tbody></table>';
+    document.getElementById('campTable').innerHTML = html;
+  }
+
+  function renderFlightChart(ft) {
+    if (charts.flight) {
+      charts.flight.data.datasets[0].data = [ft.b2b, ft.b2c];
+      charts.flight.update('none');
+      return;
+    }
+    charts.flight = new Chart(document.getElementById('flightChart').getContext('2d'), {
+      type: 'bar',
+      data: { labels: ['B2B','B2C'], datasets: [{ data: [ft.b2b, ft.b2c], backgroundColor: ['#8b5cf6','#f59e0b'], borderRadius: 8, barPercentage: 0.5 }] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(ctx) {
+          var t = ft.b2b + ft.b2c;
+          return ctx.parsed.y.toLocaleString('en-US') + ' (' + (t>0?(ctx.parsed.y/t*100).toFixed(1):0) + '%)';
+        }}}},
+        scales: { x: { grid: { display: false }, ticks: { font: { weight: 'bold', size: 14 } } }, y: { grid: { color: 'rgba(255,255,255,0.05)' }, beginAtZero: true } }
+      }
+    });
+  }
+
+  function renderCountryList(containerId, list) {
+    if (!list || !list.length) { document.getElementById(containerId).innerHTML = ''; return; }
+    var html = '<table class="stats-table" style="font-size:11px"><thead><tr><th>الدولة</th><th>العدد</th><th>%</th></tr></thead><tbody>';
+    for (var i = 0; i < list.length; i++) {
+      html += '<tr><td>' + esc(list[i].name) + '</td>' +
+        '<td class="count-cell">' + list[i].count.toLocaleString('en-US') + '</td>' +
+        '<td class="pct-cell">' + list[i].pct + '%</td></tr>';
+    }
+    html += '</tbody></table>';
+    document.getElementById(containerId).innerHTML = html;
+  }
+
+  function renderGenderChart(g) {
+    if (charts.gender) {
+      charts.gender.data.datasets[0].data = [g.male, g.female];
+      charts.gender.update('none');
+      return;
+    }
+    charts.gender = new Chart(document.getElementById('genderChart').getContext('2d'), {
+      type: 'doughnut',
+      data: { labels: ['ذكور','إناث'], datasets: [{ data: [g.male, g.female], backgroundColor: ['#3b82f6','#ec4899'], borderColor: '#1e293b', borderWidth: 3 }] },
+      options: {
+        responsive: true, maintainAspectRatio: true, cutout: '60%',
+        plugins: {
+          legend: { position: 'bottom', rtl: true, labels: { font: { size: 14, weight: 'bold' }, padding: 16 } },
+          tooltip: { rtl: true, callbacks: { label: function(ctx) {
+            var t = g.male + g.female;
+            return ctx.label + ': ' + ctx.parsed.toLocaleString('en-US') + ' (' + (t>0?(ctx.parsed/t*100).toFixed(1):0) + '%)';
+          }}}
+        }
+      }
+    });
+  }
+
+  function renderGenderDetails(g) {
+    var total = g.male + g.female;
+    var mPct = total > 0 ? (g.male/total*100).toFixed(1) : 0;
+    var fPct = total > 0 ? (g.female/total*100).toFixed(1) : 0;
+    document.getElementById('genderDetails').innerHTML =
+      '<div style="font-size:20px;font-weight:700;color:#3b82f6">' + g.male.toLocaleString('en-US') + ' <span style="font-size:14px;color:#94a3b8">(' + mPct + '%) ذكور</span></div>' +
+      '<div style="font-size:20px;font-weight:700;color:#ec4899;margin-top:6px">' + g.female.toLocaleString('en-US') + ' <span style="font-size:14px;color:#94a3b8">(' + fPct + '%) إناث</span></div>';
+  }
+
+  function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+  </script>
+</body>
+</html>

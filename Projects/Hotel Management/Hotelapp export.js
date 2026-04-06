@@ -34,23 +34,24 @@ function exportToExcel(reportType, hotelName, hotelCity, filterData) {
   }
   
   var fileId = ss.getId();
-  var url = 'https://docs.google.com/spreadsheets/d/' + fileId + '/export?format=xlsx';
-  
-  ScriptApp.newTrigger('deleteFile_')
-    .timeBased()
-    .after(60 * 60 * 1000)
-    .create();
-  PropertiesService.getScriptProperties().setProperty('tempFileId', fileId);
-  
-  return { success: true, url: url, fileName: ss.getName() + '.xlsx' };
+  var fileName = ss.getName() + '.xlsx';
+
+  // تحويل الملف إلى Excel عبر UrlFetchApp + OAuth token
+  var exportUrl = 'https://docs.google.com/spreadsheets/d/' + fileId + '/export?format=xlsx';
+  var token = ScriptApp.getOAuthToken();
+  var blob = UrlFetchApp.fetch(exportUrl, {
+    headers: { Authorization: 'Bearer ' + token },
+    muteHttpExceptions: true
+  }).getBlob();
+  var base64Data = Utilities.base64Encode(blob.getBytes());
+
+  // حذف الملف المؤقت فوراً بعد التحويل
+  try { DriveApp.getFileById(fileId).setTrashed(true); } catch(e) {}
+
+  return { success: true, data: base64Data, fileName: fileName };
 }
 
-function deleteFile_() {
-  try {
-    var fileId = PropertiesService.getScriptProperties().getProperty('tempFileId');
-    if (fileId) DriveApp.getFileById(fileId).setTrashed(true);
-  } catch(e) {}
-}
+// deleteFile_ لم تعد مطلوبة — الملف المؤقت يُحذف فوراً بعد التحويل في exportToExcel
 
 function exportPilgrimsReport_(sheet, hotelName, hotelCity, filterData) {
   sheet.setName('حجاج ' + hotelName);
@@ -67,20 +68,26 @@ function exportPilgrimsReport_(sheet, hotelName, hotelCity, filterData) {
     'حالة الوصول', 'ساعات الانتظار', 'أيام التأخر',
     'حالة Check-in', 'رقم الغرفة', 'وقت Check-in',
     'المرشد', 'قائد المجموعة', 'هاتف القائد'];
-  
-  sheet.appendRow(headers);
-  
+
+  // بناء كل البيانات دفعة واحدة ثم كتابتها بـ setValues (أسرع بكثير من appendRow)
+  var allData = [headers];
   pilgrims.forEach(function(p) {
-    sheet.appendRow([
-      p.name, p.passport, p.gender, p.nationality, p.countryResidence, p.groupNumber, p.packageName,
-      p.arrivalFlight, p.arrivalDate, p.arrivalTime, p.expectedArrival,
-      p.hotelCheckIn, p.hotelCheckOut, p.roomType,
-      p.arrivalStatus, p.earlyHours || '', p.lateDays || '',
-      p.checkInStatus, p.roomNumber, p.checkInTime,
-      p.tourGuide, p.groupLeader, p.leaderPhone
+    allData.push([
+      p.name || '', p.passport || '', p.gender || '', p.nationality || '', p.countryResidence || '', p.groupNumber || '', p.packageName || '',
+      p.arrivalFlight || '', p.arrivalDate || '', p.arrivalTime || '', p.expectedArrival || '',
+      p.hotelCheckIn || '', p.hotelCheckOut || '', p.roomType || '',
+      p.arrivalStatus || '', p.earlyHours || '', p.lateDays || '',
+      p.checkInStatus || '', p.roomNumber || '', p.checkInTime || '',
+      p.tourGuide || '', p.groupLeader || '', p.leaderPhone || ''
     ]);
   });
-  
+
+  if (allData.length > 1) {
+    sheet.getRange(1, 1, allData.length, headers.length).setValues(allData);
+  } else {
+    sheet.appendRow(headers);
+  }
+
   formatExportSheet_(sheet, headers.length);
 }
 

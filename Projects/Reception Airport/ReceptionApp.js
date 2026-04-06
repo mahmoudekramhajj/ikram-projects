@@ -18,6 +18,13 @@ const CONFIG = {
   DELAY_ALERT_MINUTES: 30     // تنبيه التأخر بعد 30 دقيقة
 };
 
+// ─── مصادقة الموظفين ───
+const RECEPTION_AUTH = {
+  STAFF_KEY: 'ekram2026reception',
+  SESSION_DURATION: 3600,  // ساعة
+  SESSION_PREFIX: 'RECEPTION_SESSION_'
+};
+
 const COL = {
   BOOKING_ID:        0,   // A
   PACKAGE_ID:        1,   // B
@@ -44,6 +51,48 @@ const COL = {
   RECEPTION_TIME:   50,   // AY — وقت التأكيد
   RECEPTION_STAFF:  51    // AZ — اسم الموظف
 };
+
+
+// ─────────────────────────────────────────────────────
+//  مصادقة الموظفين
+// ─────────────────────────────────────────────────────
+
+function validateStaffLogin(staffName, staffKey) {
+  if (!staffKey || staffKey !== RECEPTION_AUTH.STAFF_KEY) {
+    return { success: false, error: 'مفتاح الدخول غير صحيح' };
+  }
+  if (!staffName || staffName.trim().length < 2) {
+    return { success: false, error: 'أدخل اسمك (حرفين على الأقل)' };
+  }
+  var token = Utilities.getUuid();
+  var cache = CacheService.getScriptCache();
+  cache.put(
+    RECEPTION_AUTH.SESSION_PREFIX + token,
+    JSON.stringify({ staffName: staffName.trim() }),
+    RECEPTION_AUTH.SESSION_DURATION
+  );
+  return { success: true, token: token, staffName: staffName.trim() };
+}
+
+function validateReceptionSession(token) {
+  if (!token) return null;
+  var cache = CacheService.getScriptCache();
+  var cached = cache.get(RECEPTION_AUTH.SESSION_PREFIX + token);
+  if (!cached) return null;
+  try {
+    var session = JSON.parse(cached);
+    // تجديد الجلسة عند كل استخدام
+    cache.put(RECEPTION_AUTH.SESSION_PREFIX + token, cached, RECEPTION_AUTH.SESSION_DURATION);
+    return session;
+  } catch (e) { return null; }
+}
+
+function requireReceptionAuth_(token) {
+  if (!token) throw new Error('SESSION_EXPIRED');
+  var session = validateReceptionSession(token);
+  if (!session) throw new Error('SESSION_EXPIRED');
+  return session;
+}
 
 
 // ─────────────────────────────────────────────────────
@@ -163,8 +212,9 @@ function getAllData() {
  * @param {string} hall — الصالة (للفلترة)
  * @returns {Object} — بيانات الحاج أو خطأ
  */
-function searchByPassport(passport, airport, hall) {
+function searchByPassport(passport, airport, hall, token) {
   try {
+    requireReceptionAuth_(token);
     if (!passport || passport.length < 3) {
       return { success: false, error: 'أدخل 3 أحرف على الأقل' };
     }
@@ -208,8 +258,9 @@ function searchByPassport(passport, airport, hall) {
  * @param {string} staffName — اسم الموظف
  * @returns {Object} — نتيجة العملية
  */
-function confirmReception(sheetRows, staffName) {
+function confirmReception(sheetRows, staffName, token) {
   try {
+    requireReceptionAuth_(token);
     if (!sheetRows || sheetRows.length === 0) {
       return { success: false, error: 'لم يتم تحديد حجاج' };
     }
@@ -228,27 +279,30 @@ function confirmReception(sheetRows, staffName) {
     // قراءة الحالات الحالية دفعة واحدة
     var statusRange = sheet.getRange(2, COL.RECEPTION_STATUS + 1, sheet.getLastRow() - 1, 3).getValues();
 
-    // تحضير الكتابة
+    // تحضير الكتابة — دفعية بدل خلية بخلية
+    var rowsToUpdate = [];
     sheetRows.forEach(function(rowNum) {
-      var dataIdx = rowNum - 2; // تحويل من رقم صف الشيت إلى index في المصفوفة
+      var dataIdx = rowNum - 2;
       if (dataIdx >= 0 && dataIdx < statusRange.length) {
         var currentStatus = String(statusRange[dataIdx][0]).trim();
         if (currentStatus === 'تم') {
-          // حاج مُستقبَل مسبقاً
           alreadyConfirmed.push({
             row: rowNum,
             staff: String(statusRange[dataIdx][2]).trim(),
             time: String(statusRange[dataIdx][1]).trim()
           });
         } else {
-          // كتابة التأكيد
-          sheet.getRange(rowNum, COL.RECEPTION_STATUS + 1).setValue('تم');
-          sheet.getRange(rowNum, COL.RECEPTION_TIME + 1).setValue(now);
-          sheet.getRange(rowNum, COL.RECEPTION_STAFF + 1).setValue(staff);
+          rowsToUpdate.push(rowNum);
           confirmed++;
         }
       }
     });
+
+    // كتابة دفعية — كل صف 3 خلايا معاً
+    rowsToUpdate.forEach(function(rowNum) {
+      sheet.getRange(rowNum, COL.RECEPTION_STATUS + 1, 1, 3).setValues([['تم', now, staff]]);
+    });
+    if (rowsToUpdate.length > 0) SpreadsheetApp.flush();
 
     // مسح الكاش بعد التأكيد
     clearCache();
@@ -278,8 +332,9 @@ function confirmReception(sheetRows, staffName) {
  * @param {string} date — التاريخ (اختياري — الافتراضي: اليوم)
  * @returns {Object} — قائمة الرحلات مع إحصائيات الاستقبال
  */
-function getFlightsList(airport, hall, date) {
+function getFlightsList(airport, hall, date, token) {
   try {
+    requireReceptionAuth_(token);
     var allData = getAllData();
     var filtered = filterByAirportAndHall_(allData, airport, hall);
 
@@ -343,8 +398,9 @@ function getFlightsList(airport, hall, date) {
  * @param {string} flightNumber — رقم الرحلة
  * @returns {Object} — قائمة الحجاج مع حالة الاستقبال
  */
-function getFlightPilgrims(airport, hall, date, flightNumber) {
+function getFlightPilgrims(airport, hall, date, flightNumber, token) {
   try {
+    requireReceptionAuth_(token);
     var allData = getAllData();
     var filtered = filterByAirportAndHall_(allData, airport, hall);
 
@@ -404,8 +460,9 @@ function getFlightPilgrims(airport, hall, date, flightNumber) {
  * @param {string} hall — الصالة
  * @returns {Object} — إحصائيات شاملة
  */
-function getTodayStats(airport, hall) {
+function getTodayStats(airport, hall, token) {
   try {
+    requireReceptionAuth_(token);
     var allData = getAllData();
     var filtered = filterByAirportAndHall_(allData, airport, hall);
     var today = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
@@ -448,8 +505,9 @@ function getTodayStats(airport, hall) {
  * @param {string} hall — الصالة
  * @returns {Object} — قائمة التواريخ
  */
-function getAvailableDates(airport, hall) {
+function getAvailableDates(airport, hall, token) {
   try {
+    requireReceptionAuth_(token);
     var allData = getAllData();
     var filtered = filterByAirportAndHall_(allData, airport, hall);
 

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <?!= include('Styles') ?>
+</head>
+<body>
+  <div id="loadingOverlay">
+    <div class="spinner"></div>
+    <div class="loading-text">جاري تحميل البيانات...</div>
+  </div>
+
+  <div class="page-layout" id="mainContent" style="display:none">
+    <header class="top-bar">
+      <div><h1>توزيع الحجاج حسب الجنسية <span class="subtitle">إكرام الضيف</span></h1></div>
+      <div class="time-section">
+        <span class="badge" id="totalBadge">0 حاج</span>
+        <span class="badge" id="countBadge">0 جنسية</span>
+        <span class="last-update" id="lastUpdate"></span>
+        <span class="clock" id="clock"></span>
+      </div>
+    </header>
+
+    <div class="page-content">
+      <div class="fullscreen-table-area">
+        <div class="multi-col-table cols-4" id="tableArea"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  document.addEventListener('DOMContentLoaded', function() {
+    updateClock(); setInterval(updateClock, 1000);
+    loadData(); setInterval(loadData, 300000);
+  });
+
+  function updateClock() {
+    var n = new Date();
+    document.getElementById('clock').textContent =
+      String(n.getHours()).padStart(2,'0') + ':' + String(n.getMinutes()).padStart(2,'0') + ':' + String(n.getSeconds()).padStart(2,'0');
+  }
+
+  function loadData() {
+    google.script.run.withSuccessHandler(function(json) {
+      var r = JSON.parse(json);
+      if (!r.success) return;
+      renderMultiColTable(r.data.byNationality, r.data.total);
+      document.getElementById('totalBadge').textContent = r.data.total.toLocaleString('en-US') + ' حاج';
+      document.getElementById('countBadge').textContent = r.data.uniqueNationalities + ' جنسية';
+      document.getElementById('lastUpdate').textContent = 'آخر تحديث: ' + new Date(r.data.timestamp).toLocaleTimeString('ar-SA');
+      document.getElementById('loadingOverlay').style.display = 'none';
+      document.getElementById('mainContent').style.display = 'flex';
+    }).withFailureHandler(function(e) { console.error(e); }).getPilgrimStats();
+  }
+
+  function renderMultiColTable(list, total) {
+    var numCols = list.length <= 30 ? 2 : (list.length <= 60 ? 3 : 4);
+    var container = document.getElementById('tableArea');
+    container.className = 'multi-col-table cols-' + numCols;
+
+    var perCol = Math.ceil(list.length / numCols);
+    var maxCount = list.length > 0 ? list[0].count : 1;
+    var html = '';
+
+    for (var c = 0; c < numCols; c++) {
+      var start = c * perCol;
+      var end = Math.min(start + perCol, list.length);
+      html += '<div class="col-block"><table class="stats-table"><thead><tr>' +
+        '<th>#</th><th>الجنسية</th><th>العدد</th><th>%</th><th>النسبة</th>' +
+        '</tr></thead><tbody>';
+      for (var i = start; i < end; i++) {
+        var item = list[i];
+        var pctW = (item.count / maxCount * 100);
+        html += '<tr>' +
+          '<td>' + (i+1) + '</td>' +
+          '<td>' + esc(item.name) + '</td>' +
+          '<td class="count-cell">' + item.count.toLocaleString('en-US') + '</td>' +
+          '<td class="pct-cell">' + item.pct + '%</td>' +
+          '<td class="progress-cell"><div class="progress-bar"><div class="progress-fill" style="width:' + pctW + '%"></div></div></td>' +
+          '</tr>';
+      }
+      html += '</tbody></table></div>';
+    }
+    container.innerHTML = html;
+  }
+
+  function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+  </script>
+</body>
+</html>

@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    html,body{
+      font-family:'Noto Kufi Arabic',sans-serif;
+      background:#f5f3ee;
+      color:#2d3436;
+      width:100vw;height:100vh;
+      overflow:hidden;direction:rtl;
+    }
+    .layout{display:flex;flex-direction:column;width:100vw;height:100vh}
+
+    /* === الشريط العلوي === */
+    .bar{
+      height:56px;flex-shrink:0;
+      background:linear-gradient(90deg,#7a8f5e,#8b9e6b,#7a8f5e);
+      display:flex;justify-content:space-between;align-items:center;
+      padding:0 2.5vw;
+      box-shadow:0 2px 12px rgba(122,143,94,0.3);
+    }
+    .bar h1{font-size:20px;font-weight:800;color:#fff}
+    .bar .sub{font-size:11px;color:#d4e4b8;margin-right:8px}
+    .bar .right{display:flex;align-items:center;gap:16px}
+    .bar .clock{font-size:22px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums;direction:ltr}
+    .bar .upd{font-size:10px;color:#d4e4b8}
+
+    /* === المحتوى === */
+    .main{
+      flex:1;display:grid;
+      grid-template-columns:28vw 1fr;
+      min-height:0;
+    }
+
+    /* === البطل (يمين) === */
+    .hero{
+      display:flex;flex-direction:column;
+      align-items:center;justify-content:center;
+      background:#fff;
+      border-left:1px solid #e0ddd5;
+      padding:2vh 1vw;
+    }
+    .hero-num{
+      font-size:10vh;font-weight:900;
+      color:#6b7f4e;
+      line-height:1;font-variant-numeric:tabular-nums;
+    }
+    .hero-label{font-size:1.6vh;color:#8b9e6b;letter-spacing:3px;margin-top:0.3vh;font-weight:600}
+
+    .ring-wrap{margin-top:2.5vh;position:relative;width:16vh;height:16vh}
+    .ring-svg{width:100%;height:100%;transform:rotate(-90deg)}
+    .ring-bg{fill:none;stroke:#e8e5dd;stroke-width:10}
+    .ring-m{fill:none;stroke:#7a8f5e;stroke-width:10;stroke-linecap:round}
+    .ring-f{fill:none;stroke:#9B8BB4;stroke-width:10;stroke-linecap:round}
+    .ring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+    .ring-center .rc-val{font-size:2.2vh;font-weight:800;font-variant-numeric:tabular-nums}
+    .ring-center .rc-lbl{font-size:1.1vh;color:#999;font-weight:600}
+    .rc-m{color:#6b7f4e}
+    .rc-f{color:#8B7BA8}
+
+    .hero-legend{display:flex;gap:2.5vw;margin-top:1.5vh}
+    .leg{display:flex;align-items:center;gap:0.3vw}
+    .leg-dot{width:1.2vh;height:1.2vh;border-radius:50%}
+    .leg-dot.m{background:#7a8f5e}
+    .leg-dot.f{background:#9B8BB4}
+    .leg-txt{font-size:1.3vh;color:#888;font-weight:600}
+
+    /* === الشبكة (يسار) === */
+    .grid{
+      display:grid;
+      grid-template-columns:1fr 1fr 1fr;
+      grid-template-rows:1fr 1fr;
+      gap:1.2vh 0.8vw;
+      padding:1.2vh 1vw;
+      min-height:0;
+    }
+
+    /* === البطاقة === */
+    .card{
+      background:#fff;
+      border:1px solid #e8e5dd;
+      border-radius:1.2vh;
+      display:flex;flex-direction:column;
+      justify-content:center;align-items:center;
+      text-align:center;
+      padding:1.5vh 1vw;
+      position:relative;
+      overflow:hidden;
+      box-shadow:0 1px 4px rgba(0,0,0,0.04);
+      animation:cFade 0.5s ease forwards;opacity:0;
+    }
+    @keyframes cFade{to{opacity:1}}
+    .card:nth-child(1){animation-delay:.08s}
+    .card:nth-child(2){animation-delay:.16s}
+    .card:nth-child(3){animation-delay:.24s}
+    .card:nth-child(4){animation-delay:.32s}
+    .card:nth-child(5){animation-delay:.4s}
+    .card:nth-child(6){animation-delay:.48s}
+
+    /* خط ملون علوي */
+    .card::before{
+      content:'';position:absolute;top:0;right:0;left:0;height:3px;
+    }
+    .card-green::before{background:linear-gradient(90deg,#8b9e6b,#a8b88c)}
+    .card-purple::before{background:linear-gradient(90deg,#8B7BA8,#b0a3c8)}
+    .card-red::before{background:linear-gradient(90deg,#c0392b,#e74c3c)}
+
+    .card-name{font-size:1.8vh;font-weight:700;color:#666;margin-bottom:0.5vh}
+    .card-red .card-name{color:#c0392b}
+
+    .card-val{
+      font-size:5vh;font-weight:900;color:#2d3436;
+      font-variant-numeric:tabular-nums;line-height:1;
+      margin-bottom:1vh;
+    }
+
+    /* حلقة مصغرة */
+    .mini-ring{width:7vh;height:7vh;position:relative;margin-bottom:0.6vh}
+    .mini-ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+    .mini-ring .mr-bg{fill:none;stroke:#eee;stroke-width:7}
+    .mini-ring .mr-m{fill:none;stroke:#7a8f5e;stroke-width:7;stroke-linecap:round}
+    .mini-ring .mr-f{fill:none;stroke:#9B8BB4;stroke-width:7;stroke-linecap:round}
+
+    .card-mf{display:flex;gap:2vw;font-variant-numeric:tabular-nums}
+    .card-mf-item{text-align:center}
+    .card-mf-num{font-size:2.2vh;font-weight:800}
+    .card-mf-num.m{color:#6b7f4e}
+    .card-mf-num.f{color:#8B7BA8}
+    .card-mf-lbl{font-size:1.2vh;color:#aaa;margin-top:0.2vh;font-weight:600}
+
+    /* === التحميل === */
+    #loadingOverlay{
+      position:fixed;inset:0;background:#f5f3ee;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:99;
+    }
+    .spinner{width:48px;height:48px;border:3px solid #e0ddd5;border-top-color:#8b9e6b;border-radius:50%;animation:spin 0.7s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .loading-text{margin-top:12px;color:#999;font-size:14px}
+  </style>
+</head>
+<body>
+  <div id="loadingOverlay"><div class="spinner"></div><div class="loading-text">جاري تحميل البيانات...</div></div>
+
+  <div class="layout" id="mainContent" style="display:none">
+    <div class="bar">
+      <div><h1>إحصائيات الحجاج <span class="sub">إكرام الضيف</span></h1></div>
+      <div class="right">
+        <span class="upd" id="upd"></span>
+        <span class="clock" id="clk"></span>
+      </div>
+    </div>
+    <div class="main">
+      <div class="hero">
+        <div class="hero-num" id="hTotal">0</div>
+        <div class="hero-label">إجمالي الحجاج</div>
+        <div class="ring-wrap">
+          <svg class="ring-svg" viewBox="0 0 100 100">
+            <circle class="ring-bg" cx="50" cy="50" r="40"/>
+            <circle class="ring-m" id="ringM" cx="50" cy="50" r="40" stroke-dasharray="251.3" stroke-dashoffset="251.3"/>
+            <circle class="ring-f" id="ringF" cx="50" cy="50" r="40" stroke-dasharray="251.3" stroke-dashoffset="251.3"/>
+          </svg>
+          <div class="ring-center">
+            <span class="rc-val rc-m" id="rcM">0</span>
+            <span class="rc-lbl">ذكور</span>
+            <span class="rc-val rc-f" id="rcF">0</span>
+            <span class="rc-lbl">إناث</span>
+          </div>
+        </div>
+        <div class="hero-legend">
+          <div class="leg"><div class="leg-dot m"></div><span class="leg-txt">ذكور</span></div>
+          <div class="leg"><div class="leg-dot f"></div><span class="leg-txt">إناث</span></div>
+        </div>
+      </div>
+      <div class="grid" id="grid"></div>
+    </div>
+  </div>
+
+  <script>
+  var D, CIRC=2*Math.PI*40;
+  document.addEventListener('DOMContentLoaded',function(){
+    tick();setInterval(tick,1000);
+    load();setInterval(load,300000);
+  });
+  function tick(){
+    var n=new Date();
+    document.getElementById('clk').textContent=
+      String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0')+':'+String(n.getSeconds()).padStart(2,'0');
+  }
+  function load(){
+    google.script.run.withSuccessHandler(function(j){
+      try{
+        var r=JSON.parse(j);if(!r.success)return;
+        D=r.data;draw();
+        document.getElementById('loadingOverlay').style.display='none';
+        document.getElementById('mainContent').style.display='flex';
+        document.getElementById('upd').textContent='آخر تحديث: '+new Date(D.timestamp).toLocaleTimeString('ar-SA');
+      }catch(e){console.error(e)}
+    }).withFailureHandler(function(e){
+      document.querySelector('.loading-text').textContent='خطأ: '+(e.message||e);
+    }).getPilgrimStats();
+  }
+  function f(n){return(n||0).toLocaleString('en-US')}
+  function anim(el,t){
+    if(typeof el==='string')el=document.getElementById(el);
+    var c=parseInt(el.textContent.replace(/,/g,''))||0;
+    if(c===t){el.textContent=f(t);return}
+    var s=performance.now();
+    function step(now){var p=Math.min((now-s)/900,1);el.textContent=f(Math.round(c+(t-c)*(1-Math.pow(1-p,3))));if(p<1)requestAnimationFrame(step)}
+    requestAnimationFrame(step);
+  }
+  function draw(){
+    anim('hTotal',D.total);anim('rcM',D.gender.male);anim('rcF',D.gender.female);
+    var t=D.gender.male+D.gender.female,mp=t>0?D.gender.male/t:0.5;
+    var mL=mp*CIRC,fL=(1-mp)*CIRC;
+    var rM=document.getElementById('ringM'),rF=document.getElementById('ringF');
+    rM.style.strokeDasharray=mL+' '+CIRC;rM.style.strokeDashoffset='0';
+    rF.style.strokeDasharray=fL+' '+CIRC;rF.style.strokeDashoffset='-'+mL;
+
+    var cards=[
+      {n:'بدون المجاملة',d:D.nonCourtesyMF,cls:'card-green',red:false},
+      {n:'B2B',d:D.b2bMF,cls:'card-purple',red:false},
+      {n:'مخيم المعيصم',d:fc('المعيصم'),cls:'card-green',red:false},
+      {n:'حجاج المجاملة',d:D.courtesyMF,cls:'card-red',red:true},
+      {n:'B2C',d:D.b2cMF,cls:'card-purple',red:false},
+      {n:'مخيم مجر الكبش',d:fc('مجر'),cls:'card-green',red:false}
+    ];
+    var h='';
+    for(var i=0;i<cards.length;i++){
+      var c=cards[i],d=c.d,ct=d.total||0,cm=d.male||0,cf=d.female||0;
+      var mp2=ct>0?(cm/ct):0.5,mA=mp2*CIRC,fA=(1-mp2)*CIRC;
+      h+='<div class="card '+c.cls+(c.red?' card-red':'')+'" style="animation-delay:'+(0.08+i*0.08)+'s">'+
+        '<div class="card-name">'+c.n+'</div>'+
+        '<div class="card-val">'+f(ct)+'</div>'+
+        '<div class="mini-ring"><svg viewBox="0 0 100 100">'+
+          '<circle class="mr-bg" cx="50" cy="50" r="40"/>'+
+          '<circle class="mr-m" cx="50" cy="50" r="40" stroke-dasharray="'+mA+' '+CIRC+'" stroke-dashoffset="0"/>'+
+          '<circle class="mr-f" cx="50" cy="50" r="40" stroke-dasharray="'+fA+' '+CIRC+'" stroke-dashoffset="-'+mA+'"/>'+
+        '</svg></div>'+
+        '<div class="card-mf">'+
+          '<div class="card-mf-item"><div class="card-mf-num m">'+f(cm)+'</div><div class="card-mf-lbl">ذكور</div></div>'+
+          '<div class="card-mf-item"><div class="card-mf-num f">'+f(cf)+'</div><div class="card-mf-lbl">إناث</div></div>'+
+        '</div></div>';
+    }
+    document.getElementById('grid').innerHTML=h;
+  }
+  function fc(k){
+    if(!D.campsMF)return{total:0,male:0,female:0};
+    for(var i=0;i<D.campsMF.length;i++){if(D.campsMF[i].name.indexOf(k)!==-1)return D.campsMF[i]}
+    return{total:0,male:0,female:0};
+  }
+  </script>
+</body>
+</html>

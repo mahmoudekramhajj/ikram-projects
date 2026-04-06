@@ -60,11 +60,30 @@ const AUTH_CONFIG = {
 //  دوال المصادقة
 // ─────────────────────────────────────────────────────
 
+var HASH_SALT = 'EkramAldyf2026!';
+
 function hashPassword_(password) {
+  var salted = HASH_SALT + password + HASH_SALT;
+  var digest = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, salted, Utilities.Charset.UTF_8);
+  return digest.map(function(b) {
+    return ('0' + (b & 0xFF).toString(16)).slice(-2);
+  }).join('');
+}
+
+/** Hash بدون salt — للتوافق مع كلمات المرور القديمة */
+function hashPasswordLegacy_(password) {
   var digest = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, password, Utilities.Charset.UTF_8);
   return digest.map(function(b) {
     return ('0' + (b & 0xFF).toString(16)).slice(-2);
   }).join('');
+}
+
+/** التحقق من المصادقة — يُستدعى في كل دالة Backend مكشوفة */
+function requireAuth_(token) {
+  if (!token) throw new Error('SESSION_EXPIRED');
+  var session = validateSession(token);
+  if (!session) throw new Error('SESSION_EXPIRED');
+  return session;
 }
 
 function validateLogin(username, password) {
@@ -78,14 +97,20 @@ function validateLogin(username, password) {
       return { success: false, error: 'لم يتم إعداد نظام المستخدمين بعد' };
     }
     var data = sheet.getDataRange().getValues();
-    var inputHash = hashPassword_(password);
+    var inputHashNew = hashPassword_(password);
+    var inputHashOld = hashPasswordLegacy_(password);
     var inputUser = String(username).trim().toLowerCase();
     for (var i = 1; i < data.length; i++) {
       var row = data[i];
       var storedUser = String(row[0]).trim().toLowerCase();
       var storedHash = String(row[1]).trim();
       var isActive   = row[6];
-      if (storedUser === inputUser && storedHash === inputHash) {
+      var hashMatch = (storedHash === inputHashNew || storedHash === inputHashOld);
+      if (storedUser === inputUser && hashMatch) {
+        // ترقية الـ Hash القديم إلى الجديد (مع salt) تلقائياً
+        if (storedHash === inputHashOld && storedHash !== inputHashNew) {
+          sheet.getRange(i + 1, 2).setValue(inputHashNew);
+        }
         if (isActive !== true && String(isActive).toLowerCase() !== 'true') {
           return { success: false, error: 'الحساب معطل — تواصل مع المشرف' };
         }
@@ -292,6 +317,40 @@ function getAllData() {
 //  دوال المنطق الأساسية
 // ─────────────────────────────────────────────────────
 
+// ─────────────────────────────────────────────────────
+//  عقود السكن — ربط الباقة بأرقام العقود
+// ─────────────────────────────────────────────────────
+
+/**
+ * getContractMap_ — بناء map: PackageId → { contractId: hotelName, ... }
+ * يقرأ من شيت "عقود السكن" (14 عمود، 221 صف)
+ * العمود A=ContractId, B=HousingProvider, F=PackageId
+ */
+function getContractMap_() {
+  var cache = CacheService.getScriptCache();
+  var cached = cache.get('CONTRACT_MAP');
+  if (cached) { try { return JSON.parse(cached); } catch(e) {} }
+
+  var ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('عقود السكن');
+  if (!sheet) return {};
+
+  var data = sheet.getDataRange().getValues();
+  var map = {};
+  for (var i = 1; i < data.length; i++) {
+    var contractId = String(data[i][0]).trim();
+    var hotel = String(data[i][1]).trim();
+    var pkgId = String(data[i][5]).trim();
+    if (!pkgId || !contractId) continue;
+    if (!map[pkgId]) map[pkgId] = {};
+    map[pkgId][contractId] = hotel;
+  }
+
+  try { cache.put('CONTRACT_MAP', JSON.stringify(map), CONFIG.CACHE_DURATION); } catch(e) {}
+  return map;
+}
+
+
 function getDestinationHotel_(row) {
   var firstHouse = String(row[COL.FIRST_HOUSE]).trim().toLowerCase();
   if (firstHouse === 'madina') return row[COL.MADINAH_EN] || 'غير محدد';
@@ -354,7 +413,8 @@ function filterData_(allData, params) {
     var targetAirport = String(params.airport).trim().toLowerCase();
     filtered = filtered.filter(function(row) {
       var city = String(row[COL.ARRIVE_CITY]).trim().toLowerCase();
-      if (targetAirport === 'madinah') return city === 'madinah' || city === 'madina';
+      if (targetAirport === 'madinah') return city === 'madinah' || city === 'madina' || city === 'medina';
+      if (targetAirport === 'jeddah') return city === 'jeddah' || city === 'jedda' || city === 'jed';
       return city === targetAirport;
     });
   }
@@ -425,6 +485,7 @@ function filterData_(allData, params) {
 
 function getFlightSummary(params) {
   try {
+    requireAuth_(params.token);
     var allData = getAllData();
     var filtered = filterData_(allData, params);
     var groups = {};
@@ -479,19 +540,26 @@ function getFlightSummary(params) {
 
 function getFlightDetails(params) {
   try {
+    requireAuth_(params.token);
     var allData = getAllData();
+    var contractMap = getContractMap_();
+
     var pilgrims = allData.filter(function(row) {
       var city = String(row[COL.ARRIVE_CITY]).trim().toLowerCase();
       var targetAirport = String(params.airport).trim().toLowerCase();
-      var cityMatch = (targetAirport === 'madinah') ? (city === 'madinah' || city === 'madina') : city === targetAirport;
+      var cityMatch = (targetAirport === 'madinah') ? (city === 'madinah' || city === 'madina' || city === 'medina') : (targetAirport === 'jeddah') ? (city === 'jeddah' || city === 'jedda' || city === 'jed') : city === targetAirport;
       var dateMatch = String(row[COL.ARRIVE_DATE]).substring(0, 10) === params.date;
       var flightMatch = String(row[COL.FLIGHT_NUMBER]).trim() === params.flightNumber;
       var destMatch = String(row[COL.FIRST_HOUSE]).trim() === params.destination;
       var hotelMatch = String(getDestinationHotel_(row)).replace(/NULL/gi, 'غير محدد').trim() === params.hotel;
       return cityMatch && dateMatch && flightMatch && destMatch && hotelMatch;
     });
-    
+
     var details = pilgrims.map(function(row) {
+      var pkgId = String(row[COL.PACKAGE_ID]).trim();
+      var pkgContracts = contractMap[pkgId] || {};
+      var contractIds = formatContracts_(pkgContracts);
+
       return {
         name: String(row[COL.NAME]).trim(),
         passport: String(row[COL.PASSPORT]).trim(),
@@ -502,7 +570,8 @@ function getFlightDetails(params) {
         transport: getTransportLabel_(row[COL.FLIGHT_TYPE]),
         transportType: String(row[COL.FLIGHT_TYPE]).trim().toUpperCase(),
         departureCity: String(row[COL.DEPARTURE_CITY]).trim(),
-        residence: String(row[COL.RESIDENCE]).trim()
+        residence: String(row[COL.RESIDENCE]).trim(),
+        contracts: contractIds
       };
     });
     
@@ -517,8 +586,9 @@ function getFlightDetails(params) {
   }
 }
 
-function getAvailableDates(airport, hall) {
+function getAvailableDates(airport, hall, token) {
   try {
+    requireAuth_(token);
     var allData = getAllData();
     var filtered = filterData_(allData, { airport: airport, hall: hall || '' });
     var datesSet = {};
@@ -530,8 +600,9 @@ function getAvailableDates(airport, hall) {
   } catch (e) { return { success: false, dates: [], error: e.message }; }
 }
 
-function getAvailableHotels(airport, hall) {
+function getAvailableHotels(airport, hall, token) {
   try {
+    requireAuth_(token);
     var allData = getAllData();
     var filtered = filterData_(allData, { airport: airport, hall: hall || '' });
     var hotelsSet = {};
@@ -545,6 +616,7 @@ function getAvailableHotels(airport, hall) {
 
 function getFilteredOptions(params) {
   try {
+    requireAuth_(params.token);
     var allData = getAllData();
     var filtered = filterData_(allData, params);
     var dates = {}, hotels = {}, airlines = {}, departureCities = {};
@@ -566,8 +638,9 @@ function getFilteredOptions(params) {
   }
 }
 
-function getQuickStats(airport, date, hall) {
+function getQuickStats(airport, date, hall, token) {
   try {
+    requireAuth_(token);
     var allData = getAllData();
     var filtered = filterData_(allData, { airport: airport, date: date, hall: hall || '' });
     var stats = { totalPilgrims: filtered.length, b2bCount: 0, b2cCount: 0, makkahCount: 0, madinahCount: 0, flights: {} };
@@ -585,8 +658,9 @@ function getQuickStats(airport, date, hall) {
   } catch (e) { return { success: false, error: e.message }; }
 }
 
-function quickSearch(query) {
+function quickSearch(query, token) {
   try {
+    requireAuth_(token);
     if (!query || String(query).trim().length < 3) return { success: false, error: 'أدخل 3 أحرف على الأقل' };
     var searchTerm = String(query).trim();
     var allData = getAllData();
@@ -621,8 +695,8 @@ function quickSearch(query) {
   } catch (e) { return { success: false, error: e.message, data: [], count: 0 }; }
 }
 
-function searchByPassport(passport) {
-  return quickSearch(passport);
+function searchByPassport(passport, token) {
+  return quickSearch(passport, token);
 }
 
 
@@ -632,6 +706,7 @@ function searchByPassport(passport) {
 
 function exportToExcel(params, groupBy) {
   try {
+    requireAuth_(params.token);
     var allData = getAllData();
     var filtered = filterData_(allData, params);
     if (filtered.length === 0) return { success: false, error: 'لا توجد بيانات للتصدير' };
@@ -666,8 +741,24 @@ function exportToExcel(params, groupBy) {
   }
 }
 
+function formatContracts_(pkgContracts) {
+  var entries = Object.keys(pkgContracts).map(function(contractId) {
+    var hotel = pkgContracts[contractId];
+    // اختصار اسم الفندق — إزالة "فندق" و"الفندقية" و"شركة"
+    var short = hotel.replace(/^(فندق|شركة)\s*/g, '').replace(/\s*(الفندقية|الفندقيه|شركة شخص واحد|المحدودة)\s*/g, '').trim();
+    return short + ' (' + contractId + ')';
+  });
+  return entries.join(' | ');
+}
+
 function buildPilgrimList_(filtered) {
+  var contractMap = getContractMap_();
+
   return filtered.map(function(row) {
+    var pkgId = String(row[COL.PACKAGE_ID]).trim();
+    var pkgContracts = contractMap[pkgId] || {};
+    var contractIds = formatContracts_(pkgContracts);
+
     return {
       name: String(row[COL.NAME]).trim(), passport: String(row[COL.PASSPORT]).trim(),
       nationality: String(row[COL.NATIONALITY_AR]).trim() || String(row[COL.NATIONALITY_EN]).trim(),
@@ -680,7 +771,8 @@ function buildPilgrimList_(filtered) {
       hotel: String(getDestinationHotel_(row)).replace(/NULL/gi, 'غير محدد').trim(),
       transport: getTransportLabel_(row[COL.FLIGHT_TYPE]),
       transportType: String(row[COL.FLIGHT_TYPE]).trim().toUpperCase(),
-      departureCity: String(row[COL.DEPARTURE_CITY]).trim()
+      departureCity: String(row[COL.DEPARTURE_CITY]).trim(),
+      contracts: contractIds
     };
   }).sort(function(a, b) {
     if (a.date !== b.date) return a.date < b.date ? -1 : 1;
@@ -690,11 +782,11 @@ function buildPilgrimList_(filtered) {
 }
 
 function getExcelHeaders_() {
-  return ['#', 'الاسم', 'رقم الجواز', 'الجنسية', 'الجنس', 'المجموعة', 'رقم الرحلة', 'شركة الطيران', 'التاريخ', 'الوقت', 'الوجهة', 'الفندق', 'المواصلات', 'مدينة المغادرة'];
+  return ['#', 'الاسم', 'رقم الجواز', 'الجنسية', 'الجنس', 'المجموعة', 'رقم الرحلة', 'شركة الطيران', 'التاريخ', 'الوقت', 'الوجهة', 'الفندق', 'المواصلات', 'مدينة المغادرة', 'عقود السكن'];
 }
 
 function pilgrimToRow_(p, idx) {
-  return [idx, p.name, p.passport, p.nationality, p.gender, p.groupNumber, p.flightNumber, p.airline, p.date, p.time, p.destination, p.hotel, p.transport, p.departureCity];
+  return [idx, p.name, p.passport, p.nationality, p.gender, p.groupNumber, p.flightNumber, p.airline, p.date, p.time, p.destination, p.hotel, p.transport, p.departureCity, p.contracts];
 }
 
 function formatSheet_(sheet, headerRow, dataStartRow, dataEndRow, numCols) {
@@ -731,7 +823,7 @@ function formatSheet_(sheet, headerRow, dataStartRow, dataEndRow, numCols) {
   sheet.setColumnWidth(4, 100); sheet.setColumnWidth(5, 60); sheet.setColumnWidth(6, 70);
   sheet.setColumnWidth(7, 90); sheet.setColumnWidth(8, 100); sheet.setColumnWidth(9, 90);
   sheet.setColumnWidth(10, 80); sheet.setColumnWidth(11, 120); sheet.setColumnWidth(12, 180);
-  sheet.setColumnWidth(13, 100); sheet.setColumnWidth(14, 100);
+  sheet.setColumnWidth(13, 100); sheet.setColumnWidth(14, 100); sheet.setColumnWidth(15, 180);
   sheet.setRightToLeft(true); sheet.setFrozenRows(headerRow);
 }
 
@@ -799,7 +891,9 @@ function buildSheetByDestination_(ss, pilgrims, airportName) {
 function buildSheetByHotel_(ss, pilgrims, airportName) {
   var grouped = {};
   pilgrims.forEach(function(p) { if (!grouped[p.hotel]) grouped[p.hotel] = []; grouped[p.hotel].push(p); });
-  var headers = getExcelHeaders_(); var sheetIdx = 0;
+  // هيدر بدون عمود الفندق (مجمّعين بالفندق أصلاً)
+  var headers = ['#', 'الاسم', 'رقم الجواز', 'الجنسية', 'الجنس', 'المجموعة', 'رقم الرحلة', 'شركة الطيران', 'التاريخ', 'الوقت', 'الوجهة', 'المواصلات', 'مدينة المغادرة', 'عقود السكن'];
+  var sheetIdx = 0;
   Object.keys(grouped).sort().forEach(function(hotel) {
     sheetIdx++;
     var sheetName = String(sheetIdx) + '-' + hotel.substring(0, 28);
@@ -808,7 +902,9 @@ function buildSheetByHotel_(ss, pilgrims, airportName) {
     addGroupTitle_(sheet, row, hotel, list.length, headers.length); row++;
     sheet.getRange(row, 1, 1, headers.length).setValues([headers]); row++;
     var dataStart = row;
-    var batchData = list.map(function(p, idx) { return pilgrimToRow_(p, idx + 1); });
+    var batchData = list.map(function(p, idx) {
+      return [idx + 1, p.name, p.passport, p.nationality, p.gender, p.groupNumber, p.flightNumber, p.airline, p.date, p.time, p.destination, p.transport, p.departureCity, p.contracts];
+    });
     sheet.getRange(dataStart, 1, batchData.length, headers.length).setValues(batchData);
     row += batchData.length;
     formatSheet_(sheet, dataStart - 1, dataStart, row - 1, headers.length);
@@ -918,43 +1014,54 @@ function onOpen() {
 //  مسح جواز السفر — Google Drive OCR
 // ═══════════════════════════════════════════════════════
 
+/**
+ * scanPassportMRZ — مسح جواز عبر Cloud Vision API (بدل Drive OCR البطيء)
+ * طلب مباشر بدون رفع ملفات — سرعة 1-2 ثانية
+ */
 function scanPassportMRZ(base64Data) {
   try {
     if (!base64Data) return { success: false, error: 'لم يتم استلام صورة' };
 
-    // ── تحويل Base64 إلى Blob ──
     var parts = base64Data.split(',');
     var raw = parts.length > 1 ? parts[1] : parts[0];
-    var decoded = Utilities.base64Decode(raw);
-    var blob = Utilities.newBlob(decoded, 'image/jpeg', 'passport_scan.jpg');
 
-    // ── رفع لـ Drive مع OCR ──
-    var file = Drive.Files.insert(
-      { title: 'MRZ_SCAN_' + new Date().getTime(), mimeType: 'image/jpeg' },
-      blob,
-      { ocr: true, ocrLanguage: 'en' }
-    );
+    // ── Cloud Vision API ──
+    var apiUrl = 'https://vision.googleapis.com/v1/images:annotate';
+    var oauthToken = ScriptApp.getOAuthToken();
+    var requestBody = {
+      requests: [{
+        image: { content: raw },
+        features: [{ type: 'TEXT_DETECTION', maxResults: 1 }]
+      }]
+    };
 
-    // ── قراءة النص ──
-    var doc = DocumentApp.openById(file.id);
-    var text = doc.getBody().getText();
+    var response = UrlFetchApp.fetch(apiUrl, {
+      method: 'POST',
+      contentType: 'application/json',
+      headers: { 'Authorization': 'Bearer ' + oauthToken },
+      payload: JSON.stringify(requestBody),
+      muteHttpExceptions: true
+    });
 
-    // ── حذف الملف فوراً ──
-    DriveApp.getFileById(file.id).setTrashed(true);
+    var json = JSON.parse(response.getContentText());
 
-    if (!text || text.trim().length < 10) {
-      return { success: false, error: 'لم يتم التعرف على نص في الصورة' };
+    if (json.responses && json.responses[0] && json.responses[0].textAnnotations) {
+      var text = json.responses[0].textAnnotations[0].description;
+
+      var passport = extractPassportFromMRZ_(text);
+      if (passport) return { success: true, passport: passport };
+
+      var fallback = extractPassportFallback_(text);
+      if (fallback) return { success: true, passport: fallback };
+
+      return { success: false, error: 'لم يتم التعرف على رقم الجواز — أدخله يدوياً' };
     }
 
-    // ── استخراج من MRZ ──
-    var passport = extractPassportFromMRZ_(text);
-    if (passport) return { success: true, passport: passport };
-
-    // ── محاولة بديلة ──
-    var fallback = extractPassportFallback_(text);
-    if (fallback) return { success: true, passport: fallback };
-
-    return { success: false, error: 'لم يتم التعرف على رقم الجواز — أدخله يدوياً' };
+    var errorMsg = 'لم يتم قراءة النص من الصورة';
+    if (json.responses && json.responses[0] && json.responses[0].error) {
+      errorMsg = json.responses[0].error.message;
+    }
+    return { success: false, error: errorMsg };
 
   } catch (e) {
     Logger.log('scanPassportMRZ Error: ' + e.message);

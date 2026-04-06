@@ -10,6 +10,7 @@ var CONFIG = {
   HOTELS_SHEET: 'الفنادق',
   SETTINGS_SHEET: 'الإعدادات',
   ROOM_AVAIL_SHEET: 'توفر_الغرف',
+  PERSONAL_DETAILS_SHEET: 'Presonal Details',
   DATA_START: 3,
   HOTELS_START: 2,
   ROOM_AVAIL_START: 3
@@ -18,7 +19,7 @@ var CONFIG = {
 function doGet(e) {
   return HtmlService.createTemplateFromFile('Index')
     .evaluate()
-    .setTitle('Ikram AlDyf for Hajj')
+    .setTitle('الباقات / اكرام الضيف')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
     .addMetaTag('viewport', 'width=device-width, initial-scale=1.0');
 }
@@ -44,7 +45,10 @@ function getAllData() {
     var flights = getFlights();
     var hotels = getHotels();
     var roomAvail = getRoomAvailability();
+    var totalPilgrimsCount = getTotalPilgrims();
     var stats = calculateStats(packages, flights);
+    stats.totalPilgrimsCount = totalPilgrimsCount;
+    stats.remainingPilgrims = 7000 - totalPilgrimsCount;
     
     // دمج توفر الغرف مع الباقات
     for (var k = 0; k < packages.length; k++) {
@@ -68,7 +72,7 @@ function getAllData() {
       packages: [],
       flights: [],
       hotels: [],
-      stats: { availablePackages: 0, totalPilgrims: 0, soldPilgrims: 0, remainingPilgrims: 0, bookingPercent: 0, remainingTickets: 0 },
+      stats: { availablePackages: 0, totalPilgrims: 0, soldPilgrims: 0, remainingPilgrims: 0, bookingPercent: 0, remainingTickets: 0, totalPilgrimsCount: 0 },
       success: false,
       error: error.toString()
     });
@@ -112,6 +116,21 @@ function calculateStats(packages, flights) {
     bookingPercent: bookingPercent,
     remainingTickets: remainingTickets
   };
+}
+
+/**
+ * عدد الحجاج من شيت Presonal Details
+ */
+function getTotalPilgrims() {
+  try {
+    var ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+    var sheet = ss.getSheetByName(CONFIG.PERSONAL_DETAILS_SHEET);
+    if (!sheet) return 0;
+    return Math.max(0, sheet.getLastRow() - 1);
+  } catch (e) {
+    Logger.log('getTotalPilgrims ERROR: ' + e.toString());
+    return 0;
+  }
 }
 
 function getPackages() {

@@ -22,10 +22,22 @@ function doGet(e) {
 
 /**
  * doPost — Telegram Webhook
+ * يمنع المعالجة المكررة عبر تتبع update_id
  */
 function doPost(e) {
   try {
     var update = JSON.parse(e.postData.contents);
+
+    // --- منع التكرار: إذا عولج هذا التحديث سابقاً، تجاهله ---
+    var updateId = String(update.update_id || '');
+    if (updateId) {
+      var cache = CacheService.getScriptCache();
+      var dedupKey = 'dedup_' + updateId;
+      if (cache.get(dedupKey)) {
+        return ContentService.createTextOutput('ok'); // تم معالجته سابقاً
+      }
+      cache.put(dedupKey, '1', 600); // احفظ لمدة 10 دقائق
+    }
 
     if (update.callback_query) {
       handleCallback_(update.callback_query);
@@ -52,13 +64,7 @@ function handleMessage_(message) {
   var startTime = new Date();
 
   // --- أوامر مباشرة ---
-  if (text === '/start') {
-    sendWelcome_(chatId);
-    logActivity_(chatId, 'start', '', '');
-    return;
-  }
-
-  if (text === '/menu') {
+  if (text === '/start' || text === '/menu') {
     if (session.status === 'verified') {
       sendMainMenu_(chatId, session);
     } else {

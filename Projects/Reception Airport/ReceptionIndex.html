@@ -209,6 +209,12 @@
       <input type="text" class="form-input" id="staffName" placeholder="أدخل اسمك الكامل" autocomplete="off">
     </div>
 
+    <!-- مفتاح الدخول -->
+    <div class="form-group">
+      <label class="form-label">مفتاح الدخول</label>
+      <input type="password" class="form-input" id="staffKey" placeholder="أدخل مفتاح الدخول" autocomplete="off" dir="ltr" style="text-align:left;">
+    </div>
+
     <!-- اختيار المطار -->
     <div class="form-group">
       <label class="form-label">المطار</label>
@@ -270,18 +276,25 @@
 
     function checkReady() {
       var name = document.getElementById('staffName').value.trim();
+      var key = document.getElementById('staffKey').value.trim();
       var btn = document.getElementById('btnEnter');
-      var ready = name.length >= 2 && selectedAirport !== '' && selectedHall !== '';
+      var ready = name.length >= 2 && key.length > 0 && selectedAirport !== '' && selectedHall !== '';
       btn.classList.toggle('active', ready);
     }
 
-    // مراقبة حقل الاسم
+    // مراقبة حقول الإدخال
     document.getElementById('staffName').addEventListener('input', checkReady);
+    document.getElementById('staffKey').addEventListener('input', checkReady);
 
     function enter() {
       var name = document.getElementById('staffName').value.trim();
+      var key = document.getElementById('staffKey').value.trim();
       if (name.length < 2) {
         showError('أدخل اسمك (حرفين على الأقل)');
+        return;
+      }
+      if (!key) {
+        showError('أدخل مفتاح الدخول');
         return;
       }
       if (!selectedAirport) {
@@ -293,19 +306,40 @@
         return;
       }
 
-      // حفظ في sessionStorage
-      var session = {
-        staffName: name,
-        airport: selectedAirport,
-        hall: selectedHall,
-        loginTime: new Date().toISOString()
-      };
-      sessionStorage.setItem('receptionSession', JSON.stringify(session));
+      var btn = document.getElementById('btnEnter');
+      btn.textContent = 'جاري التحقق...';
+      btn.classList.remove('active');
 
-      // الانتقال للشاشة الرئيسية
-      google.script.run.withSuccessHandler(function(url) {
-        window.open(url + '?page=main', '_top');
-      }).getScriptUrl();
+      // التحقق من المفتاح عبر Backend
+      google.script.run
+        .withSuccessHandler(function(result) {
+          if (result.success) {
+            // حفظ في sessionStorage مع التوكن
+            var session = {
+              staffName: result.staffName,
+              airport: selectedAirport,
+              hall: selectedHall,
+              token: result.token,
+              loginTime: new Date().toISOString()
+            };
+            sessionStorage.setItem('receptionSession', JSON.stringify(session));
+
+            // الانتقال للشاشة الرئيسية
+            google.script.run.withSuccessHandler(function(url) {
+              window.open(url + '?page=main', '_top');
+            }).getScriptUrl();
+          } else {
+            showError(result.error || 'خطأ في تسجيل الدخول');
+            btn.textContent = 'دخول ←';
+            checkReady();
+          }
+        })
+        .withFailureHandler(function(err) {
+          showError('خطأ في الاتصال — حاول مرة أخرى');
+          btn.textContent = 'دخول ←';
+          checkReady();
+        })
+        .validateStaffLogin(name, key);
     }
 
     function showError(msg) {
@@ -315,20 +349,28 @@
       setTimeout(function() { el.style.display = 'none'; }, 3000);
     }
 
-    // التحقق من جلسة سابقة
+    // التحقق من جلسة سابقة عبر Backend
     (function checkExistingSession() {
       var saved = sessionStorage.getItem('receptionSession');
       if (saved) {
         try {
           var s = JSON.parse(saved);
-          var loginTime = new Date(s.loginTime);
-          var now = new Date();
-          var diffHours = (now - loginTime) / (1000 * 60 * 60);
-          if (diffHours < 1) {
-            // جلسة صالحة — الانتقال مباشرة
-            google.script.run.withSuccessHandler(function(url) {
-              window.open(url + '?page=main', '_top');
-            }).getScriptUrl();
+          if (s.token) {
+            google.script.run
+              .withSuccessHandler(function(session) {
+                if (session) {
+                  // جلسة صالحة — الانتقال مباشرة
+                  google.script.run.withSuccessHandler(function(url) {
+                    window.open(url + '?page=main', '_top');
+                  }).getScriptUrl();
+                } else {
+                  sessionStorage.removeItem('receptionSession');
+                }
+              })
+              .withFailureHandler(function() {
+                sessionStorage.removeItem('receptionSession');
+              })
+              .validateReceptionSession(s.token);
           } else {
             sessionStorage.removeItem('receptionSession');
           }

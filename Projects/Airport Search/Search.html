@@ -572,6 +572,7 @@
     /* ═══ Load Dates ═══ */
     function loadDates() {
       google.script.run.withSuccessHandler(function(r) {
+        console.log('loadDates result:', JSON.stringify(r));
         if (r.success && r.dates.length > 0) {
           var sel = document.getElementById('filterDate');
           r.dates.forEach(function(d) {
@@ -580,8 +581,15 @@
             sel.appendChild(opt);
           });
           setTodayDefault();
+        } else if (r.error === 'SESSION_EXPIRED') {
+          alert('انتهت الجلسة — سيتم تحويلك لتسجيل الدخول');
+          google.script.run.withSuccessHandler(function(url) {
+            window.open(url + '?page=login', '_top');
+          }).getScriptUrl();
         }
-      }).withFailureHandler(function() {}).getAvailableDates(APP.airport, APP.hall);
+      }).withFailureHandler(function(err) {
+        console.error('loadDates FAILED:', err);
+      }).getAvailableDates(APP.airport, APP.hall, AUTH.token);
     }
 
     function setTodayDefault() {
@@ -599,6 +607,7 @@
     /* ═══ Load Hotels ═══ */
     function loadHotels() {
       google.script.run.withSuccessHandler(function(r) {
+        console.log('loadHotels result:', r.success, r.error || '', (r.hotels||[]).length + ' hotels');
         if (r.success && r.hotels.length > 0) {
           var sel = document.getElementById('filterHotel');
           r.hotels.forEach(function(h) {
@@ -607,16 +616,21 @@
             sel.appendChild(opt);
           });
         }
-      }).withFailureHandler(function() {}).getAvailableHotels(APP.airport, APP.hall);
+      }).withFailureHandler(function(err) {
+        console.error('loadHotels FAILED:', err);
+      }).getAvailableHotels(APP.airport, APP.hall, AUTH.token);
     }
 
     /* ═══ Load Airlines ═══ */
     function loadAirlines() {
       google.script.run.withSuccessHandler(function(r) {
+        console.log('loadAirlines result:', r.success, r.error || '', (r.airlines||[]).length + ' airlines');
         if (!r.success) return;
         updateSelect('filterAirline', r.airlines, function(a) { return a; }, 'كل الشركات');
         updateSelect('filterDepartureCity', r.departureCities, function(c) { return c; }, 'كل المطارات');
-      }).withFailureHandler(function() {}).getFilteredOptions({airport: APP.airport, hall: APP.hall});
+      }).withFailureHandler(function(err) {
+        console.error('loadAirlines FAILED:', err);
+      }).getFilteredOptions({airport: APP.airport, hall: APP.hall, token: AUTH.token});
     }
 
 
@@ -634,12 +648,16 @@
         departureCity: document.getElementById('filterDepartureCity').value
       };
 
+      params.token = AUTH.token;
       google.script.run.withSuccessHandler(function(r) {
+        console.log('refreshFilters result:', r.success, r.error || '', (r.hotels||[]).length + 'h', (r.airlines||[]).length + 'a');
         if (!r.success) return;
         updateSelect('filterHotel', r.hotels, function(h) { return h; }, 'كل الفنادق');
         updateSelect('filterAirline', r.airlines, function(a) { return a; }, 'كل الشركات');
         updateSelect('filterDepartureCity', r.departureCities, function(c) { return c; }, 'كل المطارات');
-      }).withFailureHandler(function() {}).getFilteredOptions(params);
+      }).withFailureHandler(function(err) {
+        console.error('refreshFilters FAILED:', err);
+      }).getFilteredOptions(params);
     }
 
     function updateSelect(id, newOptions, labelFn, placeholder) {
@@ -731,17 +749,22 @@
         hotel: document.getElementById('filterHotel').value,
         airline: document.getElementById('filterAirline').value,
         departureCity: document.getElementById('filterDepartureCity').value,
-        sortOrder: APP.sortOrder
+        sortOrder: APP.sortOrder,
+        token: AUTH.token
       };
 
       saveFilters();
       google.script.run.withSuccessHandler(onSearchSuccess).withFailureHandler(onSearchError).getFlightSummary(params);
-      google.script.run.withSuccessHandler(onStatsLoaded).getQuickStats(APP.airport, params.date, APP.hall);
+      google.script.run.withSuccessHandler(onStatsLoaded).getQuickStats(APP.airport, params.date, APP.hall, AUTH.token);
     }
 
     function onSearchSuccess(result) {
+      console.log('search result:', result.success, result.error || 'OK');
       resetSearchBtn();
       updateLastRefreshTime();
+
+      // تحديث خيارات الفلاتر بعد كل بحث ناجح (fallback لـ loadHotels/loadAirlines)
+      refreshFilters();
       var area = document.getElementById('resultsArea');
 
       if (!result.success) {
@@ -835,7 +858,8 @@
             date: f.date,
             flightNumber: f.flightNumber,
             destination: f.destinationRaw,
-            hotel: f.hotel
+            hotel: f.hotel,
+            token: AUTH.token
           });
         }
       } else {
@@ -852,7 +876,7 @@
       }
 
       var html = '<table class="data-table"><thead><tr>' +
-        '<th>#</th><th>الاسم</th><th>الجواز</th><th>الجنسية</th><th>بلد الإقامة</th><th>المجموعة</th><th>النوع</th>' +
+        '<th>#</th><th>الاسم</th><th>الجواز</th><th>الجنسية</th><th>بلد الإقامة</th><th>المجموعة</th><th>النوع</th><th>عقود السكن</th>' +
         '</tr></thead><tbody>';
 
       result.data.forEach(function(p, i) {
@@ -865,6 +889,7 @@
           '<td>' + esc(p.residence) + '</td>' +
           '<td><span class="td-group">' + esc(p.groupNumber) + '</span></td>' +
           '<td><span class="td-transport-mini ' + tClass + '">' + esc(p.transport) + '</span></td>' +
+          '<td style="font-size:11px;color:var(--text-secondary);direction:ltr;text-align:left;">' + esc(p.contracts || '') + '</td>' +
           '</tr>';
       });
 
@@ -905,7 +930,8 @@
         transport: document.getElementById('filterTransport').value,
         hotel: document.getElementById('filterHotel').value,
         airline: document.getElementById('filterAirline').value,
-        departureCity: document.getElementById('filterDepartureCity').value
+        departureCity: document.getElementById('filterDepartureCity').value,
+        token: AUTH.token
       };
 
       google.script.run
@@ -976,7 +1002,7 @@
         div.innerHTML = html;
       }).withFailureHandler(function() {
         div.innerHTML = '<div class="error-msg" style="margin:0;">فشل البحث</div>';
-      }).quickSearch(input);
+      }).quickSearch(input, AUTH.token);
     }
 
     /* ═══ Modals ═══ */
@@ -1133,6 +1159,21 @@
         if (document.hidden) { stopAutoRefresh(); }
         else { doSearch(); startAutoRefresh(); }
       });
+
+      // ═══ فحص صلاحية الجلسة كل 30 دقيقة ═══
+      setInterval(function() {
+        google.script.run
+          .withSuccessHandler(function(user) {
+            if (!user) {
+              alert('انتهت الجلسة — سيتم تحويلك لتسجيل الدخول');
+              google.script.run.withSuccessHandler(function(url) {
+                window.open(url + '?page=login', '_top');
+              }).getScriptUrl();
+            }
+          })
+          .withFailureHandler(function() {})
+          .validateSession(AUTH.token);
+      }, 30 * 60 * 1000);
     });
   </script>
 </body>

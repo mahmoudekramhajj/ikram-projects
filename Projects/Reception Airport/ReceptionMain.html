@@ -137,6 +137,24 @@
 
       // تحميل البيانات مسبقاً للكاش
       google.script.run.getAllData();
+
+      // فحص صلاحية الجلسة كل 15 دقيقة
+      setInterval(function() {
+        if (!session.token) return;
+        google.script.run
+          .withSuccessHandler(function(result) {
+            if (!result) {
+              showToast('انتهت الجلسة — سيتم تحويلك لتسجيل الدخول', 'error');
+              sessionStorage.removeItem('receptionSession');
+              setTimeout(function() {
+                google.script.run.withSuccessHandler(function(url) {
+                  window.open(url + '?page=index', '_top');
+                }).getScriptUrl();
+              }, 2000);
+            }
+          })
+          .validateReceptionSession(session.token);
+      }, 15 * 60 * 1000);
     })();
 
 
@@ -154,7 +172,7 @@
             document.getElementById('statFlights').textContent = result.totalFlights;
           }
         })
-        .getTodayStats(session.airport, session.hall);
+        .getTodayStats(session.airport, session.hall, session.token);
     }
 
 
@@ -204,7 +222,7 @@
           document.getElementById('scanResult').innerHTML =
             '<div style="text-align:center;padding:20px;color:#C62828;">خطأ: ' + err.message + '</div>';
         })
-        .searchByPassport(passport, session.airport, session.hall);
+        .searchByPassport(passport, session.airport, session.hall, session.token);
     }
 
 
@@ -288,7 +306,7 @@
           showToast('❌ خطأ: ' + err.message, 'error');
           if (btn) { btn.disabled = false; btn.textContent = 'تم الاستقبال ✅'; }
         })
-        .confirmReception([sheetRow], session.staffName);
+        .confirmReception([sheetRow], session.staffName, session.token);
     }
 
 
@@ -353,7 +371,7 @@
                   showToast('❌ خطأ في البحث: ' + err.message, 'error');
                   renderScanQueue();
                 })
-                .searchByPassport(result.passport, session.airport, session.hall);
+                .searchByPassport(result.passport, session.airport, session.hall, session.token);
             } else {
               showToast('⚠️ ' + result.error, 'error');
               renderScanQueue();
@@ -485,7 +503,7 @@
           btn.disabled = false;
           btn.textContent = 'تأكيد الاستقبال ✅';
         })
-        .confirmReception(rows, session.staffName);
+        .confirmReception(rows, session.staffName, session.token);
     }
 
 
@@ -513,7 +531,7 @@
             }
           }
         })
-        .getAvailableDates(session.airport, session.hall);
+        .getAvailableDates(session.airport, session.hall, session.token);
     }
 
 
@@ -531,7 +549,7 @@
             container.innerHTML = '<div style="text-align:center;padding:20px;color:#C62828;">خطأ: ' + result.error + '</div>';
           }
         })
-        .getFlightsList(session.airport, session.hall, date);
+        .getFlightsList(session.airport, session.hall, date, session.token);
     }
 
 
@@ -600,7 +618,7 @@
             renderFlightPilgrims(el, result, date, flightNumber);
           }
         })
-        .getFlightPilgrims(session.airport, session.hall, date, flightNumber);
+        .getFlightPilgrims(session.airport, session.hall, date, flightNumber, session.token);
     }
 
 
@@ -745,7 +763,7 @@
           row.style.opacity = '1';
           showToast('❌ ' + err.message, 'error');
         })
-        .confirmReception([sheetRow], session.staffName);
+        .confirmReception([sheetRow], session.staffName, session.token);
     }
 
 
@@ -795,7 +813,7 @@
           btn.disabled = false;
           btn.textContent = 'تأكيد المحددين ✅';
         })
-        .confirmReception(rows, session.staffName);
+        .confirmReception(rows, session.staffName, session.token);
     }
 
 
