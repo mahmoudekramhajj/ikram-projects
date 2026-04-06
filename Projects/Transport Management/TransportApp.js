@@ -26,7 +26,9 @@ const TRANSPORT_CONFIG = {
     CONTRACTS: 'Transport_Contracts',
     INCIDENTS: 'Transport_Incidents',
     HAJJ_SCHEDULE: 'Transport_HajjSchedule',
-    AIRLINE_TERMINALS: 'Airline_Terminals'
+    AIRLINE_TERMINALS: 'Airline_Terminals',
+    HOUSING_CONTRACTS: 'عقود السكن',
+    TRANSPORT_CONTRACTS: 'عقود النقل'
   },
 
   // رحلة الحاج column indices (0-based)

@@ -13,7 +13,7 @@
      ============================================================ -->
 <div id="loginScreen">
   <div class="login-container">
-    <img src="https://lh3.googleusercontent.com/d/1Bk8VGH6VQxLx7Yr0Rg_h6Z5F5l5H3_Ni" alt="Logo" class="login-logo" onerror="this.style.display='none'">
+    <img src="https://image2url.com/r2/default/images/1775443354621-9813e5f5-b4a7-4d23-8a0c-131fbfe58ec7.png" alt="إكرام الضيف" class="login-logo" onerror="this.style.display='none'" style="width:160px;height:auto">
     <div class="login-title">إدارة النقل</div>
     <div class="login-subtitle">Ikram AlDyf for Hajj</div>
 
@@ -70,9 +70,9 @@
   <div id="tab-plan" class="tab-content active">
     <!-- Date Navigation -->
     <div class="plan-date-nav">
-      <button class="btn btn-sm" onclick="changePlanDate(-1)">&larr;</button>
-      <input type="date" id="planDate" class="form-input plan-date-input" onchange="loadPlan()">
-      <button class="btn btn-sm" onclick="changePlanDate(1)">&rarr;</button>
+      <button class="btn btn-sm" onclick="changePlanDate(1)">بعد</button>
+      <input type="date" id="planDate" class="form-input plan-date-input" onchange="loadPlan()" lang="en">
+      <button class="btn btn-sm" onclick="changePlanDate(-1)">قبل</button>
       <button class="btn btn-sm btn-outline" onclick="setPlanDateToday()">اليوم</button>
     </div>
 
@@ -207,6 +207,8 @@
             <th>المرشد</th>
             <th>الرحلة</th>
             <th>الفندق</th>
+            <th>عقد السكن</th>
+            <th>عقد النقل</th>
           </tr>
         </thead>
         <tbody id="pilgrimTableBody"></tbody>

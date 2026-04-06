@@ -80,6 +80,8 @@ function generateTransportPlan(dateFilter, locationFilter) {
   var pkgTransport = getTransportMap_(ss); // packageId → transport type (bus/train)
   var pkgHotels = buildPackageHotelMap_(ss); // packageId → { makkahHotel, madinahHotel, makkahShiftHotel }
   var airlineTerminals = buildAirlineTerminalMap_(ss); // يبني _terminalMapCache
+  var contractMap = buildContractMap_(ss); // packageId+hotel → contractId (سكن)
+  var transportContracts = buildTransportContractMap_(ss); // route → contractId (نقل)
 
   // 2. تجميع العمليات
   var plan = {}; // { "yyyy-MM-dd": { opId: { pilgrims: [], count: 0, byGroup: {} } } }
@@ -92,13 +94,22 @@ function generateTransportPlan(dateFilter, locationFilter) {
     // B2B/B2C من رحلة الحاج مباشرة (عمود ArrivalFlightType)
     var isB2C = (p.arrivalFlightType || '').toUpperCase() === 'B2C';
     var transport = pkgTransport[p.packageId] || '';
+    // fallback: قراءة التنقل من خريطة الباقات إذا لم يوجد في getTransportMap_
+    if (!transport && pkgHotels[p.packageId]) {
+      transport = pkgHotels[p.packageId].transport || '';
+    }
     var isTrain = isTrainTransport_(transport);
 
-    // === تعبئة أسماء الفنادق الفارغة من الباقات ===
+    // === تعبئة أسماء الفنادق والتواريخ من الباقات ===
     var pkgH = pkgHotels[p.packageId] || {};
     if (!p.makkahEn && pkgH.makkahHotel) p.makkahEn = pkgH.makkahHotel;
     if (!p.madinahEn && pkgH.madinahHotel) p.madinahEn = pkgH.madinahHotel;
     if (!p.makkahShiftEn && pkgH.makkahShiftHotel) p.makkahShiftEn = pkgH.makkahShiftHotel;
+    // حفظ تواريخ الباقة للاستخدام في Shifting والمغادرة
+    p._pkgH = pkgH;
+    // حفظ خريطة العقود
+    p._contractMap = contractMap;
+    p._transportContracts = transportContracts;
 
     // === تحديد الوجهة الفعلية عند الوصول ===
     var actualDest = resolveActualDestination_(p);
@@ -170,7 +181,8 @@ function generateTransportPlan(dateFilter, locationFilter) {
       }
     }
 
-    // === E. المغادرة — جميع الحجاج ===
+    // === E. المغادرة — حسب نوع النقل ===
+    // مغادرة بالطيران
     if (p.returnDeptDate && p.returnFlight) {
       var depOp = resolveDepartureOp_(p);
       if (depOp) {
@@ -182,6 +194,32 @@ function generateTransportPlan(dateFilter, locationFilter) {
           originHotel: depOriginHotel,
           busTime: depOp.busTime
         });
+      }
+    }
+
+    // مغادرة بالقطار (حالات 27, 28) — تاريخ checkout آخر فندق
+    if (isTrain) {
+      var lastCity = getCityCode_(p.lastHouse);
+      if (lastCity === 'Makkah') {
+        // حالة 27: فندق مكة → محطة قطار مكة (مغادرة)
+        var trainDate27 = pkgH.makkahShiftCheckOut || pkgH.makkahCheckOut || p.lastHouseEnd;
+        if (trainDate27) {
+          addToPlan_(plan, trainDate27, 27, p, pd, {
+            time: '14:00',
+            originHotel: p.makkahShiftEn || p.makkahEn,
+            destHotel: 'محطة قطار مكة'
+          });
+        }
+      } else if (lastCity === 'Madina') {
+        // حالة 28: فندق المدينة → محطة قطار المدينة (مغادرة)
+        var trainDate28 = pkgH.madinahCheckOut || p.lastHouseEnd;
+        if (trainDate28) {
+          addToPlan_(plan, trainDate28, 28, p, pd, {
+            time: '14:00',
+            originHotel: p.madinahEn,
+            destHotel: 'محطة قطار المدينة'
+          });
+        }
       }
     }
   }
@@ -299,7 +337,11 @@ function resolveIntercityOp_(p, isTrain) {
 
   if (!transferDate) return null;
 
-  var makkahHotel = p.makkahShiftEn || p.makkahEn;
+  // فندق مكة للنقل بين المدن:
+  // إذا الحاج يغادر مكة → آخر فندق مكة (الانتقالي إذا موجود)
+  // إذا الحاج يصل مكة → أول فندق مكة
+  var makkahHotelOut = p.makkahShiftEn || p.makkahEn; // آخر فندق مكة (للمغادرة)
+  var makkahHotelIn = p.makkahEn || p.makkahShiftEn;  // أول فندق مكة (للوصول)
   var madinahHotel = p.madinahEn;
 
   if (isTrain) {
@@ -307,9 +349,9 @@ function resolveIntercityOp_(p, isTrain) {
       return {
         opId: 8,  // فندق مكة → محطة قطار مكة
         date: transferDate,
-        time: null,
-        originHotel: makkahHotel,
-        destHotel: '',
+        time: '12:00',
+        originHotel: makkahHotelOut,
+        destHotel: 'محطة قطار مكة',
         arrivalOpId: 9, // محطة قطار المدينة → فندق المدينة
         arrivalDate: transferDate,
         arrivalTime: null,
@@ -319,13 +361,13 @@ function resolveIntercityOp_(p, isTrain) {
       return {
         opId: 10, // فندق المدينة → محطة قطار المدينة
         date: transferDate,
-        time: null,
+        time: '12:00',
         originHotel: madinahHotel,
-        destHotel: '',
+        destHotel: 'محطة قطار المدينة',
         arrivalOpId: 11, // محطة قطار مكة → فندق مكة
         arrivalDate: transferDate,
         arrivalTime: null,
-        arrivalDestHotel: makkahHotel
+        arrivalDestHotel: makkahHotelIn
       };
     }
   } else {
@@ -333,17 +375,17 @@ function resolveIntercityOp_(p, isTrain) {
       return {
         opId: 6,
         date: transferDate,
-        time: TRANSPORT_CONFIG.CHECKOUT_TIME,
-        originHotel: makkahHotel,
+        time: '12:00',
+        originHotel: makkahHotelOut,
         destHotel: madinahHotel
       };
     } else {
       return {
         opId: 7,
         date: transferDate,
-        time: TRANSPORT_CONFIG.CHECKOUT_TIME,
+        time: '12:00',
         originHotel: madinahHotel,
-        destHotel: makkahHotel
+        destHotel: makkahHotelIn
       };
     }
   }
@@ -355,22 +397,24 @@ function resolveIntercityOp_(p, isTrain) {
 
 function resolveShiftingDate_(p) {
   // Shifting يحدث بين الفندقين بمكة
-  // عادةً بعد انتهاء إقامة الفندق الأول بمكة
-  // نستخدم MakkahShiftAr/En كاسم الفندق الثاني
-  // التاريخ: نبحث عن الفجوة بين الفندقين
+  // التاريخ = checkout الفندق الأول بمكة = check-in الفندق الثاني بمكة
+  // نأخذ التواريخ من شيت الباقات (أدق من رحلة الحاج)
 
-  var firstHouse = String(p.firstHouse || '').trim();
-  var lastHouse = String(p.lastHouse || '').trim();
+  var pkgH = p._pkgH || {};
 
-  // إذا الفندق الأول مكة — Shifting يحدث قبل الانتقال بين المدن
-  if (firstHouse === 'Makkah' || firstHouse === 'Makkah Shifting') {
-    // Shifting date = firstHouseEnd - 1 day or custom
-    return p.firstHouseEnd; // تقريبي
+  // تاريخ التحويل = checkout فندق مكة الأول = check-in فندق مكة الثاني
+  if (pkgH.makkahCheckOut) return pkgH.makkahCheckOut;
+  if (pkgH.makkahShiftCheckIn) return pkgH.makkahShiftCheckIn;
+
+  // fallback: من بيانات رحلة الحاج
+  var firstCity = getCityCode_(p.firstHouse);
+  var lastCity = getCityCode_(p.lastHouse);
+
+  if (firstCity === 'Makkah') {
+    return p.firstHouseEnd;
   }
-
-  // إذا الفندق الأخير مكة — Shifting يحدث بعد العودة من المدينة
-  if (lastHouse === 'Makkah' || lastHouse === 'Makkah Shifting') {
-    return p.lastHouseStart; // تقريبي
+  if (lastCity === 'Makkah') {
+    return p.lastHouseStart;
   }
 
   return null;
@@ -489,6 +533,17 @@ function addToPlan_(plan, date, opId, pilgrim, pd, extra) {
     if (extra.camp) entry.camp = extra.camp;
     if (extra.originHotel) entry.originHotel = extra.originHotel;
     if (extra.destHotel) entry.destHotel = extra.destHotel;
+    // موعد تواجد الحافلة = ساعة قبل الانطلاق
+    var depTime = extra.busTime || extra.time;
+    if (depTime) entry.busReadyTime = subtractHours_(depTime, 1);
+    // رقم عقد السكن — من الفندق الوجهة أو المصدر
+    var cMap = pilgrim._contractMap || {};
+    var hotelForContract = extra.destHotel || extra.originHotel || '';
+    var contractKey = pilgrim.packageId + '|' + hotelForContract;
+    entry.contractId = cMap[contractKey] || cMap[pilgrim.packageId + '|'] || '';
+    // رقم عقد النقل — من نوع العملية
+    var tContracts = pilgrim._transportContracts || {};
+    entry.transportContractId = resolveTransportContract_(tContracts, opId, extra.originHotel || '', extra.destHotel || '');
   }
 
   plan[dateKey][planKey].pilgrims.push(entry);
@@ -656,16 +711,22 @@ function buildPDMap_(ss) {
 function filterPlanByLocation_(plan, locationId) {
   // تحديد العمليات المرتبطة بكل موقع
   var locationOps = {
-    // المدينة
+    // المدينة — الكل
+    'madinah_all': [1, 4, 5, 6, 7, 9, 10, 24, 25, 26, 28],
+    // المدينة — تفصيلي
     'madinah_airport': [1, 24],  // مطار المدينة: وصول + مغادرة
-    'madinah_station': [9, 10],  // محطة قطار المدينة
-    'madinah_hotels': [1, 4, 5, 6, 7, 9, 10, 24, 25, 26, 28],  // فنادق المدينة
-    // مكة
+    'madinah_station': [9, 10, 28],  // محطة قطار المدينة
+    'madinah_hotels': [6, 7, 25, 26, 28],  // فنادق المدينة: مغادرة من/إلى الفنادق فقط
+    // مكة — الكل
+    'makkah_all': [2, 3, 4, 5, 6, 7, 8, 11, 12, 13, 14, 15, 19, 20, 21, 22, 23, 27],
+    // مكة — تفصيلي
     'jeddah_t1': [2, 4, 22, 25],  // مطار جدة صالة 1
     'jeddah_north': [3, 5, 23, 26],  // مطار جدة الشمالية
-    'makkah_station': [8, 11],  // محطة قطار مكة
-    'makkah_hotels': [2, 3, 6, 7, 8, 11, 12, 13, 14, 15, 19, 20, 21, 22, 23, 27],  // فنادق مكة
-    // المشاعر
+    'makkah_station': [8, 11, 27],  // محطة قطار مكة
+    'makkah_hotels': [6, 7, 12, 22, 23, 27],  // فنادق مكة: مغادرة من الفنادق فقط
+    // المشاعر — الكل
+    'mashaaer_all': [13, 14, 15, 16, 17, 18, 19, 20, 21],
+    // المشاعر — تفصيلي
     'camp_maisam': [13, 16, 17, 18, 19],
     'camp_mujar': [14, 20],
     'camp_72': [15, 21],
@@ -710,7 +771,7 @@ function buildOpName_(opDef, originHotel, destHotel) {
   var origin = originHotel || defOrigin;
   var dest = destHotel || defDest;
 
-  var name = origin + ' → ' + dest;
+  var name = origin + ' إلى ' + dest;
 
   // إضافة نوع النقل
   if (opDef.transport === 'bus') name += ' (حافلة)';
@@ -729,55 +790,230 @@ function buildPackageHotelMap_(ss) {
   var lastRow = sheet.getLastRow();
   if (lastRow < 3) return {};
 
-  var data = sheet.getRange(1, 1, lastRow, 54).getValues(); // حتى عمود BB
+  // قراءة حتى عمود BQ (69) لتشمل التنقل + عقود نسك
+  var data = sheet.getRange(1, 1, lastRow, 69).getValues();
   var map = {};
 
   // أعمدة الفنادق في شيت الباقات:
-  // فندق 1: City=L(11), NameEn=N(13)
-  // فندق 2: City=AA(26), NameEn=AC(28)
-  // فندق 3: City=AP(41), NameEn=AR(43)
+  // فندق 1: City=L(11), NameEn=N(13), CheckIn=O(14), CheckOut=P(15)
+  // فندق 2: City=AA(26), NameEn=AC(28), CheckIn=AD(29), CheckOut=AE(30)
+  // فندق 3: City=AP(41), NameEn=AR(43), CheckIn=AS(44), CheckOut=AT(45)
+  // التنقل: BN(65) = حافلة/قطار
 
   for (var i = 2; i < data.length; i++) {
     var nuskNo = cleanValue_(data[i][1]); // Nusk No = PackageId
     if (!nuskNo) continue;
 
-    var h1City = cleanValue_(data[i][11]);
-    var h1Name = cleanValue_(data[i][13]);
-    var h2City = cleanValue_(data[i][26]);
-    var h2Name = cleanValue_(data[i][28]);
-    var h3City = cleanValue_(data[i][41]);
-    var h3Name = cleanValue_(data[i][43]);
-
-    var entry = { makkahHotel: '', madinahHotel: '', makkahShiftHotel: '' };
-    var makkahCount = 0;
-
     var hotels = [
-      { city: h1City, name: h1Name },
-      { city: h2City, name: h2Name },
-      { city: h3City, name: h3Name }
+      { city: cleanValue_(data[i][11]), name: cleanValue_(data[i][13]),
+        checkIn: formatDate_(data[i][14]), checkOut: formatDate_(data[i][15]) },
+      { city: cleanValue_(data[i][26]), name: cleanValue_(data[i][28]),
+        checkIn: formatDate_(data[i][29]), checkOut: formatDate_(data[i][30]) },
+      { city: cleanValue_(data[i][41]), name: cleanValue_(data[i][43]),
+        checkIn: formatDate_(data[i][44]), checkOut: formatDate_(data[i][45]) }
     ];
+
+    var transport = cleanValue_(data[i][65]); // عمود التنقل BN
+
+    var entry = {
+      makkahHotel: '', madinahHotel: '', makkahShiftHotel: '',
+      makkahCheckIn: '', makkahCheckOut: '',
+      makkahShiftCheckIn: '', makkahShiftCheckOut: '',
+      madinahCheckIn: '', madinahCheckOut: '',
+      transport: transport
+    };
+
+    // جمع فنادق مكة مع تواريخهم
+    var makkahHotels = [];
 
     for (var h = 0; h < hotels.length; h++) {
       var city = hotels[h].city;
       var name = hotels[h].name;
       if (!city || !name) continue;
 
-      if (city === 'Med' || city === 'Madina' || city === 'Madinah' || city.indexOf('مدين') >= 0) {
+      if (isMakkahCity_(city)) {
+        makkahHotels.push(hotels[h]);
+      } else if (isMadinaCity_(city)) {
         entry.madinahHotel = name;
-      } else if (city === 'Mak' || city === 'Makkah' || city === 'Makkah Shifting' || city.indexOf('مكة') >= 0 || city.indexOf('مك') >= 0) {
-        makkahCount++;
-        if (makkahCount === 1) {
-          entry.makkahHotel = name;
-        } else {
-          entry.makkahShiftHotel = name;
-        }
+        entry.madinahCheckIn = hotels[h].checkIn;
+        entry.madinahCheckOut = hotels[h].checkOut;
       }
+    }
+
+    // ترتيب فنادق مكة بتاريخ الدخول (الأبكر أولاً)
+    if (makkahHotels.length >= 2) {
+      makkahHotels.sort(function(a, b) {
+        return (a.checkIn || '').localeCompare(b.checkIn || '');
+      });
+      entry.makkahHotel = makkahHotels[0].name;
+      entry.makkahCheckIn = makkahHotels[0].checkIn;
+      entry.makkahCheckOut = makkahHotels[0].checkOut;
+      entry.makkahShiftHotel = makkahHotels[1].name;
+      entry.makkahShiftCheckIn = makkahHotels[1].checkIn;
+      entry.makkahShiftCheckOut = makkahHotels[1].checkOut;
+    } else if (makkahHotels.length === 1) {
+      entry.makkahHotel = makkahHotels[0].name;
+      entry.makkahCheckIn = makkahHotels[0].checkIn;
+      entry.makkahCheckOut = makkahHotels[0].checkOut;
     }
 
     map[nuskNo] = entry;
   }
 
   return map;
+}
+
+// ============================================================
+// READ: خريطة عقود السكن (packageId+hotel → contractId)
+// ============================================================
+
+function buildContractMap_(ss) {
+  var sheet = findSheet_(ss, TRANSPORT_CONFIG.SHEETS.HOUSING_CONTRACTS);
+  if (!sheet) return {};
+
+  var data = sheet.getDataRange().getValues();
+  if (data.length < 2) return {};
+
+  var map = {};
+  // Headers: ContractId, HousingProvider, ..., PackageId (index 5), ...
+  // نبحث عن فهرس الأعمدة من الهيدر
+  var headers = data[0];
+  var colIdx = {};
+  for (var h = 0; h < headers.length; h++) {
+    var hdr = String(headers[h]).trim();
+    if (hdr === 'ContractId') colIdx.contractId = h;
+    else if (hdr === 'HousingProvider') colIdx.provider = h;
+    else if (hdr === 'PackageId') colIdx.packageId = h;
+  }
+
+  if (colIdx.contractId === undefined || colIdx.packageId === undefined) return {};
+
+  for (var i = 1; i < data.length; i++) {
+    var row = data[i];
+    var contractId = cleanValue_(row[colIdx.contractId]);
+    var provider = cleanValue_(row[colIdx.provider]);
+    var packageId = cleanValue_(row[colIdx.packageId]);
+    if (!contractId || !packageId) continue;
+
+    // مفتاح: packageId|hotelName
+    var key = packageId + '|' + provider;
+    map[key] = contractId;
+    // مفتاح احتياطي بدون اسم الفندق
+    if (!map[packageId + '|']) map[packageId + '|'] = contractId;
+  }
+
+  return map;
+}
+
+// ============================================================
+// READ: خريطة عقود النقل (مسار → رقم العقد)
+// ============================================================
+
+function buildTransportContractMap_(ss) {
+  var sheet = findSheet_(ss, TRANSPORT_CONFIG.SHEETS.TRANSPORT_CONTRACTS);
+  if (!sheet) return {};
+
+  var data = sheet.getDataRange().getValues();
+  if (data.length < 5) return {};
+
+  // الشيت ملخص — نبحث عن صفوف فيها "من" و "إلى" و "رقم العقد"
+  var map = {}; // "من|إلى" → contractId
+
+  for (var i = 0; i < data.length; i++) {
+    var row = data[i];
+    // البحث عن صفوف البيانات: عمود A = من، B = إلى (أو بالعكس RTL)
+    // نبحث عن أي صف فيه رقم عقد طويل (يبدأ بـ 2026)
+    var contractId = '';
+    var from = '';
+    var to = '';
+
+    for (var c = 0; c < row.length; c++) {
+      var val = cleanValue_(row[c]);
+      if (!val) continue;
+      // رقم العقد: رقم طويل يبدأ بـ 2026
+      if (/^2026\d{10,}$/.test(val)) {
+        contractId = val;
+      }
+    }
+
+    if (!contractId) continue;
+
+    // البحث عن "من" و "إلى" في نفس الصف
+    // عمود B = من, عمود C = إلى (حسب الصورة: A=#, B=من, C=إلى, D=عدد الحجاج, E=عدد الباصات, F=رقم العقد, G=رقم المسار)
+    from = cleanValue_(row[1]); // عمود B = من
+    to = cleanValue_(row[2]);   // عمود C = إلى
+
+    if (from && to) {
+      var key = from + '|' + to;
+      map[key] = contractId;
+    }
+  }
+
+  return map;
+}
+
+// ربط عملية نقل برقم عقد النقل
+function resolveTransportContract_(transportContracts, opId, originDesc, destDesc) {
+  if (!transportContracts || Object.keys(transportContracts).length === 0) return '';
+
+  // محاولة مطابقة مباشرة
+  var keys = Object.keys(transportContracts);
+  for (var i = 0; i < keys.length; i++) {
+    var parts = keys[i].split('|');
+    var from = parts[0] || '';
+    var to = parts[1] || '';
+
+    // مطابقة بالكلمات المفتاحية
+    if (matchRoute_(from, to, opId, originDesc, destDesc)) {
+      return transportContracts[keys[i]];
+    }
+  }
+  return '';
+}
+
+function matchRoute_(from, to, opId, originDesc, destDesc) {
+  // عمليات المطارات والفنادق
+  if (opId >= 1 && opId <= 5) {
+    // وصول: مطار → فنادق
+    if (from.indexOf('مطار') >= 0 && to.indexOf('فناد') >= 0) return true;
+    if (from.indexOf('مطار') >= 0 && to.indexOf('مساكن') >= 0) return true;
+  }
+  if (opId >= 22 && opId <= 26) {
+    // مغادرة: فنادق → مطار
+    var isMakkahDep = (opId === 22 || opId === 23);
+    var isMadinahDep = (opId === 24 || opId === 25 || opId === 26);
+
+    if (isMakkahDep && from.indexOf('مكة') >= 0 && to.indexOf('مطار') >= 0) return true;
+    if (isMakkahDep && from.indexOf('فناد') >= 0 && to.indexOf('جدة') >= 0) return true;
+    if (isMadinahDep && from.indexOf('المدينة') >= 0 && to.indexOf('مطار') >= 0) return true;
+    if (isMadinahDep && from.indexOf('فناد') >= 0 && to.indexOf('المدينة') >= 0) return true;
+  }
+  // عمليات القطار
+  if (opId === 8 || opId === 27) {
+    // مساكن مكة → محطة قطار مكة
+    if (from.indexOf('مكة') >= 0 && to.indexOf('قطار') >= 0 && to.indexOf('مكة') >= 0) return true;
+    if (from.indexOf('مساكن') >= 0 && from.indexOf('مكة') >= 0 && to.indexOf('قطار') >= 0) return true;
+  }
+  if (opId === 9) {
+    // محطة قطار المدينة → مساكن المدينة
+    if (from.indexOf('قطار') >= 0 && from.indexOf('المدينة') >= 0 && to.indexOf('المدينة') >= 0) return true;
+  }
+  if (opId === 10 || opId === 28) {
+    // مساكن المدينة → محطة قطار المدينة
+    if (from.indexOf('المدينة') >= 0 && to.indexOf('قطار') >= 0 && to.indexOf('المدينة') >= 0) return true;
+    if (from.indexOf('مساكن') >= 0 && from.indexOf('المدينة') >= 0 && to.indexOf('قطار') >= 0) return true;
+  }
+  if (opId === 11) {
+    // محطة قطار مكة → مساكن مكة
+    if (from.indexOf('قطار') >= 0 && from.indexOf('مكة') >= 0 && to.indexOf('مكة') >= 0) return true;
+  }
+  return false;
+}
+
+function isMakkahCity_(city) {
+  if (!city) return false;
+  return city === 'Mak' || city === 'Makkah' || city === 'Makkah Shifting'
+    || city.indexOf('مكة') >= 0 || city.indexOf('مك') >= 0;
 }
 
 // ============================================================

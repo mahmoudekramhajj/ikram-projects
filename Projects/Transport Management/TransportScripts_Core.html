@@ -92,17 +92,20 @@ function selectCity(city) {
 
   var locations = {
     madinah: [
+      { id: 'madinah_all', name: 'الكل — المدينة' },
       { id: 'madinah_airport', name: 'مطار المدينة' },
       { id: 'madinah_station', name: 'محطة قطار المدينة' },
       { id: 'madinah_hotels', name: 'فنادق المدينة' }
     ],
     makkah: [
+      { id: 'makkah_all', name: 'الكل — مكة' },
       { id: 'jeddah_t1', name: 'مطار جدة صالة 1' },
       { id: 'jeddah_north', name: 'مطار جدة الشمالية' },
       { id: 'makkah_station', name: 'محطة قطار مكة' },
       { id: 'makkah_hotels', name: 'فنادق مكة' }
     ],
     mashaaer: [
+      { id: 'mashaaer_all', name: 'الكل — المشاعر' },
       { id: 'camp_maisam', name: 'مخيم المعيصم' },
       { id: 'camp_mujar', name: 'مخيم مجر الكبش' },
       { id: 'camp_72', name: 'مخيم 72' },
@@ -300,7 +303,7 @@ function renderTrips() {
       '<div class="trip-header">' +
         '<div>' +
           '<div class="trip-operation">' + t.operationName + '</div>' +
-          '<div class="trip-route">' + t.origin + ' → ' + t.destination + '</div>' +
+          '<div class="trip-route">' + t.origin + ' إلى ' + t.destination + '</div>' +
         '</div>' +
         '<div style="text-align:left">' +
           '<div class="trip-time">' + (t.scheduledTime || '--:--') + '</div>' +
@@ -401,7 +404,7 @@ function openTripDetail(tripId) {
   document.getElementById('modalTitle').textContent = trip.operationName;
   document.getElementById('modalTripInfo').innerHTML =
     '<p><strong>الرحلة:</strong> ' + trip.tripId + '</p>' +
-    '<p><strong>المسار:</strong> ' + trip.origin + ' → ' + trip.destination + '</p>' +
+    '<p><strong>المسار:</strong> ' + trip.origin + ' إلى ' + trip.destination + '</p>' +
     '<p><strong>الوقت:</strong> ' + (trip.scheduledTime || '--:--') + '</p>' +
     '<p><strong>المركبة:</strong> ' + (trip.vehiclePlate || 'غير محدد') + '</p>' +
     '<p><strong>الحالة:</strong> <span class="status-badge ' + trip.status + '">' + getStatusLabel(trip.status) + '</span></p>' +
@@ -829,11 +832,11 @@ function renderPlan() {
 
     // Hotel badges
     if (op.originHotel && op.destHotel) {
-      html += '<div class="plan-op-groups"><span class="plan-op-group-chip hotel">&#127976; ' + op.originHotel + ' → ' + op.destHotel + '</span></div>';
+      html += '<div class="plan-op-groups"><span class="plan-op-group-chip hotel">&#127976; ' + op.originHotel + ' إلى ' + op.destHotel + '</span></div>';
     } else if (op.destHotel) {
-      html += '<div class="plan-op-groups"><span class="plan-op-group-chip hotel">&#127976; → ' + op.destHotel + '</span></div>';
+      html += '<div class="plan-op-groups"><span class="plan-op-group-chip hotel">&#127976; إلى ' + op.destHotel + '</span></div>';
     } else if (op.originHotel) {
-      html += '<div class="plan-op-groups"><span class="plan-op-group-chip hotel">&#127976; ' + op.originHotel + ' →</span></div>';
+      html += '<div class="plan-op-groups"><span class="plan-op-group-chip hotel">&#127976; ' + op.originHotel + ' إلى</span></div>';
     }
 
     html += '</div>';
@@ -957,10 +960,12 @@ function renderPilgrimTable(filter, btn) {
       '<td>' + (p.guide || '-') + '</td>' +
       '<td style="direction:ltr;text-align:center">' + (p.flight || '-') + '</td>' +
       '<td>' + (p.hotel || '-') + '</td>' +
+      '<td>' + (p.contractId || '-') + '</td>' +
+      '<td>' + (p.transportContractId || '-') + '</td>' +
       '</tr>';
   }
 
-  document.getElementById('pilgrimTableBody').innerHTML = html || '<tr><td colspan="8" style="text-align:center">لا توجد بيانات</td></tr>';
+  document.getElementById('pilgrimTableBody').innerHTML = html || '<tr><td colspan="10" style="text-align:center">لا توجد بيانات</td></tr>';
 }
 
 // ============================================================
@@ -980,8 +985,8 @@ function exportPilgrimList(format) {
     printWin.document.write(
       '<html dir="rtl"><head><title>' + op.opName + ' - ' + state.planDate + '</title>' +
       '<style>body{font-family:Arial,sans-serif;direction:rtl}table{width:100%;border-collapse:collapse;font-size:12px}' +
-      'th,td{border:1px solid #ddd;padding:6px;text-align:right}th{background:#0D4A3A;color:#fff}' +
-      'h2{color:#0D4A3A}tr:nth-child(even){background:#f9f9f9}</style></head>' +
+      'th,td{border:1px solid #ddd;padding:6px;text-align:right}th{background:#476831;color:#fff}' +
+      'h2{color:#476831}tr:nth-child(even){background:#f9f9f9}</style></head>' +
       '<body><h2>' + op.opName + '</h2><p>التاريخ: ' + state.planDate + ' | العدد: ' + op.count + ' حاج</p>' +
       table + '</body></html>'
     );
@@ -993,12 +998,12 @@ function exportPilgrimList(format) {
   if (format === 'excel') {
     // Build CSV
     var csv = '\uFEFF'; // BOM for Arabic
-    csv += '#,الاسم,الجواز,الجنسية,الباقة,المرشد,الرحلة,الفندق,الجوال\n';
+    csv += '#,الاسم,الجواز,الجنسية,الباقة,المرشد,الرحلة,الفندق,عقد السكن,عقد النقل,الجوال\n';
     for (var i = 0; i < op.pilgrims.length; i++) {
       var p = op.pilgrims[i];
       csv += (i + 1) + ',' + (p.name || '') + ',' + (p.passport || '') + ',' +
         (p.nationalityEn || '') + ',' + (p.packageId || '') + ',' + (p.guide || '') + ',' +
-        (p.flight || '') + ',' + (p.hotel || '') + ',' + (p.phone || '') + '\n';
+        (p.flight || '') + ',' + (p.hotel || '') + ',' + (p.contractId || '') + ',' + (p.transportContractId || '') + ',' + (p.phone || '') + '\n';
     }
 
     var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
