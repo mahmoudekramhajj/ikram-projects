@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{
+  font-family:'Tajawal',sans-serif;
+  width:100vw;height:100vh;overflow:hidden;direction:rtl;
+  background:#f0eef5;color:#2c2c2c;
+}
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;opacity:0.025;z-index:0;
+  background-image:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 5L55 30L30 55L5 30Z' fill='none' stroke='%23232E64' stroke-width='0.5'/%3E%3C/svg%3E");
+}
+.page{position:relative;z-index:1;display:flex;flex-direction:column;width:100vw;height:100vh}
+
+.topbar{
+  height:5.5vh;flex-shrink:0;
+  background:linear-gradient(135deg,#232E64 0%,#3a4a8c 40%,#232E64 100%);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 3vw;box-shadow:0 4px 20px rgba(35,46,100,0.3);
+}
+.topbar .brand{display:flex;align-items:center;gap:1.2vw}
+.topbar .logo-img{height:3.5vh;filter:brightness(10)}
+.topbar h1{font-size:2.2vh;font-weight:800;color:#fff}
+.topbar .sep{color:rgba(255,255,255,0.3);margin:0 0.5vw}
+.topbar .sub{font-size:1.6vh;color:#b0bce0}
+.topbar .meta{display:flex;align-items:center;gap:2vw}
+.topbar .clock{font-size:2.6vh;font-weight:800;color:#fff;font-variant-numeric:tabular-nums;direction:ltr;letter-spacing:1px}
+.topbar .upd{font-size:1.2vh;color:#8da0d4}
+
+.content{flex:1;display:flex;flex-direction:column;min-height:0}
+
+.section{flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden;padding:1vh 0 0.5vh}
+.section-b2c{background:#f7f5f0}
+.section-cour{background:#f3f0f7}
+
+.sec-header{display:flex;align-items:center;justify-content:space-between;padding:0 3vw;margin-bottom:1vh;flex-shrink:0}
+.sec-right{display:flex;align-items:center;gap:1.5vw}
+.sec-title{font-size:3vh;font-weight:900}
+.section-b2c .sec-title{color:#232E64}
+.section-cour .sec-title{color:#7B5B9B}
+.sec-badge{font-size:4vh;font-weight:900;font-variant-numeric:tabular-nums;padding:0.3vh 1.5vw;border-radius:1.5vh}
+.section-b2c .sec-badge{background:#232E64;color:#fff}
+.section-cour .sec-badge{background:#7B5B9B;color:#fff}
+.sec-mf{display:flex;gap:2vw;align-items:center}
+.sec-mf-item{display:flex;align-items:center;gap:0.4vw}
+.sec-mf-dot{width:1.2vh;height:1.2vh;border-radius:50%}
+.sec-mf-dot.m{background:#476831}
+.sec-mf-dot.f{background:#9B6FB1}
+.sec-mf-num{font-size:2.4vh;font-weight:800;font-variant-numeric:tabular-nums}
+.sec-mf-num.m{color:#476831}
+.sec-mf-num.f{color:#9B6FB1}
+.sec-mf-lbl{font-size:1.4vh;color:#999;font-weight:600}
+
+.strip-wrap{flex:1;overflow:hidden;position:relative;padding:0 0.5vw}
+.strip{display:flex;gap:1vw;position:absolute;top:0;bottom:0;align-items:stretch;will-change:transform}
+
+/* === بطاقة الدولة === */
+.cc{
+  width:12vw;flex-shrink:0;
+  background:#fff;border-radius:1.5vh;
+  border:1px solid #e8e5dd;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  text-align:center;padding:0.8vh 0.5vw;
+  box-shadow:0 2px 12px rgba(0,0,0,0.04);
+  position:relative;overflow:hidden;
+}
+.section-b2c .cc::before{content:'';position:absolute;top:0;right:0;left:0;height:4px;background:linear-gradient(90deg,#232E64,#3a4a8c)}
+.section-cour .cc::before{content:'';position:absolute;top:0;right:0;left:0;height:4px;background:linear-gradient(90deg,#7B5B9B,#9B6FB1)}
+
+/* الترتيب */
+.cc-rank{
+  position:absolute;top:0.6vh;right:0.6vw;
+  font-size:1.4vh;font-weight:900;color:#ccc;
+}
+.cc.top3 .cc-rank{
+  background:linear-gradient(135deg,#d4a843,#B08D3A);
+  color:#fff;width:2.5vh;height:2.5vh;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.3vh;
+}
+
+.cc-flag{width:5vh;height:3.5vh;border-radius:0.5vh;object-fit:cover;margin-bottom:0.3vh;box-shadow:0 1px 4px rgba(0,0,0,0.15)}
+.cc-name{font-size:1.7vh;font-weight:800;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:11vw;margin-bottom:0.2vh}
+.cc-total{font-size:3.8vh;font-weight:900;font-variant-numeric:tabular-nums;line-height:1;margin-bottom:0.4vh}
+.section-b2c .cc-total{color:#232E64}
+.section-cour .cc-total{color:#7B5B9B}
+.cc-bar{width:85%;height:0.6vh;border-radius:1vh;background:#eee;display:flex;overflow:hidden;margin-bottom:0.4vh}
+.cc-bar-m{background:#476831;height:100%}
+.cc-bar-f{background:#9B6FB1;height:100%}
+.cc-mf{display:flex;gap:1.5vw}
+.cc-mf-item{text-align:center}
+.cc-mf-num{font-size:1.8vh;font-weight:800;font-variant-numeric:tabular-nums}
+.cc-mf-num.m{color:#476831}
+.cc-mf-num.f{color:#9B6FB1}
+.cc-mf-lbl{font-size:0.9vh;color:#bbb;font-weight:600}
+
+.cc.top3{border-color:#d4c48a;background:linear-gradient(135deg,#fff,#faf8f0)}
+.cc.top3 .cc-total{font-size:4.2vh}
+
+#loadingOverlay{position:fixed;inset:0;z-index:999;background:linear-gradient(135deg,#f0eef5,#e4e0f0);display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ld-ring{width:60px;height:60px;border:4px solid #ddd8e8;border-top-color:#232E64;border-radius:50%;animation:sp 0.8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.ld-txt{margin-top:16px;color:#7B5B9B;font-size:2vh;font-weight:700}
+
+.divider{height:2px;background:linear-gradient(90deg,transparent,#d0cce0,transparent);flex-shrink:0}
+</style>
+</head>
+<body>
+<div id="loadingOverlay"><div class="ld-ring"></div><div class="ld-txt">جاري تحميل البيانات...</div></div>
+
+<div class="page" id="mainContent" style="display:none">
+  <div class="topbar">
+    <div class="brand">
+      <img class="logo-img" src="https://image2url.com/r2/default/images/1775443354621-9813e5f5-b4a7-4d23-8a0c-131fbfe58ec7.png" alt="" onerror="this.style.display='none'">
+      <h1>حجاج الأفراد والمجاملة</h1>
+      <span class="sep">|</span>
+      <span class="sub">توزيع حسب الدولة</span>
+    </div>
+    <div class="meta">
+      <span class="upd" id="upd"></span>
+      <span class="clock" id="clk"></span>
+    </div>
+  </div>
+  <div class="content">
+    <div class="section section-b2c">
+      <div class="sec-header">
+        <div class="sec-right"><span class="sec-title">حجاج الأفراد</span><span class="sec-badge" id="indTotal">0</span></div>
+        <div class="sec-mf">
+          <div class="sec-mf-item"><div class="sec-mf-dot m"></div><span class="sec-mf-num m" id="indM">0</span><span class="sec-mf-lbl">ذكور</span></div>
+          <div class="sec-mf-item"><div class="sec-mf-dot f"></div><span class="sec-mf-num f" id="indF">0</span><span class="sec-mf-lbl">إناث</span></div>
+        </div>
+      </div>
+      <div class="strip-wrap"><div class="strip" id="indStrip"></div></div>
+    </div>
+    <div class="divider"></div>
+    <div class="section section-cour">
+      <div class="sec-header">
+        <div class="sec-right"><span class="sec-title">حجاج المجاملة</span><span class="sec-badge" id="courTotal">0</span></div>
+        <div class="sec-mf">
+          <div class="sec-mf-item"><div class="sec-mf-dot m"></div><span class="sec-mf-num m" id="courM">0</span><span class="sec-mf-lbl">ذكور</span></div>
+          <div class="sec-mf-item"><div class="sec-mf-dot f"></div><span class="sec-mf-num f" id="courF">0</span><span class="sec-mf-lbl">إناث</span></div>
+        </div>
+      </div>
+      <div class="strip-wrap"><div class="strip" id="courStrip"></div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// أعلام الدول — جميع الأسماء الفعلية من البيانات + بدائل
+var ISO={
+// الدول الموجودة فعلياً في بيانات الحجاج (بلد الإقامة)
+'الولايات المتحدة الأمريكية':'us','الولايات المتحدة':'us','أمريكا':'us',
+'فرنسا':'fr','ألمانيا':'de','المملكة المتحدة':'gb','بريطانيا':'gb',
+'إيطاليا':'it','أسبانيا':'es','إسبانيا':'es',
+'كندا':'ca','السويد':'se','بلغاريا':'bg',
+'جنوب افريقيا':'za','جنوب أفريقيا':'za',
+'النمسا':'at','هولندا':'nl','سويسرا':'ch',
+'الأردن':'jo','النرويج':'no','صربيا':'rs',
+'بلجيكا':'be','اليونان':'gr','إندونيسيا':'id',
+'العراق':'iq','البرازيل':'br',
+'ترنداد وتوباجو':'tt','ترينيداد وتوباغو':'tt',
+'الدنمارك':'dk','فنلندا':'fi',
+'تونس':'tn','باربادوس':'bb','مصر':'eg',
+'أستراليا':'au','نيوزيلندا':'nz','نيوزيلاندا':'nz',
+'فينزويلا':'ve','فنزويلا':'ve',
+'سانت كتس ونيفيس':'kn','سانت كيتس ونيفيس':'kn',
+'البرتغال':'pt','ايرلندا':'ie','أيرلندا':'ie',
+'دومينيكا':'dm','تشيلي':'cl','ليبيا':'ly',
+'لوكسمبورج':'lu','لوكسمبورغ':'lu',
+'لبنان':'lb','هونغ كونغ - الصين':'hk','هونغ كونغ':'hk',
+'سلوفينيا':'si','نيكاراغوا':'ni',
+'المغرب':'ma','الأرجنتين':'ar',
+'أنتيغوا وباربودا':'ag',
+'رومانيا':'ro','ماليزيا':'my','سلوفاكيا':'sk',
+'بيرمودا':'bm','مولدوفا':'md','كرواتيا':'hr',
+'اوكرانيا':'ua','أوكرانيا':'ua',
+'بولندا':'pl','الاوروغواي':'uy','الأوروغواي':'uy',
+'جمهورية دومينيكان':'do','الدومينيكان':'do',
+'غويانا':'gy','تركيا':'tr','فلسطين':'ps',
+// دول إضافية احتياطية
+'الجزائر':'dz','سوريا':'sy','السعودية':'sa','الإمارات':'ae',
+'الكويت':'kw','قطر':'qa','البحرين':'bh','عمان':'om',
+'اليمن':'ye','السودان':'sd','الصومال':'so',
+'إيران':'ir','باكستان':'pk','أفغانستان':'af',
+'الهند':'in','بنغلاديش':'bd','سريلانكا':'lk',
+'تايلاند':'th','الفلبين':'ph','الصين':'cn',
+'اليابان':'jp','كوريا':'kr','المكسيك':'mx',
+'كولومبيا':'co','نيجيريا':'ng','كينيا':'ke',
+'روسيا':'ru','ألبانيا':'al','البوسنة':'ba',
+'كوسوفو':'xk','التشيك':'cz','المجر':'hu',
+'قبرص':'cy','مالطا':'mt','أيسلندا':'is'
+};
+
+function flagUrl(name){
+  var code=ISO[name];
+  if(!code)return 'https://flagcdn.com/w80/xx.png';
+  return 'https://flagcdn.com/w80/'+code+'.png';
+}
+function fmt(n){return(n||0).toLocaleString('en-US')}
+
+var D;
+document.addEventListener('DOMContentLoaded',function(){
+  tk();setInterval(tk,1000);
+  ld();setInterval(ld,300000);
+});
+
+function tk(){
+  var n=new Date();
+  document.getElementById('clk').textContent=
+    n.getHours().toString().padStart(2,'0')+':'+n.getMinutes().toString().padStart(2,'0')+':'+n.getSeconds().toString().padStart(2,'0');
+}
+
+function ld(){
+  google.script.run
+    .withSuccessHandler(function(j){
+      try{
+        var r=JSON.parse(j);
+        if(!r.success)return;
+        D=r.data;render();
+        document.getElementById('loadingOverlay').style.display='none';
+        document.getElementById('mainContent').style.display='flex';
+        document.getElementById('upd').textContent='آخر تحديث: '+new Date(D.timestamp).toLocaleTimeString('ar-SA');
+      }catch(e){console.error(e)}
+    })
+    .withFailureHandler(function(e){
+      document.querySelector('.ld-txt').textContent='خطأ في الاتصال';
+    })
+    .getPilgrimStats();
+}
+
+function render(){
+  document.getElementById('indTotal').textContent=fmt(D.individualsMF.total);
+  document.getElementById('indM').textContent=fmt(D.individualsMF.male);
+  document.getElementById('indF').textContent=fmt(D.individualsMF.female);
+  document.getElementById('courTotal').textContent=fmt(D.courtesyMF.total);
+  document.getElementById('courM').textContent=fmt(D.courtesyMF.male);
+  document.getElementById('courF').textContent=fmt(D.courtesyMF.female);
+
+  fillStrip('indStrip',D.individualsByCountryMF||[]);
+  fillStrip('courStrip',D.courtesyByCountryMF||[]);
+}
+
+function fillStrip(id,arr){
+  var strip=document.getElementById(id);
+  // بناء البطاقات مرتين للحلقة اللانهائية
+  var cards=mkCards(arr);
+  strip.innerHTML=cards+cards;
+
+  // بدء الحركة بعد ثانية
+  setTimeout(function(){infiniteScroll(strip)},1000);
+}
+
+function mkCards(arr){
+  var h='';
+  for(var i=0;i<arr.length;i++){
+    var r=arr[i],t=r.total||0,m=r.male||0,f=r.female||0;
+    var mp=t?(m/t*100):50,fp=100-mp;
+    var top=i<3?' top3':'';
+    h+='<div class="cc'+top+'">'+
+      '<div class="cc-rank">'+(i+1)+'</div>'+
+      '<img class="cc-flag" src="'+flagUrl(r.name)+'" alt="" onerror="this.src=\'https://flagcdn.com/w80/xx.png\'">'+
+      '<div class="cc-name">'+r.name+'</div>'+
+      '<div class="cc-total">'+fmt(t)+'</div>'+
+      '<div class="cc-bar"><div class="cc-bar-m" style="width:'+mp.toFixed(1)+'%"></div><div class="cc-bar-f" style="width:'+fp.toFixed(1)+'%"></div></div>'+
+      '<div class="cc-mf">'+
+        '<div class="cc-mf-item"><div class="cc-mf-num m">'+fmt(m)+'</div><div class="cc-mf-lbl">ذكور</div></div>'+
+        '<div class="cc-mf-item"><div class="cc-mf-num f">'+fmt(f)+'</div><div class="cc-mf-lbl">إناث</div></div>'+
+      '</div></div>';
+  }
+  return h;
+}
+
+function infiniteScroll(strip){
+  var halfW=strip.scrollWidth/2; // نصف العرض = مجموعة واحدة من البطاقات
+  var pos=0;
+  var speed=0.6; // px/frame
+
+  function step(){
+    pos+=speed;
+    // عند وصول نهاية المجموعة الأولى → نرجع للبداية بسلاسة
+    if(pos>=halfW){pos=0}
+    strip.style.transform='translateX('+pos+'px)';
+    requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+</script>
+</body>
+</html>

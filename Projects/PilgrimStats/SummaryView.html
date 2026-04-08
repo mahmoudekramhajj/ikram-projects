@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --green:#476831;--green-l:#B3C79D;--green-10:rgba(71,104,49,.08);
+      --navy:#232E64;--navy-10:rgba(35,46,100,.08);
+      --purple:#9B6FB1;--purple-10:rgba(155,111,177,.08);
+      --dark:#333333;--dim:#6b7280;--bg:#F5F3EE;--white:#FFFFFF;
+      --shadow:0 2px 12px rgba(51,51,51,.08);--r:14px;
+    }
+    *{margin:0;padding:0;box-sizing:border-box}
+    html,body{font-family:'Noto Kufi Arabic',sans-serif;background:var(--bg);color:var(--dark);direction:rtl;width:100vw;height:100vh;overflow:hidden}
+    .L{display:flex;flex-direction:column;height:100vh}
+
+    /* Top */
+    .top{display:flex;justify-content:center;align-items:center;padding:0 24px;height:48px;flex-shrink:0;background:linear-gradient(135deg,var(--green),#3a5828);box-shadow:0 4px 20px rgba(71,104,49,.3);position:relative}
+    .top h1{font-size:17px;font-weight:800;color:#fff;text-align:center}
+    .top .sub{font-size:10px;color:var(--green-l);margin-right:8px}
+    .top-r{position:absolute;left:24px}
+    .top-r{display:flex;align-items:center;gap:14px}
+    .clk{font-size:20px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums;direction:ltr}
+    .upd{font-size:9px;color:var(--green-l)}
+
+    /* Grid */
+    .M{flex:1;display:grid;padding:8px 12px;gap:8px;grid-template-columns:1fr 1fr 1fr 1fr;grid-template-rows:auto 1fr 1fr;grid-template-areas:"k1 k2 k3 k4""pkg gender visa visa""camp tkt tkt tkt";min-height:0}
+
+    /* KPI */
+    .kc{background:var(--white);border-radius:var(--r);box-shadow:var(--shadow);padding:8px 10px;text-align:center;border-top:4px solid transparent}
+    .k1{grid-area:k1;border-top-color:var(--green)}.k2{grid-area:k2;border-top-color:var(--purple)}.k3{grid-area:k3;border-top-color:var(--navy)}.k4{grid-area:k4;border-top-color:#d97706}
+    .kv{font-size:32px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1}
+    .kl{font-size:11px;color:var(--dim);margin-top:4px;font-weight:600}
+
+    /* Card */
+    .cd{background:var(--white);border-radius:var(--r);box-shadow:var(--shadow);display:flex;flex-direction:column;overflow:hidden}
+    .ch{padding:4px 12px;background:var(--green);font-size:11px;font-weight:700;color:var(--white);display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+    .ch .bg{background:rgba(255,255,255,.2);color:#fff;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700}
+    .cb{padding:4px 10px;flex:1;display:flex;flex-direction:column;justify-content:space-evenly;min-height:0;overflow:hidden}
+
+    .a-pkg{grid-area:pkg}.a-gender{grid-area:gender}.a-visa{grid-area:visa}.a-camp{grid-area:camp}.a-tkt{grid-area:tkt}
+
+    /* بارات */
+    .br{display:flex;align-items:center;gap:6px;padding:1px 0}
+    .br-l{width:110px;font-size:11px;color:var(--dim);font-weight:700;white-space:nowrap;flex-shrink:0}
+    .br-w{flex:1;height:10px;background:#eae7e0;border-radius:5px;overflow:hidden}
+    .br-f{height:100%;border-radius:5px}
+    .br-c{width:50px;text-align:left;font-size:14px;font-weight:800;font-variant-numeric:tabular-nums}
+
+    /* جنس */
+    .gs{display:grid;grid-template-columns:1fr 1fr;gap:8px;flex:1}
+    .gb{border-radius:10px;text-align:center;padding:10px 4px;display:flex;flex-direction:column;justify-content:center}
+    .gb-a{background:var(--green-10);border:2px solid var(--green-l)}.gb-m{background:var(--purple-10);border:2px solid #d4b8e0}
+    .gb-t{font-size:15px;color:var(--dim);font-weight:700;margin-bottom:2px}
+    .gb-v{font-size:38px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1}
+    .gb-d{font-size:14px;color:var(--dim);margin-top:6px;line-height:1.8}
+
+    /* تأشيرات */
+    .vr{display:flex;align-items:center;gap:6px;padding:1px 0}
+    .vr-l{flex:1;font-size:11px;color:var(--dim);font-weight:700}
+    .vr-w{width:120px;height:10px;background:#eae7e0;border-radius:5px;overflow:hidden}
+    .vr-f{height:100%;border-radius:5px}
+    .vr-c{width:50px;text-align:left;font-size:14px;font-weight:800;font-variant-numeric:tabular-nums}
+
+    /* مخيمات */
+    .cr{display:flex;justify-content:space-between;align-items:center;padding:4px 0}
+    .cr-n{font-size:15px;color:var(--dim);font-weight:700}
+    .cr-v{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--green)}
+
+    /* تذاكر */
+    .ts{display:grid;grid-template-columns:1fr 1fr;gap:8px;flex:1}
+    .tb{border-radius:10px;text-align:center;display:flex;flex-direction:column;justify-content:center;padding:8px;border:2px solid transparent}
+    .t1{background:var(--purple-10);border-color:#d4b8e0}.t2{background:var(--navy-10);border-color:#b0b8d4}
+    .tb-v{font-size:36px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1}
+    .tb-l{font-size:14px;color:var(--dim);margin-top:4px;font-weight:600}
+
+    /* تحميل */
+    .loading{position:fixed;inset:0;z-index:999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center}
+    .ld-ring{width:50px;height:50px;border:4px solid #e0ddd5;border-top-color:var(--green);border-radius:50%;animation:sp .8s linear infinite}
+    @keyframes sp{to{transform:rotate(360deg)}}
+    .ld-txt{margin-top:12px;color:var(--dim);font-size:14px;font-weight:700}
+
+    /* ═══ شريط الدول ═══ */
+    .ticker{background:var(--green);height:72px;overflow:hidden;display:flex;align-items:center;flex-shrink:0;position:relative}
+    .ticker-tag{background:rgba(0,0,0,.25);color:#fff;padding:0 18px;height:100%;display:flex;align-items:center;font-size:13px;font-weight:700;white-space:nowrap;flex-shrink:0;z-index:2;border-left:2px solid var(--green-l);gap:6px}
+    .ticker-outer{flex:1;overflow:hidden;position:relative;height:100%;display:flex;align-items:center;direction:ltr}
+    .ticker-belt{display:flex;align-items:center;white-space:nowrap;will-change:transform;direction:ltr}
+    .tc{display:inline-flex;align-items:center;gap:10px;background:rgba(255,255,255,.18);backdrop-filter:blur(4px);padding:8px 16px;border-radius:24px;white-space:nowrap;flex-shrink:0;margin:0 6px}
+    .tc-flag{width:28px;height:20px;border-radius:3px;object-fit:cover;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+    .tc-name{color:#fff;font-size:13px;font-weight:700}
+    .tc-count{background:rgba(255,255,255,.3);color:#fff;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:800;font-variant-numeric:tabular-nums}
+
+    @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.02)}}.k1{animation:pulse 3s ease-in-out infinite}
+  </style>
+</head>
+<body>
+  <div class="L">
+    <div class="top">
+      <div style="display:flex;align-items:center;gap:12px"><img src="https://image2url.com/r2/default/images/1775571434051-dd6a5aa4-84ef-4452-8e59-bff262f61df4.png" style="height:36px;border-radius:6px" alt="Logo"><h1>ملخص العمليات<span class="sub">الباقات — التأشيرات — المرشدين</span></h1></div>
+      <div class="top-r"><span class="upd" id="upd"></span><span class="clk" id="clk"></span></div>
+    </div>
+    <div class="loading" id="ld"><div class="ld-ring"></div><div class="ld-txt">جاري تحميل البيانات...</div></div>
+    <div class="M" id="G"></div>
+    <div class="ticker"><div class="ticker-tag" id="tt">🌍 أعلى <b>10</b> دول للحجاج</div><div class="ticker-outer"><div class="ticker-belt" id="tb"></div></div></div>
+  </div>
+<script>
+!function ck(){var d=new Date();document.getElementById('clk').textContent=('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2)+':'+('0'+d.getSeconds()).slice(-2);setTimeout(ck,1000)}();
+function f(n){return Number(n).toLocaleString('en-US');}
+
+function load(){
+  google.script.run
+    .withSuccessHandler(function(j){
+      try{
+        var r=JSON.parse(j);
+        if(!r.success){document.querySelector('.ld-txt').textContent='خطأ: '+(r.error||'');return;}
+        render(r.data);
+        document.getElementById('ld').style.display='none';
+        document.getElementById('upd').textContent='آخر تحديث: '+new Date().toLocaleString('ar-SA');
+      }catch(e){document.querySelector('.ld-txt').textContent='خطأ في البيانات';}
+    })
+    .withFailureHandler(function(){document.querySelector('.ld-txt').textContent='خطأ في الاتصال';})
+    .getSummaryStats();
+}
+load(); setInterval(load, 300000);
+
+function render(D){
+  var h='';
+
+  h+='<div class="kc k1"><div class="kv" style="color:var(--green)">'+f(D.totalPilgrims)+'</div><div class="kl">إجمالي الحجاج</div></div>';
+  h+='<div class="kc k2"><div class="kv" style="color:var(--purple)">'+f(D.totalGuides)+'</div><div class="kl">إجمالي المرشدين</div></div>';
+  h+='<div class="kc k3"><div class="kv" style="color:var(--navy)">'+f(D.soldPackages)+'</div><div class="kl">باقات مباعة</div></div>';
+  h+='<div class="kc k4"><div class="kv" style="color:#d97706">'+f(D.remainingPackages)+'</div><div class="kl">باقات متبقية</div></div>';
+
+  // الباقات
+  var cats=D.packageCategories||[];
+  var mx=1;for(var i=0;i<cats.length;i++){if(cats[i].pilgrims>mx)mx=cats[i].pilgrims;}
+  var pc=['var(--green)','var(--navy)','var(--purple)','#d97706','var(--green-l)'];
+  var pb='';
+  for(var i=0;i<cats.length;i++){
+    var c=cats[i],p=Math.round(c.pilgrims/mx*100);
+    pb+='<div class="br"><span class="br-l">'+c.name+' ('+c.count+')</span><span class="br-w"><span class="br-f" style="width:'+p+'%;background:'+pc[i%pc.length]+'"></span></span><span class="br-c" style="color:'+pc[i%pc.length]+'">'+f(c.pilgrims)+'</span></div>';
+  }
+  h+='<div class="cd a-pkg"><div class="ch">الباقات حسب الفئة<span class="bg">'+D.totalPackages+' باقة</span></div><div class="cb">'+pb+'</div></div>';
+
+  // الجنس
+  h+='<div class="cd a-gender"><div class="ch">الحجاج حسب الفئة والجنس</div><div class="cb"><div class="gs">';
+  h+='<div class="gb gb-a"><div class="gb-t">أفراد</div><div class="gb-v" style="color:var(--green)">'+f(D.afrad.total)+'</div><div class="gb-d">♂ ذكر: <b style="color:var(--navy)">'+f(D.afrad.male)+'</b><br>♀ أنثى: <b style="color:var(--purple)">'+f(D.afrad.female)+'</b></div></div>';
+  h+='<div class="gb gb-m"><div class="gb-t">مجاملة</div><div class="gb-v" style="color:var(--purple)">'+f(D.mojamala.total)+'</div><div class="gb-d">♂ ذكر: <b style="color:var(--navy)">'+f(D.mojamala.male)+'</b><br>♀ أنثى: <b style="color:var(--purple)">'+f(D.mojamala.female)+'</b></div></div>';
+  h+='</div></div></div>';
+
+  // التأشيرات
+  var vs=D.visaStats||[];
+  var vmx=vs.length?vs[0].count:1;
+  var vc=['var(--green)','#d97706','var(--navy)','var(--purple)','#c0392b'];
+  var vb='';
+  for(var i=0;i<vs.length;i++){
+    var v=vs[i],vp=Math.round(v.count/vmx*100);
+    vb+='<div class="vr"><span class="vr-l">'+v.status+'</span><span class="vr-w"><span class="vr-f" style="width:'+vp+'%;background:'+vc[i%vc.length]+'"></span></span><span class="vr-c" style="color:'+vc[i%vc.length]+'">'+f(v.count)+'</span></div>';
+  }
+  h+='<div class="cd a-visa"><div class="ch">حالة التأشيرات</div><div class="cb">'+vb+'</div></div>';
+
+  // المخيمات
+  var camps=D.campStats||[];
+  var cb2='';
+  for(var i=0;i<camps.length;i++)cb2+='<div class="cr"><span class="cr-n">'+camps[i].name+'</span><span class="cr-v">'+f(camps[i].count)+'</span></div>';
+  h+='<div class="cd a-camp"><div class="ch">المخيمات</div><div class="cb">'+cb2+'</div></div>';
+
+  // التذاكر — B2B و B2C فقط
+  h+='<div class="cd a-tkt"><div class="ch">التذاكر</div><div class="cb"><div class="ts">';
+  h+='<div class="tb t1"><div class="tb-v" style="color:var(--purple)">'+f(D.flightStats.B2B)+'</div><div class="tb-l">تذاكر B2B</div></div>';
+  h+='<div class="tb t2"><div class="tb-v" style="color:var(--navy)">'+f(D.flightStats.B2C)+'</div><div class="tb-l">تذاكر B2C</div></div>';
+  h+='</div></div></div>';
+
+  document.getElementById('G').innerHTML=h;
+
+  // شريط الدول
+  var cos=D.countries||[];
+  document.getElementById('tt').innerHTML='🌍 أعلى <b>'+cos.length+'</b> دول للحجاج';
+  var belt=document.getElementById('tb');
+  var s='';
+  for(var i=0;i<cos.length;i++){
+    var co=cos[i];
+    var flag=co.code?'<img class="tc-flag" src="https://flagcdn.com/w40/'+co.code+'.png" alt="'+co.name+'">':'';
+    s+='<span class="tc">'+flag+'<span class="tc-name">'+co.name+'</span><span class="tc-count">'+f(co.count)+'</span></span>';
+  }
+  belt.innerHTML=s+s;
+  setTimeout(function(){
+    var tmp=document.createElement('div');
+    tmp.style.cssText='display:inline-flex;position:absolute;visibility:hidden;white-space:nowrap';
+    tmp.innerHTML=s;
+    document.body.appendChild(tmp);
+    var oneW=tmp.scrollWidth;
+    document.body.removeChild(tmp);
+    if(oneW<100)oneW=1500;
+    var pos=0;
+    function tick(){pos-=1.2;if(pos<=-oneW)pos+=oneW;belt.style.transform='translateX('+pos+'px)';requestAnimationFrame(tick);}
+    requestAnimationFrame(tick);
+  },1000);
+}
+</script>
+</body>
+</html>
