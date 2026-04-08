@@ -54,6 +54,7 @@ node refresh.js
 | **Holiday In Bakkah** | باقات العطل في مكة (Spreadsheet منفصل) |
 | **SheetData** | أدوات تصدير البيانات (Node.js + Google Sheets API) |
 | **PNR Target Countries Sync** | مزامنة PNR للدول المستهدفة |
+| **PilgrimStats** | شاشات إحصائيات الحجاج للشاشات الكبيرة — أفراد/مجاملة/B2B/B2C/مخيمات/دول (GAS Web App) |
 
 ---
 
@@ -65,7 +66,7 @@ node refresh.js
 |---|---|---|
 | **رحلة الحاج** (6500+ صف) | Airport Search, IkramHajjBot, Pilgrim App, Guide App, Hotel Management, Mina Camp Search | Reception Airport, **JourneyMerger** (يكتب الشيت كاملاً) |
 | **رحلة الحاج 2** (6500+ صف) | **JourneyMerger** (مصدر بيانات الرحلة) | منصة نسك (مصدر خارجي) |
-| **Presonal Details** (6500+ صف) | **JourneyMerger** (مصدر البيانات الشخصية)، Pilgrim App, B2C Sync, TourGuide Manager | منصة نسك (مصدر خارجي) |
+| **Presonal Details** (6500+ صف) | **JourneyMerger** (مصدر البيانات الشخصية)، Pilgrim App, B2C Sync, TourGuide Manager, **PilgrimStats** | منصة نسك (مصدر خارجي) |
 | **الباقات** (69 عمود) | Ikram, IkramAgent, IkramHajjBot, Hotel Management, Pilgrim App, Holiday In Bakkah | Ikram |
 | **الطيران** (103 عمود) | Ikram, IkramAgent, GDS, B2C Sync, Sales Report, Holiday In Bakkah | Ikram, GDS, B2C Sync, PNR Sync |
 | **الفنادق** | Ikram, Hotel Management, Holiday In Bakkah | — |
@@ -448,7 +449,7 @@ Presonal Details (بيانات شخصية) ─┘
 
 ## آخر نقطة عمل
 
-- **التاريخ:** 2026-03-28
-- **المشروع:** ترحيل مصدر بيانات المرشدين من "Tour Guide" إلى "Guide Rabih"
-- **الحالة:** تم تحديث جميع التطبيقات (7 مشاريع). يحتاج: `clasp push` لكل مشروع متأثر
-- **الخطوة التالية:** `clasp push` للمشاريع: Hotel Management, IkramHajjBot, Ikram, Pilgrim App, Guide App + اختبار يدوي
+- **التاريخ:** 2026-04-09
+- **المشروع:** Transport Management — تطبيق إدارة النقل
+- **الحالة:** v2.3 منشور. مراجعة الـ 28 حالة مكتملة. يحتاج إعادة كتابة محرك التخطيط + تطبيق الهوية البصرية + إصلاح UI
+- **الخطوة التالية:** إعادة كتابة TransportPlanner.js بناءً على المراجعة التفصيلية + تطبيق الهوية البصرية + نشر واختبار
