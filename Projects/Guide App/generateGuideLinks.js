@@ -13,16 +13,14 @@ function generateGuideLinks() {
   var ss = SpreadsheetApp.openById('1z4b3BmTLDLvYUs8H8cPU8MJrOuvuN5GztZ9pLlYhF6s');
   var guideSheet = ss.getSheetByName('Guide Rabih');
   var lastRow = guideSheet.getLastRow();
-  var data = guideSheet.getRange(2, 1, lastRow - 1, 33).getValues();
+  var data = guideSheet.getRange(2, 1, lastRow - 1, 16).getValues();
 
   // ── جمع أسماء المرشدين الفريدة من Guide Rabih ──
   var guidesMap = {};
 
   for (var i = 0; i < data.length; i++) {
-    var name = String(data[i][15]).trim(); // P: اسم المرشد
-
+    var name = String(data[i][15]).trim(); // عمود اسم المرشد
     if (!name) continue;
-
     if (!guidesMap[name]) {
       guidesMap[name] = { name: name, count: 0 };
     }

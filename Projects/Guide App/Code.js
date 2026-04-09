@@ -15,30 +15,25 @@ var CONFIG = {
   SPREADSHEET_ID: '1z4b3BmTLDLvYUs8H8cPU8MJrOuvuN5GztZ9pLlYhF6s',
   
   SHEETS: {
-    TOUR_GUIDE: 'Guide Rabih',
-    PILGRIMS: 'رحلة الحاج',
+    GUIDE_RABIH: 'Guide Rabih',
     ROOM_TYPE: 'Room Type Preview',
     GUIDE_GROUPING: 'Guide Grouping',
     GUIDE_LINKS: 'روابط المرشدين'
   },
-  
-  // Guide Rabih columns (0-based) — same structure as Presonal Details
-  GUIDE: {
-    NAME: 15,       // P: اسم المرشد
-    PASSPORT: 5     // F: رقم جواز السفر
+
+  RABIH: {
+    SERIAL: 0,          // الرقم التسلسلي (= ApplicantId)
+    GROUP_NUMBER: 1,     // رقم المجموعة
+    GENDER: 4,           // الجنس (ذكر/انثى)
+    PASSPORT: 5,         // رقم جواز السفر
+    FIRST_NAME_EN: 10,   // الاسم الأول (الإنجليزية)
+    LAST_NAME_EN: 11,    // اسم العائلة (الإنجليزية)
+    GUIDE_NAME: 15       // اسم المرشد
   },
-  
-  PILGRIM: {
-    BOOKING_ID: 0,
-    APPLICANT_ID: 5,
-    GROUP_NUMBER: 6,
-    NAME: 7,
-    PASSPORT: 8,
-    GENDER: 11
-  },
-  
+
   RT: {
     GROUP_NUMBER: 0,
+    BOOKING_ID: 1,
     MED_HOTEL: 15,
     MED_TYPE: 16,
     MED_SHARED: 19,
@@ -137,17 +132,23 @@ function loginWithPassport(passport) {
 function getGuideHotels(guideName) {
   try {
     var ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
-    var guidePassports = getGuidePassports_(ss, guideName);
-    if (guidePassports.length === 0) {
+    var pilgrimData = getGuidePilgrimsFromRabih_(ss, guideName);
+    var pilgrimCount = Object.keys(pilgrimData).length;
+    if (pilgrimCount === 0) {
       return { success: false, error: 'لا يوجد حجاج مسجلين لهذا المرشد' };
     }
-    var pilgrimData = getPilgrimsByPassports_(ss, guidePassports);
     var groupNumbers = {};
     for (var p in pilgrimData) {
       var gn = String(pilgrimData[p].groupNumber);
       if (gn) groupNumbers[gn] = true;
     }
     var roomTypeData = getRoomTypeByGroups_(ss, Object.keys(groupNumbers));
+    // إضافة bookingId من Room Type Preview
+    for (var passport in pilgrimData) {
+      var gn = String(pilgrimData[passport].groupNumber);
+      var rtRow = roomTypeData[gn];
+      if (rtRow) pilgrimData[passport].bookingId = String(rtRow[CONFIG.RT.BOOKING_ID] || '').trim();
+    }
     var hotels = {};
     for (var passport in pilgrimData) {
       var pil = pilgrimData[passport];
@@ -172,7 +173,7 @@ function getGuideHotels(guideName) {
     }
     var result = [];
     for (var h in hotels) result.push(hotels[h]);
-    return { success: true, hotels: result, totalPilgrims: guidePassports.length };
+    return { success: true, hotels: result, totalPilgrims: pilgrimCount };
   } catch (err) {
     return { success: false, error: 'خطأ في جلب البيانات: ' + err.message };
   }
@@ -186,14 +187,19 @@ function getGuideHotels(guideName) {
 function getGuidePilgrims(guideName, hotelName) {
   try {
     var ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
-    var guidePassports = getGuidePassports_(ss, guideName);
-    var pilgrimData = getPilgrimsByPassports_(ss, guidePassports);
+    var pilgrimData = getGuidePilgrimsFromRabih_(ss, guideName);
     var groupNumbers = {};
     for (var p in pilgrimData) {
       groupNumbers[String(pilgrimData[p].groupNumber)] = true;
     }
     var roomTypeData = getRoomTypeByGroups_(ss, Object.keys(groupNumbers));
-    
+    // إضافة bookingId من Room Type Preview
+    for (var passport in pilgrimData) {
+      var gn = String(pilgrimData[passport].groupNumber);
+      var rtRow = roomTypeData[gn];
+      if (rtRow) pilgrimData[passport].bookingId = String(rtRow[CONFIG.RT.BOOKING_ID] || '').trim();
+    }
+
     var sharedPilgrims = [];
     for (var passport in pilgrimData) {
       var pil = pilgrimData[passport];
@@ -460,13 +466,13 @@ function generateGuideLinks() {
   var DEPLOY_URL = 'https://script.google.com/macros/s/AKfycbwirA68K9peWAsnAmcYZV3sDU1Bpy9TWQKt9lvtlF0kDGcvtxgqvAmJzhBdvD_eUf9Bdg/exec';
   
   var ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
-  var guideSheet = ss.getSheetByName(CONFIG.SHEETS.TOUR_GUIDE);
+  var guideSheet = ss.getSheetByName(CONFIG.SHEETS.GUIDE_RABIH);
   var lastRow = guideSheet.getLastRow();
-  var data = guideSheet.getRange(2, 1, lastRow - 1, 33).getValues();
+  var data = guideSheet.getRange(2, 1, lastRow - 1, 16).getValues();
 
   var guidesMap = {};
   for (var i = 0; i < data.length; i++) {
-    var name = String(data[i][15]).trim(); // P: اسم المرشد
+    var name = String(data[i][CONFIG.RABIH.GUIDE_NAME]).trim();
     if (!name) continue;
     if (!guidesMap[name]) guidesMap[name] = { name: name, count: 0 };
     guidesMap[name].count++;
@@ -558,46 +564,34 @@ function generateConfirmationNo_(sheet) {
 function padNum_(num, len) { var s = String(num); while (s.length < len) s = '0' + s; return s; }
 function pad_(n) { return n < 10 ? '0' + n : '' + n; }
 
-function getGuidePassports_(ss, guideName) {
-  var sheet = ss.getSheetByName(CONFIG.SHEETS.TOUR_GUIDE);
-  if (!sheet) return [];
-  var lastRow = sheet.getLastRow();
-  if (lastRow < CONFIG.START_ROW) return [];
-  var data = sheet.getRange(CONFIG.START_ROW, 1, lastRow - 1, 33).getValues();
-  var passports = [];
-  for (var i = 0; i < data.length; i++) {
-    var row = data[i];
-    if (String(row[CONFIG.GUIDE.NAME]).trim() === guideName) {
-      var passport = String(row[CONFIG.GUIDE.PASSPORT]).trim();
-      if (passport) passports.push(passport);
-    }
-  }
-  return passports;
-}
-
-function getPilgrimsByPassports_(ss, passports) {
-  var sheet = ss.getSheetByName(CONFIG.SHEETS.PILGRIMS);
+function getGuidePilgrimsFromRabih_(ss, guideName) {
+  var sheet = ss.getSheetByName(CONFIG.SHEETS.GUIDE_RABIH);
   if (!sheet) return {};
   var lastRow = sheet.getLastRow();
   if (lastRow < CONFIG.START_ROW) return {};
-  var passportSet = {};
-  for (var i = 0; i < passports.length; i++) passportSet[passports[i]] = true;
-  var data = sheet.getRange(CONFIG.START_ROW, 1, lastRow - 1, 12).getValues();
+  var data = sheet.getRange(CONFIG.START_ROW, 1, lastRow - 1, 16).getValues();
+  var targetName = String(guideName).trim();
   var result = {};
   for (var i = 0; i < data.length; i++) {
     var row = data[i];
-    var passport = String(row[CONFIG.PILGRIM.PASSPORT]).trim();
-    if (passportSet[passport]) {
-      result[passport] = {
-        bookingId: String(row[CONFIG.PILGRIM.BOOKING_ID]).trim(),
-        applicantId: String(row[CONFIG.PILGRIM.APPLICANT_ID]).trim(),
-        groupNumber: String(row[CONFIG.PILGRIM.GROUP_NUMBER]).trim(),
-        name: String(row[CONFIG.PILGRIM.NAME]).trim(),
-        passport: passport,
-        gender: String(row[CONFIG.PILGRIM.GENDER]).trim(),
-        isFamily: false, familyBookingId: ''
-      };
-    }
+    var guideField = String(row[CONFIG.RABIH.GUIDE_NAME]).trim();
+    if (guideField !== targetName) continue;
+    var passport = String(row[CONFIG.RABIH.PASSPORT]).trim();
+    if (!passport) continue;
+    var firstName = String(row[CONFIG.RABIH.FIRST_NAME_EN]).trim();
+    var lastName = String(row[CONFIG.RABIH.LAST_NAME_EN]).trim();
+    var name = (firstName + ' ' + lastName).trim();
+    var genderRaw = String(row[CONFIG.RABIH.GENDER]).trim();
+    var gender = genderRaw === 'ذكر' ? 'Male' : genderRaw === 'انثى' ? 'Female' : genderRaw;
+    result[passport] = {
+      bookingId: '',
+      applicantId: String(row[CONFIG.RABIH.SERIAL]).trim(),
+      groupNumber: String(row[CONFIG.RABIH.GROUP_NUMBER]).trim(),
+      name: name,
+      passport: passport,
+      gender: gender,
+      isFamily: false, familyBookingId: ''
+    };
   }
   return result;
 }
@@ -651,65 +645,50 @@ function normalizeHotel_(name) {
 }
 
 function debugGuideHotels() {
-  var guideName = 'Abdul Rahman Azmi';
+  var guideName = 'عبد الرحمن عزمي';
   var ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
-  
-  // Step 1: Passports
-  var passports = getGuidePassports_(ss, guideName);
-  Logger.log('Step 1 — Passports found: ' + passports.length);
-  Logger.log('Sample: ' + passports.slice(0, 3).join(', '));
-  
-  // Step 2: Pilgrims
-  var pilgrimData = getPilgrimsByPassports_(ss, passports);
+
+  // Step 1: Pilgrims from Guide Rabih
+  var pilgrimData = getGuidePilgrimsFromRabih_(ss, guideName);
   var pilgrimCount = Object.keys(pilgrimData).length;
-  Logger.log('Step 2 — Pilgrims matched: ' + pilgrimCount);
-  
+  Logger.log('Step 1 — Pilgrims from Guide Rabih: ' + pilgrimCount);
+
   if (pilgrimCount === 0) {
-    // Check sheet structure
-    var pSheet = ss.getSheetByName(CONFIG.SHEETS.PILGRIMS);
-    Logger.log('Sheet name: "' + CONFIG.SHEETS.PILGRIMS + '" found: ' + !!pSheet);
-    if (pSheet) {
-      Logger.log('Rows: ' + pSheet.getLastRow());
-      var headers = pSheet.getRange(1, 1, 1, 12).getValues()[0];
-      Logger.log('Headers: ' + JSON.stringify(headers));
-      var row2 = pSheet.getRange(2, 1, 1, 12).getValues()[0];
-      Logger.log('Row 2 col I (passport): ' + row2[8]);
-    }
+    var gSheet = ss.getSheetByName(CONFIG.SHEETS.GUIDE_RABIH);
+    Logger.log('Sheet "' + CONFIG.SHEETS.GUIDE_RABIH + '" found: ' + !!gSheet);
+    if (gSheet) Logger.log('Rows: ' + gSheet.getLastRow());
     return;
   }
-  
-  // Step 3: Group numbers
+
+  var sample = Object.keys(pilgrimData).slice(0, 3);
+  for (var s = 0; s < sample.length; s++) {
+    var p = pilgrimData[sample[s]];
+    Logger.log('  ' + p.name + ' | passport=' + p.passport + ' | group=' + p.groupNumber + ' | gender=' + p.gender);
+  }
+
+  // Step 2: Group numbers
   var gns = {};
   for (var p in pilgrimData) gns[String(pilgrimData[p].groupNumber)] = true;
-  Logger.log('Step 3 — Group numbers: ' + Object.keys(gns).length);
-  
-  // Step 4: Room Type
+  Logger.log('Step 2 — Group numbers: ' + Object.keys(gns).length);
+
+  // Step 3: Room Type
   var rtData = getRoomTypeByGroups_(ss, Object.keys(gns));
-  Logger.log('Step 4 — RT matches: ' + Object.keys(rtData).length);
-  
-  // Step 5: Hotels with shared > 0
+  Logger.log('Step 3 — RT matches: ' + Object.keys(rtData).length);
+
+  // Step 4: Hotels with shared > 0
   var hotels = {};
   for (var passport in pilgrimData) {
     var pil = pilgrimData[passport];
-    var rtRow = rtData[String(pil.groupNumber)];
+    var gn = String(pil.groupNumber);
+    var rtRow = rtData[gn];
     if (!rtRow) continue;
+    if (!pil.bookingId) pil.bookingId = String(rtRow[CONFIG.RT.BOOKING_ID] || '').trim();
     for (var i = 0; i < HOTEL_POSITIONS.length; i++) {
       var pos = HOTEL_POSITIONS[i];
       var hn = String(rtRow[CONFIG.RT[pos.hotel]] || '').trim();
       var shared = parseInt(rtRow[CONFIG.RT[pos.shared]]) || 0;
-      Logger.log('  ' + passport + ' → hotel=' + hn + ' shared=' + shared);
       if (hn && shared > 0) hotels[hn] = (hotels[hn] || 0) + 1;
     }
   }
-  Logger.log('Step 5 — Hotels: ' + JSON.stringify(hotels));
-}
-function checkSheetName() {
-  var ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
-  var sheets = ss.getSheets();
-  for (var i = 0; i < sheets.length; i++) {
-    var n = sheets[i].getName();
-    if (n.indexOf('رحلة') !== -1 || n.indexOf('حاج') !== -1) {
-      Logger.log('Found: "' + n + '" len=' + n.length);
-    }
-  }
+  Logger.log('Step 4 — Hotels: ' + JSON.stringify(hotels));
 }

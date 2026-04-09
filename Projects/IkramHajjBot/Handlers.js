@@ -378,22 +378,8 @@ function handleMyTransport_(chatId, session) {
       '🚌 Transfer to ' + retFrom + ' airport';
   }
 
-  var buttons = [];
-  if (transportType === 'قطار') {
-    buttons.push([{ text: T_('btn_train_ticket', lang), callback_data: 'train_ticket' }]);
-  }
-  buttons.push([{ text: T_('btn_back', lang), callback_data: 'show_menu' }]);
-
-  sendMessage_(chatId, text, { inline_keyboard: buttons });
-}
-
-// ============================================
-// 🚆 تذكرة القطار
-// ============================================
-function handleTrainTicket_(chatId, session) {
-  var lang = session.language || 'ar';
-  sendMessage_(chatId, T_('train_ticket_unavailable', lang), {
-    inline_keyboard: [[{ text: T_('btn_back', lang), callback_data: 'my_transport' }]]
+  sendMessage_(chatId, text, {
+    inline_keyboard: [[{ text: T_('btn_back', lang), callback_data: 'show_menu' }]]
   });
 }
 

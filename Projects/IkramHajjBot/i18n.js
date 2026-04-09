@@ -170,10 +170,6 @@ var I18N = {
   lbl_ticket_not_ready:{ ar: 'لم تصدر التذكرة بعد',  en: 'Ticket not issued yet', fr: 'Billet pas encore émis', de: 'Ticket noch nicht ausgestellt', it: 'Biglietto non ancora emesso', es: 'Billete aún no emitido' },
   lbl_visa_not_ready:  { ar: 'صورة التأشيرة غير متوفرة حالياً', en: 'Visa image not available', fr: 'Image du visa indisponible', de: 'Visumbild nicht verfügbar', it: 'Immagine visto non disponibile', es: 'Imagen del visado no disponible' },
 
-  // --- تذكرة القطار ---
-  btn_train_ticket:       { ar: '🚆 تذكرة القطار', en: '🚆 Train Ticket', fr: '🚆 Billet de train', de: '🚆 Zugticket', it: '🚆 Biglietto treno', es: '🚆 Billete de tren' },
-  train_ticket_unavailable: { ar: '🚆 تذكرة القطار غير متوفرة حالياً', en: '🚆 Train ticket is not available yet', fr: '🚆 Le billet de train n\'est pas encore disponible', de: '🚆 Zugticket ist noch nicht verfügbar', it: '🚆 Il biglietto del treno non è ancora disponibile', es: '🚆 El billete de tren aún no está disponible' },
-
   // --- العد التنازلي ---
   countdown_before: {
     ar: '⏳ باقي على رحلتك <b>{days} يوم</b>',

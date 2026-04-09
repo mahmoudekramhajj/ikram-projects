@@ -167,8 +167,7 @@ function handleCallback_(callback) {
     'confirm_arrival':    function() { handleConfirmArrival_(chatId, session); },
     'my_qr':              function() { handleMyQR_(chatId, session); },
     'announcements':      function() { handleAnnouncements_(chatId, session); },
-    'visa_ticket':        function() { handleVisaTicket_(chatId, session); },
-    'train_ticket':       function() { handleTrainTicket_(chatId, session); }
+    'visa_ticket':        function() { handleVisaTicket_(chatId, session); }
   };
 
   // === أزرار تفاصيل الإعلان ===
