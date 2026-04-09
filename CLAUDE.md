@@ -55,6 +55,9 @@ node refresh.js
 | **SheetData** | أدوات تصدير البيانات (Node.js + Google Sheets API) |
 | **PNR Target Countries Sync** | مزامنة PNR للدول المستهدفة |
 | **PilgrimStats** | شاشات إحصائيات الحجاج للشاشات الكبيرة — أفراد/مجاملة/B2B/B2C/مخيمات/دول (GAS Web App) |
+| **IkramAdmin** | لوحة تحكم إدارية — إعدادات + إجراءات سريعة + تيليغرام |
+| **Report Builder** | منشئ التقارير الذكي (Ikram Report Builder) |
+| **Transport Management** | إدارة النقل — 28 عملية، 350 موظف، QR scan |
 
 ---
 
@@ -98,6 +101,9 @@ node refresh.js
 | Reception Airport | موظفي الاستقبال — تأكيد وصول |
 | Mina Camp Search | الموظفين الميدانيين — بحث خيام |
 | Sales Report | الإدارة — تقارير مبيعات |
+| IkramAdmin | الإدارة — لوحة تحكم إدارية |
+| Report Builder | الإدارة — منشئ التقارير |
+| Transport Management | الإدارة — إدارة النقل |
 
 **بوتات (2):**
 | البوت | الوظيفة |
