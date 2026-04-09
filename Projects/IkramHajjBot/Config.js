@@ -7,6 +7,7 @@ var SHEET_ID = '1z4b3BmTLDLvYUs8H8cPU8MJrOuvuN5GztZ9pLlYhF6s';
 var JOURNEY_SHEET = 'رحلة الحاج '; // مسافة في النهاية — مهم
 var PILGRIM_DATA_SHEET = 'Pilgrim Data'; // شيت البيانات المجمّعة من الحجاج
 var DRIVE_FOLDER_ID = ''; // TODO: أضف ID مجلد Google Drive لحفظ صور الجوازات
+var VISA_FOLDER_ID = ''; // TODO: أضف ID مجلد Google Drive لصور التأشيرات (PDF باسم رقم الجواز)
 var CACHE_TTL = 300; // مدة الكاش بالثواني (5 دقائق)
 
 // ============================================

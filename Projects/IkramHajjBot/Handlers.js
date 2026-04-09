@@ -378,8 +378,22 @@ function handleMyTransport_(chatId, session) {
       '🚌 Transfer to ' + retFrom + ' airport';
   }
 
-  sendMessage_(chatId, text, {
-    inline_keyboard: [[{ text: T_('btn_back', lang), callback_data: 'show_menu' }]]
+  var buttons = [];
+  if (transportType === 'قطار') {
+    buttons.push([{ text: T_('btn_train_ticket', lang), callback_data: 'train_ticket' }]);
+  }
+  buttons.push([{ text: T_('btn_back', lang), callback_data: 'show_menu' }]);
+
+  sendMessage_(chatId, text, { inline_keyboard: buttons });
+}
+
+// ============================================
+// 🚆 تذكرة القطار
+// ============================================
+function handleTrainTicket_(chatId, session) {
+  var lang = session.language || 'ar';
+  sendMessage_(chatId, T_('train_ticket_unavailable', lang), {
+    inline_keyboard: [[{ text: T_('btn_back', lang), callback_data: 'my_transport' }]]
   });
 }
 
@@ -657,4 +671,65 @@ function handleRefreshData_(chatId, session) {
 
   sendMessage_(chatId, T_('data_refreshed', lang));
   sendMainMenu_(chatId, lang);
+}
+
+// ============================================
+// 🎫 التذكرة والتأشيرة
+// ============================================
+function handleVisaTicket_(chatId, session) {
+  var lang = session.language || 'ar';
+  var isAr = (lang === 'ar');
+
+  var pilgrim = findPilgrimByPassport_(session.passport);
+  if (!pilgrim) {
+    sendMessage_(chatId, T_('data_not_found', lang));
+    return;
+  }
+
+  var info = getVisaAndTicket_(session.passport);
+  var visaLink = getVisaImage_(session.passport);
+
+  var visaStatusLbl = T_('lbl_visa_status', lang);
+  var ticketNoLbl = T_('lbl_ticket_no', lang);
+
+  var visaStatus = (info && info.visaStatus && info.visaStatus !== '-') ? info.visaStatus : '-';
+  var ticketNo = (info && info.ticketNo) ? info.ticketNo : '';
+  var ticketLink = (info && info.ticketLink) ? info.ticketLink : '';
+
+  var text = '';
+  if (isAr) {
+    text = '🎫 <b>التذكرة والتأشيرة</b>\n━━━━━━━━━━━━━━\n\n';
+    text += '📋 <b>' + visaStatusLbl + '</b>\n' + visaStatus + '\n\n';
+    if (ticketNo) {
+      text += '🎟️ <b>' + ticketNoLbl + '</b>\n<code>' + ticketNo + '</code>';
+    } else {
+      text += '🎟️ ' + T_('lbl_ticket_not_ready', lang);
+    }
+    if (!visaLink) {
+      text += '\n\n📋 ' + T_('lbl_visa_not_ready', lang);
+    }
+  } else {
+    text = '🎫 <b>Ticket & Visa</b>\n━━━━━━━━━━━━━━\n\n';
+    text += '📋 <b>' + visaStatusLbl + '</b>\n' + visaStatus + '\n\n';
+    if (ticketNo) {
+      text += '🎟️ <b>' + ticketNoLbl + '</b>\n<code>' + ticketNo + '</code>';
+    } else {
+      text += '🎟️ ' + T_('lbl_ticket_not_ready', lang);
+    }
+    if (!visaLink) {
+      text += '\n\n📋 ' + T_('lbl_visa_not_ready', lang);
+    }
+  }
+
+  // بناء الأزرار
+  var buttons = [];
+  if (ticketLink) {
+    buttons.push([{ text: T_('btn_download_ticket', lang), url: ticketLink }]);
+  }
+  if (visaLink) {
+    buttons.push([{ text: T_('btn_view_visa', lang), url: visaLink }]);
+  }
+  buttons.push([{ text: T_('btn_back', lang), callback_data: 'show_menu' }]);
+
+  sendMessage_(chatId, text, { inline_keyboard: buttons });
 }

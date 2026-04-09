@@ -480,3 +480,64 @@ function getTourGuide_(packageId) {
     return null;
   }
 }
+
+// ============================================
+// جلب حالة التأشيرة + بيانات التذكرة من Presonal Details
+// ============================================
+function getVisaAndTicket_(passport) {
+  try {
+    if (!passport) return null;
+    var passportNo = String(passport).trim().toUpperCase();
+    var cacheKey = 'visa_ticket_' + passportNo;
+    var cached = getCache_(cacheKey);
+    if (cached !== null) return cached;
+
+    var ss = SpreadsheetApp.openById(SHEET_ID);
+    var sheet = ss.getSheetByName('Presonal Details');
+    if (!sheet) return null;
+
+    var data = sheet.getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][5]).trim().toUpperCase() === passportNo) {
+        var result = {
+          visaStatus: String(data[i][22] || '-'),
+          ticketNo: String(data[i][24] || ''),
+          ticketLink: String(data[i][25] || '')
+        };
+        setCache_(cacheKey, result);
+        return result;
+      }
+    }
+    return null;
+  } catch (e) {
+    Logger.log('getVisaAndTicket_ error: ' + e);
+    return null;
+  }
+}
+
+// ============================================
+// جلب رابط صورة التأشيرة من Google Drive
+// ============================================
+function getVisaImage_(passport) {
+  try {
+    if (!passport || !VISA_FOLDER_ID) return null;
+    var passportNo = String(passport).trim().toUpperCase();
+    var cacheKey = 'visa_img_' + passportNo;
+    var cached = getCache_(cacheKey);
+    if (cached !== null) return cached;
+
+    var folder = DriveApp.getFolderById(VISA_FOLDER_ID);
+    var files = folder.getFilesByName(passportNo + '.pdf');
+    if (files.hasNext()) {
+      var file = files.next();
+      var link = file.getDownloadUrl();
+      setCache_(cacheKey, link);
+      return link;
+    }
+    setCache_(cacheKey, '');
+    return '';
+  } catch (e) {
+    Logger.log('getVisaImage_ error: ' + e);
+    return null;
+  }
+}

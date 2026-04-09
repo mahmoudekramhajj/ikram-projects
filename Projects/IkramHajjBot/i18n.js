@@ -161,6 +161,19 @@ var I18N = {
   lbl_guide_phone: { ar: 'هاتف المرشد',   en: 'Guide Phone',    fr: 'Tél. du guide',  de: 'Reiseleiter Tel.', it: 'Tel. guida',       es: 'Tel. del guía' },
   lbl_under_review:{ ar: 'قيد التدقيق',   en: 'Under Review',   fr: 'En cours de vérification', de: 'Wird überprüft', it: 'In revisione', es: 'En revisión' },
 
+  // --- التذكرة والتأشيرة ---
+  btn_visa_ticket:     { ar: '🎫 التذكرة والتأشيرة', en: '🎫 Ticket & Visa', fr: '🎫 Billet & Visa', de: '🎫 Ticket & Visum', it: '🎫 Biglietto & Visto', es: '🎫 Billete & Visa' },
+  lbl_visa_status:     { ar: 'حالة التأشيرة',       en: 'Visa Status',       fr: 'Statut du visa',   de: 'Visumstatus',       it: 'Stato del visto',     es: 'Estado del visado' },
+  lbl_ticket_no:       { ar: 'رقم التذكرة',         en: 'Ticket Number',     fr: 'N° du billet',     de: 'Ticketnummer',      it: 'N. biglietto',        es: 'N° de billete' },
+  btn_download_ticket: { ar: '📄 تحميل التذكرة',    en: '📄 Download Ticket', fr: '📄 Télécharger le billet', de: '📄 Ticket herunterladen', it: '📄 Scarica biglietto', es: '📄 Descargar billete' },
+  btn_view_visa:       { ar: '📋 عرض التأشيرة',     en: '📋 View Visa',      fr: '📋 Voir le visa',  de: '📋 Visum anzeigen', it: '📋 Vedi visto',       es: '📋 Ver visado' },
+  lbl_ticket_not_ready:{ ar: 'لم تصدر التذكرة بعد',  en: 'Ticket not issued yet', fr: 'Billet pas encore émis', de: 'Ticket noch nicht ausgestellt', it: 'Biglietto non ancora emesso', es: 'Billete aún no emitido' },
+  lbl_visa_not_ready:  { ar: 'صورة التأشيرة غير متوفرة حالياً', en: 'Visa image not available', fr: 'Image du visa indisponible', de: 'Visumbild nicht verfügbar', it: 'Immagine visto non disponibile', es: 'Imagen del visado no disponible' },
+
+  // --- تذكرة القطار ---
+  btn_train_ticket:       { ar: '🚆 تذكرة القطار', en: '🚆 Train Ticket', fr: '🚆 Billet de train', de: '🚆 Zugticket', it: '🚆 Biglietto treno', es: '🚆 Billete de tren' },
+  train_ticket_unavailable: { ar: '🚆 تذكرة القطار غير متوفرة حالياً', en: '🚆 Train ticket is not available yet', fr: '🚆 Le billet de train n\'est pas encore disponible', de: '🚆 Zugticket ist noch nicht verfügbar', it: '🚆 Il biglietto del treno non è ancora disponibile', es: '🚆 El billete de tren aún no está disponible' },
+
   // --- العد التنازلي ---
   countdown_before: {
     ar: '⏳ باقي على رحلتك <b>{days} يوم</b>',
