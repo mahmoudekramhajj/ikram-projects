@@ -77,15 +77,19 @@ function handleMyFlight_(chatId, session) {
   if (arrHasTransit) {
     var a1 = arrTransit.leg1;
     var a2 = arrTransit.leg2;
-    text += '🛫 ' + legLbl + ' 1: <b>' + a1.flightNo + '</b> ' + a1.from + ' → ' + a1.to + ' (' + a1.timeDepart + ')\n' +
-      '✋ ' + transitLbl + '\n' +
-      '🛫 ' + legLbl + ' 2: <b>' + a2.flightNo + '</b> ' + a2.from + ' → ' + a2.to + ' (' + a2.timeDepart + ')\n' +
-      '📅 ' + (isAr ? 'التاريخ' : 'Date') + ': ' + a1.dateDepart + '\n';
+    var a1From = (a1.from && a1.from !== '-') ? a1.from : arrFrom;
+
+    text += '\u{1F6EB} ' + legLbl + ' 1: <b>' + a1.flightNo.trim() + '</b>\n' +
+      '\u{1F4CD} ' + a1From + ' \u2192 ' + a1.to + '\n' +
+      '\u{1F4C5} ' + a1.dateDepart + '  \u{1F550} ' + a1.timeDepart + ' \u2192 ' + a1.timeLand + '\n\n' +
+      '\u270B ' + transitLbl + '\n\n' +
+      '\u{1F6EB} ' + legLbl + ' 2: <b>' + a2.flightNo.trim() + '</b>\n' +
+      '\u{1F4CD} ' + a2.from + ' \u2192 ' + a2.to + '\n' +
+      '\u{1F4C5} ' + a2.dateDepart + '  \u{1F550} ' + a2.timeDepart + ' \u2192 ' + a2.timeLand + '\n';
   } else {
-    text += '🛫 ' + (isAr ? 'الرحلة' : 'Flight') + ': <b>' + arrFlight + '</b> (' + directLbl + ')\n' +
-      '📅 ' + (isAr ? 'التاريخ' : 'Date') + ': ' + arrDate + '\n' +
-      '🛫 ' + (isAr ? 'من' : 'From') + ': ' + arrFrom + ' (' + arrDepTime + ')\n' +
-      '🛬 ' + (isAr ? 'إلى' : 'To') + ': ' + arrTo + ' (' + arrArvTime + ')\n';
+    text += '\u{1F6EB} ' + (isAr ? '\u0627\u0644\u0631\u062D\u0644\u0629' : 'Flight') + ': <b>' + arrFlight + '</b>\n' +
+      '\u{1F4CD} ' + arrFrom + ' \u2192 ' + arrTo + '\n' +
+      '\u{1F4C5} ' + arrDate + '  \u{1F550} ' + arrDepTime + ' \u2192 ' + arrArvTime + '\n';
   }
 
   // --- Build return section ---
@@ -105,20 +109,33 @@ function handleMyFlight_(chatId, session) {
   if (retHasTransit) {
     var rt1 = retTransit.leg1;
     var rt2 = retTransit.leg2;
-    text += '🛫 ' + legLbl + ' 1: <b>' + rt1.flightNo + '</b> ' + rt1.from + ' → ' + rt1.to + ' (' + rt1.timeDepart + ')\n' +
-      '✋ ' + transitLbl + '\n' +
-      '🛫 ' + legLbl + ' 2: <b>' + rt2.flightNo + '</b> ' + rt2.from + ' → ' + rt2.to + ' (' + rt2.timeDepart + ')\n' +
-      '📅 ' + (isAr ? 'التاريخ' : 'Date') + ': ' + rt1.dateDepart;
+    var rt2To = (rt2.to && rt2.to !== '-') ? rt2.to : retTo;
+
+    text += '\u{1F6EB} ' + legLbl + ' 1: <b>' + rt1.flightNo.trim() + '</b>\n' +
+      '\u{1F4CD} ' + rt1.from + ' \u2192 ' + rt1.to + '\n' +
+      '\u{1F4C5} ' + rt1.dateDepart + '  \u{1F550} ' + rt1.timeDepart + ' \u2192 ' + rt1.timeLand + '\n\n' +
+      '\u270B ' + transitLbl + '\n\n' +
+      '\u{1F6EB} ' + legLbl + ' 2: <b>' + rt2.flightNo.trim() + '</b>\n' +
+      '\u{1F4CD} ' + rt2.from + ' \u2192 ' + rt2To + '\n' +
+      '\u{1F4C5} ' + rt2.dateDepart + '  \u{1F550} ' + rt2.timeDepart + ' \u2192 ' + rt2.timeLand;
   } else {
-    text += '🛫 ' + (isAr ? 'الرحلة' : 'Flight') + ': <b>' + retFlight + '</b> (' + directLbl + ')\n' +
-      '📅 ' + (isAr ? 'التاريخ' : 'Date') + ': ' + retDate + '\n' +
-      '🛫 ' + (isAr ? 'من' : 'From') + ': ' + retFrom + ' (' + retDepTime + ')\n' +
-      '🛬 ' + (isAr ? 'إلى' : 'To') + ': ' + retTo + ' (' + retArvTime + ')';
+    text += '\u{1F6EB} ' + (isAr ? '\u0627\u0644\u0631\u062D\u0644\u0629' : 'Flight') + ': <b>' + retFlight + '</b>\n' +
+      '\u{1F4CD} ' + retFrom + ' \u2192 ' + retTo + '\n' +
+      '\u{1F4C5} ' + retDate + '  \u{1F550} ' + retDepTime + ' \u2192 ' + retArvTime;
   }
 
-  sendMessage_(chatId, text, {
-    inline_keyboard: [[{ text: T_('btn_back', lang), callback_data: 'show_menu' }]]
-  });
+  // Fetch ticket link
+  var ticketInfo = getVisaAndTicket_(session.passport);
+  var ticketLink = (ticketInfo && ticketInfo.ticketLink) ? ticketInfo.ticketLink : '';
+
+  var flightButtons = [];
+  if (ticketLink) {
+    flightButtons.push([{ text: T_('btn_download_ticket', lang), url: ticketLink }]);
+  }
+  flightButtons.push([{ text: T_('btn_report_error', lang), callback_data: 'report_error' }]);
+  flightButtons.push([{ text: T_('btn_back', lang), callback_data: 'show_menu' }]);
+
+  sendMessage_(chatId, text, { inline_keyboard: flightButtons });
 }
 
 // ============================================

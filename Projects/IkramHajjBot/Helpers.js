@@ -15,7 +15,16 @@ function formatDate_(val) {
 
 function formatTime_(val) {
   if (!val) return '-';
+  // Date objects (GAS returns time cells as Date with 1899 epoch)
+  if (typeof val === 'object' && val.getHours) {
+    return pad2_(val.getHours()) + ':' + pad2_(val.getMinutes());
+  }
   var s = String(val);
+  // Catch stringified Date objects: "Sun Dec 31 1899 07:01:00 GMT+0300"
+  if (s.indexOf('1899') !== -1 || s.indexOf('1900') !== -1) {
+    var match = s.match(/(d{1,2}):(d{2})/);
+    if (match) return pad2_(parseInt(match[1], 10)) + ':' + match[2];
+  }
   if (s.indexOf('.') !== -1) s = s.split('.')[0];
   var parts = s.split(':');
   if (parts.length >= 2) return parts[0] + ':' + parts[1];
