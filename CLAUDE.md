@@ -6,6 +6,15 @@
 - لا تنفذ أي شيء حتى أعطيك الموافقة الصريحة
 - استخدم المهارات (Skills) المتاحة تلقائياً حسب المهمة بدون انتظار إرشاد — اختر المهارة الأنسب وتقمّصها مباشرة
 - **عند كتابة "تابع":** اقرأ ملف `SESSION_LOG.md` في جذر المشروع، ثم أكمل العمل من آخر جلسة مسجّلة فيه دون طرح أسئلة
+- **قبل تعديل أي تطبيق يقرأ من Google Sheets:** استخدم Agent لتحليل هيكل الشيت الفعلي — اعرض كل عنوان عمود وموقعه وعيّنة من البيانات. لا تبدأ بكتابة الكود حتى يرجع العميل بالتقرير
+- **بناء تدريجي وليس شامل:** عند تنفيذ ميزة جديدة: 1) اعرض الأعمدة/البيانات التي ستُستخدم 2) اشرح منطق الفلترة بكلمات واضحة 3) ابنِ الجزء الأول فقط واتركني أختبره 4) بعد تأكيدي فقط، أضف الجزء التالي. لا تبني كل شيء دفعة واحدة
+- **تحليل التأثير إلزامي:** قبل أي تعديل على تطبيق، اقرأ `DEPENDENCIES.md`، حدد الشيتات المتأثرة، واعرض قائمة التطبيقات الأخرى التي قد تتأثر بالتغيير. إذا كان عدد التطبيقات المتأثرة > 0، اعرض تحليل التأثير وانتظر موافقتي قبل الكتابة
+- **منع فقدان السياق:** في بداية أي مهمة معقدة (أكثر من 3 خطوات)، أنشئ ملف `.claude/SESSION_STATE.md` وحدّثه بعد كل خطوة مهمة. الملف يحتوي: الهدف الحالي، الخطوات المنجزة، الخطوات القادمة، القرارات المهمة. إذا شعرت بفقدان السياق — اقرأ هذا الملف فوراً قبل المتابعة
+- **المزامنة الثلاثية إلزامية عند إنهاء كل محادثة:** يجب أن يكون محتوى المشروع متطابقاً في 3 أماكن:
+  1. **Apps Script (السحابة):** `clasp push --force && clasp deploy` — كل تعديل منشور ومفعّل
+  2. **GitHub:** `git add <project> && git commit && git push` — كل تعديل مدفوع للـ remote
+  3. **الملف المحلي:** آخر نسخة محفوظة في `C:\Users\mubar\Ekram-Aldyf\Projects\`
+  قبل إنهاء أي محادثة، نفّذ الخطوات الثلاث وتحقق من التطابق. إذا فشلت خطوة، أبلّغني ولا تعلن إنهاء المحادثة
 
 ---
 
@@ -440,22 +449,57 @@ Presonal Details (بيانات شخصية) ─┘
 ## Git & المزامنة بين الأجهزة
 
 **Repo:** `C:\Users\mubar\Ekram-Aldyf\` (محلي + GitHub)
+**Remote:** `https://github.com/mahmoudekramhajj/ikram-projects.git`
+**الفرع الافتراضي:** `master` ← **ليس main — تحقق دائماً بـ `git branch` قبل الدفع**
 **سجل الجلسات:** `SESSION_LOG.md` — يُحدّث تلقائياً نهاية كل محادثة
 
 ### طريقة العمل:
 1. **بدء العمل على أي جهاز:** `git pull` ثم اكتب "تابع"
 2. **نهاية العمل:** Claude يحدّث SESSION_LOG.md → المستخدم يكتب "ارفع" → `git push`
 3. **clasp push** لنشر التعديلات على Google Apps Script
+4. **عند طلب PR:** أنشئ feature branch أولاً، لا تدفع مباشرة لـ master
 
 > **تعليمة لـ Claude:**
 > - عند "تابع": اقرأ SESSION_LOG.md وأكمل من آخر جلسة
 > - نهاية كل محادثة: أضف جلسة جديدة في SESSION_LOG.md + حدّث "آخر نقطة عمل" أدناه
 
+### قواعد النشر (clasp)
+- عند إعادة النشر: **حدّث النشرة الموجودة** — لا تنشئ واحدة جديدة (يغيّر الرابط)
+- بعد النشر: تحقق أن رابط Web App يعمل (ليس 404)
+- التفويض النهائي يجب أن يتم يدوياً من المستخدم في المتصفح
+- استخدم: `clasp push && clasp deploy --deploymentId <existing-id>`
+
+### معرّفات السكريبتات (Script IDs)
+
+| التطبيق | Script ID |
+|---|---|
+| Ikram | `1txmPRRjW5lx1k7RGhUXk0CxO3OOvvgiUeSmszZMsF3kcBtcgw7v76dbd` |
+| IkramHajjBot | `1hJ5pojmbbYTy3Xv2fEt2yDwISpBof4GF8hywZHuL7LQvuJ-tgUzwrLYi` |
+| IkramAdmin | `1f-zr0LuP9_NjDz0kLYHj5C60qQsVvWQCvf5pQzoFkR5sB843D-Z_ZZW1` |
+| Airport Search | `1Izf0A04wscTnuIaex1-oipNR6y8LHWNr_w6qa2YbCIhS_EiKtyVkZcuz` |
+| Hotel Management | `1FhtOVMzFALclBnYtBOP1fL89cgx6fLtEI_YxLijARg6QNv7nGGaWbJ3U` |
+| Reception Airport | `14g-5fXLwm1-kAXuKSCFP-at1rJvemajuZMpBFUdOrohJbwpdUan-2jif` |
+| Pilgrim App | `1a7NzodkK9oiwwl4K-cMP4Qhr6mWCFPpm01RfzvB6xCzsVxo44xGGIpYX` |
+| Guide App | `1Ssf8TLv4pM0z5KARbzvu5m0hSHaiDHoZeg5qrxmvZS8v7JGVhPxKD30O` |
+| Sales Operations Report | `1q86OcUWZOI29jfQMLxwohrwgaliq5yOi96wJVEfdX0zYrxa7k8jkObk-` |
+| Report Builder | `1pZjXdk0So0FeOokQGTOy-BHFp7DDyxO7NFCMNOeBBB-Cp7HZ4inztU0F` |
+| Transport Management | `1q7S0gljNiKtm3UCfHBmLBO_Dq3PuWmG22Ixcv-ATJUFySGiTjpyw8uQt` |
+| PilgrimStats | `1GaNM_2vPTp4KNMAY9tmm5Z5pv38ucviz52mYZkVYiZeL7hA6fO5LiV3F` |
+| Mina Camp Search | `1grSxyHbhrNbz5o8dsc3gy4vYQc3JRe9f-hrN8CGd36RF-ttweXtPEXu3` |
+| GDS | `181VvHqb5RpNebfMkRMoqi9oNo-26rDbAPF_ZLjkLCka81xS0cJXsUax4` |
+| B2C Sync | `1IJ9LsGSSlfdzHkbzn16zc4i--TWdrYvV4zUh4oSNv6O-xtMMyVYcrGLz` |
+| Holiday In Bakkah | `1uxCF_apaYDy8xA29NZOW-W5eWefYHNjmvsY-6qr7bD82iwXMf5BrVFN_` |
+| PNR Target Countries Sync | `1ZNY7dC2k96mDyKR3cZoNEf59vNAGXlC_BUx2Nkgs5KK4_9ZAxUK7Z51N` |
+| IkramAgent | `1hwFQRZjt4ZfwgHcoM64IWdbxHPun4GXi8rrBV2ytHA5ttY0hBQuXdAZv` |
+| TourGuide Manager | `1dSWbcN-CVc3IyFvJIk0ravd2UJNl7lhMFd_IhT37s5CkILegS_YMMOGE` |
+| Ticket Processor | `1TUIJyz8kYhxRINh73A3rfwBGCrueP-XoF7e1Jk6PTOskcAflDLLKiXg-` |
+
 ---
 
 ## آخر نقطة عمل
 
-- **التاريخ:** 2026-04-09
-- **المشروع:** Transport Management — تطبيق إدارة النقل
-- **الحالة:** v2.3 منشور. مراجعة الـ 28 حالة مكتملة. يحتاج إعادة كتابة محرك التخطيط + تطبيق الهوية البصرية + إصلاح UI
-- **الخطوة التالية:** إعادة كتابة TransportPlanner.js بناءً على المراجعة التفصيلية + تطبيق الهوية البصرية + نشر واختبار
+- **التاريخ:** 2026-04-17
+- **المشروع:** FlightChangeProcessor — معالجة تذاكر الطيران من إيميلات نسك
+- **الحالة:** deployment @42 منشور. التحديثات: (1) إصلاح regex استخراج الأسماء لدعم صيغة نسك الجديدة `NAME NAME (Adult)` بدون ألقاب Mr/Mrs — حلّ 71 PDF فاشل (2) دعم المسافرين المتعددين في PDF واحد — صف منفصل لكل مسافر (3) منطق مطابقة تدريجي: جرب الاسم الخام أولاً، ثم نظّف أكواد المطارات من البداية وأعد المحاولة — حل مشكلة التقاط `DXB DUR FATIMA` كاسم مع الحفاظ على أسماء عائلة شرعية مثل `DAR` (4) استبدال الأسهم `→` بـ `من X إلى Y` لدعم RTL العربي (5) إضافة عمود "نوع الحجز" (B2B من PD / B2C) في الشيتين (6) دالة `deleteOldSimilarSheets` لتنظيف Drive — حُذف 22 ملف قديم. **النتيجة:** 253 صف، 251 متطابق (99.2%). الشيتات النشطة: تغييرات الطيران `1NhFiQ_0K7F90pX-mKfuM3UjOsFwhpYsEizyIL65LCEA`، مقارنة الأسماء `13fOtOFHpfsbxL1BwjmIqdPgBS4YOosrxl9tp3h3ci4w`. الملفات المعدّلة: NusukParser.js، EmailReader.js، SheetWriter.js، PilgrimMatcher.js.
+- **المؤجل:** إصلاح شامل لـ `extractFlightLegs_` — تم تشخيص خلل `DOH→DOH` و `AUH→AUH` (السبب: blind pairing لـ dateTime entries + false positive في regex أرقام الرحلات يلتقط `XB 0` من `DXB 07h 40m`). المنطق الجديد المقترح: anchor-based (كل رقم رحلة = dep قبله + arr بعده) مع fallback لحالة آخر رحلة حيث الوصول يظهر قبل المغادرة + قطع النص عند أول حرف عربي لتجنب تكرار.
+- **الخطوة التالية:** تنفيذ الإصلاح الشامل لـ `extractFlightLegs_` بالمنطق الجديد + مراجعة البيانات الناتجة فعلياً للتحقق من صحة المسارات + فحص لماذا الإيميلات الجديدة لم تُلتقط
