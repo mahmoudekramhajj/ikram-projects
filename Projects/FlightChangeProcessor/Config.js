@@ -48,6 +48,7 @@ var CONFIG = {
   // === Gmail ===
   GMAIL_LABEL: 'TKT',
   PROCESSED_LABEL: 'TKT-Processed',
+  SKIPPED_LABEL: 'TKT-Skipped',  // إيميلات تُجوهلت (لا PDF ولا نص قابل للتحليل)
 
   // === حدود ===
   MAX_RUNTIME_MS: 5.5 * 60 * 1000,

@@ -140,6 +140,38 @@ function findPilgrim_(firstName, lastName, pnr, allData, bookingId) {
 
 
 /**
+ * البحث عن الحاج بالإيميل (للإيميلات النصّية بلا PDF)
+ * يبحث في عمود EMAIL في Presonal Details
+ */
+function findByEmail_(email, pnr, allData) {
+  email = (email || '').toLowerCase().trim();
+  pnr = (pnr || '').toUpperCase().trim();
+  if (!email || !allData.pd || allData.pd.length === 0) return null;
+
+  for (var i = 0; i < allData.pd.length; i++) {
+    var rowEmail = String(allData.pd[i][CONFIG.PD.EMAIL] || '').toLowerCase().trim();
+    if (rowEmail === email) {
+      var result = buildPDResult_(allData.pd[i]);
+      result.source = 'PD (email match)';
+
+      // جلب الرحلات الحالية
+      if (pnr) {
+        var cur = findCurrentFlights_(pnr, allData.flights);
+        if (cur) {
+          result.curOutFlight1 = cur.outFlight1; result.curOutDate1 = cur.outDate1;
+          result.curOutFlight2 = cur.outFlight2; result.curOutDate2 = cur.outDate2;
+          result.curRetFlight1 = cur.retFlight1; result.curRetDate1 = cur.retDate1;
+          result.curRetFlight2 = cur.retFlight2; result.curRetDate2 = cur.retDate2;
+        }
+      }
+      return result;
+    }
+  }
+  return null;
+}
+
+
+/**
  * الرحلات الحالية من شيت الطيران
  */
 function findCurrentFlights_(pnr, flightsData) {

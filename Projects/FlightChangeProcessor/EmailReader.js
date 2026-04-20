@@ -6,10 +6,13 @@
 
 function scanEmails() {
   var startTime = new Date();
-  var results = { processed: 0, skipped: 0, errors: 0 };
+  var results = { processed: 0, skipped: 0, errors: 0, textProcessed: 0 };
 
   var processedLabel = getOrCreateLabel_(CONFIG.PROCESSED_LABEL);
-  var query = 'label:' + CONFIG.GMAIL_LABEL + ' -label:' + CONFIG.PROCESSED_LABEL;
+  var skippedLabel = getOrCreateLabel_(CONFIG.SKIPPED_LABEL);
+  var query = 'label:' + CONFIG.GMAIL_LABEL +
+              ' -label:' + CONFIG.PROCESSED_LABEL +
+              ' -label:' + CONFIG.SKIPPED_LABEL;
   var threads = GmailApp.search(query, 0, CONFIG.MAX_EMAILS_PER_RUN);
 
   Logger.log('وُجد ' + threads.length + ' إيميل جديد');
@@ -30,6 +33,7 @@ function scanEmails() {
     }
 
     var thread = threads[t];
+    var threadProcessed = false;  // ← جديد: هل كُتب صف واحد على الأقل لهذا الـ thread؟
     var messages = thread.getMessages();
 
     for (var m = 0; m < messages.length; m++) {
@@ -51,9 +55,23 @@ function scanEmails() {
           return name.endsWith('.pdf') && (name.indexOf('flight_eticket') !== -1 || name.indexOf('eticket') !== -1);
         });
 
+        // === نوع B: إيميل نصّي بدون PDF — محاولة استخراج الرحلات من النص ===
         if (nusukPDFs.length === 0) {
-          Logger.log('  ⏭️ بدون تذكرة نسك — تخطي');
-          results.skipped++;
+          var textLegs = extractFlightLegs_(body);
+          if (textLegs && textLegs.length > 0) {
+            Logger.log('  📝 إيميل نصّي — ' + textLegs.length + ' رحلة من النص');
+            var written = processTextOnlyEmail_(
+              message, body, subject, date, incidentNum, pnr, textLegs,
+              allData, changesSheet, comparisonSheet, existingKeys
+            );
+            if (written > 0) {
+              results.textProcessed += written;
+              threadProcessed = true;
+            }
+          } else {
+            Logger.log('  ⏭️ بدون تذكرة نسك ولا نص رحلات — تخطي');
+            results.skipped++;
+          }
           continue;
         }
 
@@ -170,6 +188,7 @@ function scanEmails() {
             };
 
             writeChangeRow_(changesSheet, rowData);
+            threadProcessed = true;  // ← صف كُتب فعلاً
 
             var compStatus = 'لا يوجد اسم';
             if (pax.firstName || pax.lastName) {
@@ -188,11 +207,154 @@ function scanEmails() {
       }
     }
 
-    thread.addLabel(processedLabel);
+    // ← Fix الأهم: الـ label يُضاف فقط إذا كُتب صف على الأقل
+    if (threadProcessed) {
+      thread.addLabel(processedLabel);
+    } else {
+      thread.addLabel(skippedLabel);
+    }
   }
 
-  Logger.log('\n=== ✅ ' + results.processed + ' | ⏭️ ' + results.skipped + ' | ❌ ' + results.errors + ' ===');
+  Logger.log('\n=== ✅ PDF: ' + results.processed + ' | 📝 نص: ' + results.textProcessed + ' | ⏭️ متجاهَل: ' + results.skipped + ' | ❌ ' + results.errors + ' ===');
   return results;
+}
+
+
+/**
+ * معالجة إيميل نصّي (بلا PDF) — نوع B
+ * يستخرج الرحلات من extractFlightLegs_ + يطابق الحاج بالـ PNR/الإيميل المستلم
+ * يرجع عدد الصفوف المكتوبة
+ */
+function processTextOnlyEmail_(message, body, subject, date, incidentNum, pnr, textLegs, allData, changesSheet, comparisonSheet, existingKeys) {
+  // استخراج إيميل المستلم الأصلي من النص (الحاج الحقيقي — ليس Mahmoud)
+  // نمط: "إلى: X@Y.Z" أو "To: X@Y.Z"
+  var recipientEmail = '';
+  var emailMatch = body.match(/(?:إلى|To)\s*:?\s*([A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,})/);
+  if (emailMatch) recipientEmail = emailMatch[1].toLowerCase();
+
+  // إذا لم يوجد PNR في body — جرّب استخراجه من نمط "Booking XXXXXX"
+  if (!pnr) {
+    var bookMatch = body.match(/Booking\s+([A-Z0-9]{5,8})/i);
+    if (bookMatch) pnr = bookMatch[1].toUpperCase();
+  }
+
+  // مطابقة الحاج: بـ PNR أولاً (بدون اسم لأن النص لا يحوي اسماً عادة) → ثم بالإيميل
+  var match = null;
+  if (pnr) {
+    // محاولة: PNR في contract name (PD) مع أي اسم
+    for (var i = 0; i < allData.pd.length && !match; i++) {
+      var contract = String(allData.pd[i][CONFIG.PD.CONTRACT_NAME] || '').toUpperCase();
+      if (contract.indexOf(pnr) !== -1) {
+        match = buildPDResult_(allData.pd[i]);
+        match.source = 'PD (text PNR)';
+        // رحلات حالية
+        var cur = findCurrentFlights_(pnr, allData.flights);
+        if (cur) {
+          match.curOutFlight1 = cur.outFlight1; match.curOutDate1 = cur.outDate1;
+          match.curOutFlight2 = cur.outFlight2; match.curOutDate2 = cur.outDate2;
+          match.curRetFlight1 = cur.retFlight1; match.curRetDate1 = cur.retDate1;
+          match.curRetFlight2 = cur.retFlight2; match.curRetDate2 = cur.retDate2;
+        }
+      }
+    }
+  }
+  if (!match && recipientEmail) {
+    match = findByEmail_(recipientEmail, pnr, allData);
+  }
+
+  // تصنيف الرحلات إلى ذهاب/عودة
+  var dataObj = { outboundLegs: [], returnLegs: [] };
+  classifyLegs_(dataObj, textLegs);
+
+  // Dedup key: PNR + incidentNum (لإيميلات متكررة لنفس الحادث)
+  var dupKey = ('TEXT|' + (pnr || '') + '|' + (incidentNum || '') + '|' + (recipientEmail || '')).toUpperCase();
+  if (existingKeys[dupKey]) {
+    Logger.log('  ⏭️ مكرر نصّي: ' + incidentNum);
+    return 0;
+  }
+  existingKeys[dupKey] = true;
+
+  var status = match ? 'تم المطابقة' : 'لم يُطابَق';
+  var notes = 'إيميل نصّي' + (recipientEmail ? ' | ' + recipientEmail : '');
+  Logger.log('  ' + (match ? '✅' : '⚠️') + ' نصّي — PNR: ' + pnr + ' | email: ' + recipientEmail);
+
+  // رابط الإيميل بدلاً من PDF
+  var threadId = message.getThread().getId();
+  var emailLink = 'https://mail.google.com/mail/u/0/#inbox/' + threadId;
+
+  var changeNum = 'CHG-' + String(changesSheet.getLastRow()).padStart(4, '0');
+
+  var rowData = {
+    changeNum: changeNum,
+    pnr: pnr || '',
+    bookingId: '',
+    incidentNum: incidentNum,
+    pdfFirstName: '',  // النص لا يحوي اسم عادة
+    pdfLastName: '',
+    sysFirstName: match ? match.sysFirstName : '',
+    sysLastName: match ? match.sysLastName : '',
+    serialNum: match ? match.serial : '',
+    passport: match ? match.passport : '',
+    pkgNum: match ? match.pkgNum : '',
+    pkgName: match ? match.pkgName : '',
+    flightType: match ? match.flightType : '',
+    bookingType: match ? (String(match.source || '').indexOf('B2C') !== -1 ? 'B2C' : 'B2B') : '',
+    outboundLegs: dataObj.outboundLegs,
+    returnLegs: dataObj.returnLegs,
+    curOutFlight1: match ? match.curOutFlight1 : '',
+    curOutDate1: match ? match.curOutDate1 : '',
+    curOutFlight2: match ? match.curOutFlight2 : '',
+    curOutDate2: match ? match.curOutDate2 : '',
+    curRetFlight1: match ? match.curRetFlight1 : '',
+    curRetDate1: match ? match.curRetDate1 : '',
+    curRetFlight2: match ? match.curRetFlight2 : '',
+    curRetDate2: match ? match.curRetDate2 : '',
+    pdfLink: emailLink,  // رابط الإيميل
+    emailDate: date,
+    status: status,
+    notes: notes
+  };
+
+  writeChangeRow_(changesSheet, rowData);
+
+  rowData.comparisonStatus = match ? 'متطابق' : 'غير متطابق';
+  writeComparisonRow_(comparisonSheet, rowData);
+
+  return 1;
+}
+
+
+/**
+ * استرداد الإيميلات الضائعة — إزالة TKT-Processed من الـ threads التي لم تُعالَج فعلاً
+ * ثم شغّل scanEmails() بعد هذه الدالة
+ */
+function recoverLostEmails(dryRun) {
+  var processedLabel = GmailApp.getUserLabelByName(CONFIG.PROCESSED_LABEL);
+  if (!processedLabel) {
+    Logger.log('❌ Label ' + CONFIG.PROCESSED_LABEL + ' غير موجود');
+    return { error: 'no processed label' };
+  }
+
+  // الـ threads المُعلَّمة TKT-Processed بدون مرفقات = التي تُجوهلت خطأً
+  var query = 'label:' + CONFIG.PROCESSED_LABEL + ' -has:attachment';
+  var threads = GmailApp.search(query, 0, 100);
+
+  Logger.log('🔍 وُجد ' + threads.length + ' thread بـ TKT-Processed وبلا مرفق');
+
+  if (dryRun) {
+    var samples = [];
+    for (var i = 0; i < Math.min(threads.length, 10); i++) {
+      samples.push(threads[i].getFirstMessageSubject());
+    }
+    return { dryRun: true, count: threads.length, samples: samples };
+  }
+
+  for (var i = 0; i < threads.length; i++) {
+    threads[i].removeLabel(processedLabel);
+  }
+
+  Logger.log('✅ أُزيل TKT-Processed من ' + threads.length + ' thread — شغّل scanEmails() الآن');
+  return { removed: threads.length };
 }
 
 
