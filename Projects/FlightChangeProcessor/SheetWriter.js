@@ -186,10 +186,11 @@ function writeChangeRow_(sheet, data) {
     data.notes || ''
   ];
 
-  sheet.appendRow(row);
+  // كتابة مباشرة (appendRow يفشل بصمت إذا كان هناك Filter نشط)
+  var newRow = sheet.getLastRow() + 1;
+  sheet.getRange(newRow, 1, 1, row.length).setValues([row]);
 
   // تلوين حسب الحالة
-  var newRow = sheet.getLastRow();
   var statusCol = 41; // AO (بعد إضافة عمود نوع الحجز)
   var statusCell = sheet.getRange(newRow, statusCol);
 
@@ -201,6 +202,7 @@ function writeChangeRow_(sheet, data) {
     statusCell.setBackground('#f8d7da');
   }
 }
+
 
 
 /**
@@ -446,10 +448,11 @@ function writeComparisonRow_(sheet, data) {
     data.emailDate || ''                                                       // تاريخ الإيميل
   ];
 
-  sheet.appendRow(row);
+  // كتابة مباشرة (appendRow يفشل بصمت إذا كان هناك Filter نشط)
+  var newRow = sheet.getLastRow() + 1;
+  sheet.getRange(newRow, 1, 1, row.length).setValues([row]);
 
   // تلوين الصف كامل حسب الحالة
-  var newRow = sheet.getLastRow();
   var numCols = row.length;
   var rowRange = sheet.getRange(newRow, 1, 1, numCols);
 

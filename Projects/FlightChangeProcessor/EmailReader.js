@@ -330,13 +330,14 @@ function processTextOnlyEmail_(message, body, subject, date, incidentNum, pnr, t
  */
 function recoverLostEmails(dryRun) {
   var processedLabel = GmailApp.getUserLabelByName(CONFIG.PROCESSED_LABEL);
-  if (!processedLabel) {
-    Logger.log('❌ Label ' + CONFIG.PROCESSED_LABEL + ' غير موجود');
-    return { error: 'no processed label' };
+  var skippedLabel = GmailApp.getUserLabelByName(CONFIG.SKIPPED_LABEL);
+  if (!processedLabel && !skippedLabel) {
+    Logger.log('❌ لا Labels موجودة');
+    return { error: 'no labels' };
   }
 
-  // الـ threads المُعلَّمة TKT-Processed بدون مرفقات = التي تُجوهلت خطأً
-  var query = 'label:' + CONFIG.PROCESSED_LABEL + ' -has:attachment';
+  // الـ threads المُعلَّمة TKT-Processed أو TKT-Skipped بدون مرفقات = التي تُجوهلت خطأً
+  var query = '(label:' + CONFIG.PROCESSED_LABEL + ' OR label:' + CONFIG.SKIPPED_LABEL + ') -has:attachment';
   var threads = GmailApp.search(query, 0, 100);
 
   Logger.log('🔍 وُجد ' + threads.length + ' thread بـ TKT-Processed وبلا مرفق');
@@ -350,10 +351,11 @@ function recoverLostEmails(dryRun) {
   }
 
   for (var i = 0; i < threads.length; i++) {
-    threads[i].removeLabel(processedLabel);
+    if (processedLabel) threads[i].removeLabel(processedLabel);
+    if (skippedLabel) threads[i].removeLabel(skippedLabel);
   }
 
-  Logger.log('✅ أُزيل TKT-Processed من ' + threads.length + ' thread — شغّل scanEmails() الآن');
+  Logger.log('✅ أُزيلت الـ labels من ' + threads.length + ' thread — شغّل scanEmails() الآن');
   return { removed: threads.length };
 }
 
