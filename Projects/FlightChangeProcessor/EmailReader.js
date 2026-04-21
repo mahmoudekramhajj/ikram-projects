@@ -371,9 +371,22 @@ function extractPNRFromBody_(body) {
     /Regarding\s+your\s+reference\s+([A-Z0-9]{5,8})/i,
     /Reservation\s+([A-Z0-9]{5,8})/i
   ];
+  // قائمة سوداء — كلمات إنجليزية تُطابق نمط PNR عرضاً (false positives)
+  var BLACKLIST = {
+    'NUMBER':1, 'NUMBERS':1, 'BOOKING':1, 'FLIGHT':1, 'FLIGHTS':1,
+    'TICKET':1, 'TICKETS':1, 'CHANGE':1, 'CHANGES':1, 'SCHEDULE':1,
+    'PLEASE':1, 'REGARDS':1, 'THANKS':1, 'DETAILS':1, 'INVOICE':1,
+    'DEPART':1, 'ARRIVE':1, 'AIRPORT':1, 'CANCEL':1, 'UPDATE':1,
+    'UPDATED':1, 'HISTORY':1, 'ALERT':1, 'NOTICE':1, 'ABOUT':1,
+    'WITHIN':1, 'BECAUSE':1, 'SUBJECT':1, 'MESSAGE':1, 'CONFIRM':1
+  };
   for (var i = 0; i < patterns.length; i++) {
     var m = body.match(patterns[i]);
-    if (m && m[1].length >= 5 && m[1].length <= 8) return m[1].trim();
+    if (m && m[1].length >= 5 && m[1].length <= 8) {
+      var code = m[1].trim().toUpperCase();
+      if (BLACKLIST[code]) continue;  // تخطي الكلمات الإنجليزية الشائعة
+      return code;
+    }
   }
   return '';
 }
