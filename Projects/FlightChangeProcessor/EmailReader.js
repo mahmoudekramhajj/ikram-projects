@@ -23,8 +23,9 @@ function scanEmails() {
   var comparisonSheet = getOrCreateComparisonSheet_();
   var allData = loadAllData_();
 
-  // تحميل الصفوف الموجودة لمنع التكرار (PNR + اسم)
-  var existingKeys = loadExistingKeys_(comparisonSheet);
+  // تحميل الصفوف الموجودة من كل شيت بمفرده — يسمح باسترداد الـ 185 الضائعة
+  var existingComparisonKeys = loadExistingKeys_(comparisonSheet, 'COMPARISON');
+  var existingChangesKeys = loadExistingKeys_(changesSheet, 'CHANGES');
 
   for (var t = 0; t < threads.length; t++) {
     if (new Date() - startTime > CONFIG.MAX_RUNTIME_MS) {
@@ -62,7 +63,8 @@ function scanEmails() {
             Logger.log('  📝 إيميل نصّي — ' + textLegs.length + ' رحلة من النص');
             var written = processTextOnlyEmail_(
               message, body, subject, date, incidentNum, pnr, textLegs,
-              allData, changesSheet, comparisonSheet, existingKeys
+              allData, changesSheet, comparisonSheet,
+              existingChangesKeys, existingComparisonKeys
             );
             if (written > 0) {
               results.textProcessed += written;
@@ -112,13 +114,15 @@ function scanEmails() {
           for (var px = 0; px < passengers.length; px++) {
             var pax = passengers[px];
 
-            // فحص التكرار — نفس PNR + اسم = تخطي
+            // فحص التكرار لكل شيت بمفرده — يسمح باسترداد الصف إذا كان في شيت واحد فقط
             var dupKey = (activePnr + '|' + (pax.firstName || '') + '|' + (pax.lastName || '')).toUpperCase();
-            if (existingKeys[dupKey]) {
-              Logger.log('  ⏭️ مكرر: ' + pax.firstName + ' ' + pax.lastName + ' | PNR: ' + activePnr);
+            var inChanges = existingChangesKeys[dupKey];
+            var inComparison = existingComparisonKeys[dupKey];
+
+            if (inChanges && inComparison) {
+              Logger.log('  ⏭️ مكرر في الشيتين: ' + pax.firstName + ' ' + pax.lastName + ' | PNR: ' + activePnr);
               continue;
             }
-            existingKeys[dupKey] = true;
 
             Logger.log('  ✈️ ' + pax.firstName + ' ' + pax.lastName + ' | PNR: ' + activePnr);
 
@@ -187,15 +191,26 @@ function scanEmails() {
               notes: notes
             };
 
-            writeChangeRow_(changesSheet, rowData);
-            threadProcessed = true;  // ← صف كُتب فعلاً
-
             var compStatus = 'لا يوجد اسم';
             if (pax.firstName || pax.lastName) {
               compStatus = match ? 'متطابق' : 'غير متطابق';
             }
             rowData.comparisonStatus = compStatus;
-            writeComparisonRow_(comparisonSheet, rowData);
+
+            // كتابة انتقائية — فقط في الشيت الناقص
+            if (!inChanges) {
+              writeChangeRow_(changesSheet, rowData);
+              existingChangesKeys[dupKey] = true;
+              threadProcessed = true;  // صف كُتب فعلاً
+              if (inComparison) {
+                Logger.log('  ♻️ استرداد: ' + pax.firstName + ' ' + pax.lastName + ' (كان ناقصاً من شيت التغييرات)');
+              }
+            }
+
+            if (!inComparison) {
+              writeComparisonRow_(comparisonSheet, rowData);
+              existingComparisonKeys[dupKey] = true;
+            }
           }
 
           results.processed++;
@@ -225,7 +240,7 @@ function scanEmails() {
  * يستخرج الرحلات من extractFlightLegs_ + يطابق الحاج بالـ PNR/الإيميل المستلم
  * يرجع عدد الصفوف المكتوبة
  */
-function processTextOnlyEmail_(message, body, subject, date, incidentNum, pnr, textLegs, allData, changesSheet, comparisonSheet, existingKeys) {
+function processTextOnlyEmail_(message, body, subject, date, incidentNum, pnr, textLegs, allData, changesSheet, comparisonSheet, existingChangesKeys, existingComparisonKeys) {
   // استخراج إيميل المستلم الأصلي من النص (الحاج الحقيقي — ليس Mahmoud)
   // نمط: "إلى: X@Y.Z" أو "To: X@Y.Z"
   var recipientEmail = '';
@@ -266,13 +281,13 @@ function processTextOnlyEmail_(message, body, subject, date, incidentNum, pnr, t
   var dataObj = { outboundLegs: [], returnLegs: [] };
   classifyLegs_(dataObj, textLegs);
 
-  // Dedup key: PNR + incidentNum (لإيميلات متكررة لنفس الحادث)
+  // Dedup key: PNR + incidentNum (لإيميلات متكررة لنفس الحادث — in-memory ضمن نفس scan run)
   var dupKey = ('TEXT|' + (pnr || '') + '|' + (incidentNum || '') + '|' + (recipientEmail || '')).toUpperCase();
-  if (existingKeys[dupKey]) {
+  if (existingChangesKeys[dupKey]) {
     Logger.log('  ⏭️ مكرر نصّي: ' + incidentNum);
     return 0;
   }
-  existingKeys[dupKey] = true;
+  existingChangesKeys[dupKey] = true;
 
   var status = match ? 'تم المطابقة' : 'لم يُطابَق';
   var notes = 'إيميل نصّي' + (recipientEmail ? ' | ' + recipientEmail : '');
@@ -413,14 +428,25 @@ function getOrCreateLabel_(labelName) {
 /**
  * تحميل المفاتيح الموجودة (PNR + اسم) من شيت المقارنة لمنع التكرار
  */
-function loadExistingKeys_(sheet) {
+function loadExistingKeys_(sheet, sheetType) {
   var keys = {};
   var lastRow = sheet.getLastRow();
   if (lastRow < 2) return keys;
 
-  var data = sheet.getRange(2, 2, lastRow - 1, 4).getValues(); // B=PNR, D=firstName, E=lastName
+  // حسب نوع الشيت، الأعمدة في موقع مختلف:
+  // COMPARISON: B=PNR(idx1), D=firstName(idx3), E=lastName(idx4)
+  // CHANGES:    B=PNR(idx1), E=firstName(idx4), F=lastName(idx5)
+  var pnrIdx, fnIdx, lnIdx;
+  if (sheetType === 'CHANGES') {
+    pnrIdx = 1; fnIdx = 4; lnIdx = 5;
+  } else { // COMPARISON (default — للتوافق مع الاستدعاء القديم)
+    pnrIdx = 1; fnIdx = 3; lnIdx = 4;
+  }
+
+  var maxCols = Math.max(pnrIdx, fnIdx, lnIdx) + 1;
+  var data = sheet.getRange(2, 1, lastRow - 1, maxCols).getValues();
   for (var i = 0; i < data.length; i++) {
-    var key = (String(data[i][0]) + '|' + String(data[i][2]) + '|' + String(data[i][3])).toUpperCase();
+    var key = (String(data[i][pnrIdx]) + '|' + String(data[i][fnIdx]) + '|' + String(data[i][lnIdx])).toUpperCase();
     keys[key] = true;
   }
   return keys;
@@ -524,4 +550,312 @@ function resetProcessedLabels() {
   }
   Logger.log('✅ تم إزالة TKT-Processed من ' + count + ' إيميل');
   return { removed: count };
+}
+
+
+/**
+ * إزالة كل labels المعالجة (Processed + Skipped) — بداية صفرية كاملة
+ */
+function resetAllLabels() {
+  var removed = { processed: 0, skipped: 0 };
+  var proc = GmailApp.getUserLabelByName(CONFIG.PROCESSED_LABEL);
+  var skip = GmailApp.getUserLabelByName(CONFIG.SKIPPED_LABEL);
+  if (proc) {
+    var pt = proc.getThreads();
+    for (var i = 0; i < pt.length; i++) pt[i].removeLabel(proc);
+    removed.processed = pt.length;
+  }
+  if (skip) {
+    var st = skip.getThreads();
+    for (var j = 0; j < st.length; j++) st[j].removeLabel(skip);
+    removed.skipped = st.length;
+  }
+  Logger.log('✅ أُزيلت labels: Processed=' + removed.processed + ', Skipped=' + removed.skipped);
+  return removed;
+}
+
+
+// =====================================================
+// === V3: scanEmailsV3 — الشيت الموحّد + تحقق منطقي ===
+// =====================================================
+
+/**
+ * النسخة V3 — يكتب في شيت واحد فقط (Unified) مع dedup PNR+Incident+Name + validation
+ */
+function scanEmailsV3() {
+  var startTime = new Date();
+  var results = { processed: 0, skipped: 0, errors: 0, textProcessed: 0, warnings: 0 };
+
+  var processedLabel = getOrCreateLabel_(CONFIG.PROCESSED_LABEL);
+  var skippedLabel = getOrCreateLabel_(CONFIG.SKIPPED_LABEL);
+  var query = 'label:' + CONFIG.GMAIL_LABEL +
+              ' -label:' + CONFIG.PROCESSED_LABEL +
+              ' -label:' + CONFIG.SKIPPED_LABEL;
+  var threads = GmailApp.search(query, 0, CONFIG.MAX_EMAILS_PER_RUN);
+
+  Logger.log('V3: وُجد ' + threads.length + ' إيميل جديد');
+  if (threads.length === 0) return results;
+
+  var changesFolder = getOrCreateChangesFolder_();
+  var unifiedSheet = getOrCreateUnifiedSheet_();
+  var allData = loadAllData_();
+
+  // مفاتيح موجودة — PNR + Incident + firstName + lastName
+  var existingKeys = loadUnifiedKeys_(unifiedSheet);
+
+  for (var t = 0; t < threads.length; t++) {
+    if (new Date() - startTime > CONFIG.MAX_RUNTIME_MS) {
+      Logger.log('⏰ توقف — انتهت المهلة بعد ' + t + ' إيميل');
+      break;
+    }
+
+    var thread = threads[t];
+    var threadProcessed = false;
+    var messages = thread.getMessages();
+
+    for (var m = 0; m < messages.length; m++) {
+      var message = messages[m];
+      var subject = message.getSubject();
+      var body = message.getPlainBody();
+      var date = message.getDate();
+      var incidentNum = extractIncidentNumber_(subject);
+
+      Logger.log('\n📧 #' + (t + 1) + ': ' + subject);
+
+      try {
+        var pnr = extractPNRFromBody_(body);
+
+        // فلترة PDFs نسك
+        var attachments = message.getAttachments();
+        var nusukPDFs = attachments.filter(function(att) {
+          var name = att.getName().toLowerCase();
+          return name.endsWith('.pdf') && (name.indexOf('flight_eticket') !== -1 || name.indexOf('eticket') !== -1);
+        });
+
+        // === نوع B: إيميل نصّي ===
+        if (nusukPDFs.length === 0) {
+          var textLegs = extractFlightLegs_(body);
+          if (textLegs && textLegs.length > 0) {
+            Logger.log('  📝 إيميل نصّي — ' + textLegs.length + ' رحلة');
+            var wroteText = processTextUnified_(
+              message, body, subject, date, incidentNum, pnr, textLegs,
+              allData, unifiedSheet, existingKeys
+            );
+            if (wroteText) {
+              results.textProcessed++;
+              threadProcessed = true;
+            }
+          } else {
+            Logger.log('  ⏭️ بدون PDF ولا نص — تخطي');
+            results.skipped++;
+          }
+          continue;
+        }
+
+        // === نوع A: PDF نسك ===
+        for (var p = 0; p < nusukPDFs.length; p++) {
+          var pdf = nusukPDFs[p];
+          Logger.log('  📄 ' + pdf.getName());
+
+          var driveFile = changesFolder.createFile(pdf);
+          var shareLink = createShareLink_(driveFile);
+
+          var text = extractTextFromPDF_(driveFile.getId());
+          var ticketData = parseNusukTicket_(text);
+          if (!ticketData) {
+            Logger.log('  ❌ لم يتم التعرف على التذكرة');
+            results.errors++;
+            continue;
+          }
+
+          if (!pnr && ticketData.pnr) pnr = ticketData.pnr;
+          var activePnr = pnr || ticketData.pnr;
+
+          var passengers = ticketData.passengers || [];
+          if (passengers.length === 0 && (ticketData.firstName || ticketData.lastName)) {
+            passengers = [{ firstName: ticketData.firstName, lastName: ticketData.lastName, fullName: ticketData.passengerName }];
+          }
+
+          Logger.log('  👥 ' + passengers.length + ' مسافر في PDF');
+
+          for (var px = 0; px < passengers.length; px++) {
+            var pax = passengers[px];
+
+            // مفتاح V3 = PNR + Incident + firstName + lastName
+            var dupKey = (
+              (activePnr || '') + '|' +
+              (incidentNum || '') + '|' +
+              (pax.firstName || '') + '|' +
+              (pax.lastName || '')
+            ).toUpperCase();
+
+            if (existingKeys[dupKey]) {
+              Logger.log('  ⏭️ مكرر: ' + pax.firstName + ' ' + pax.lastName);
+              continue;
+            }
+
+            Logger.log('  ✈️ ' + pax.firstName + ' ' + pax.lastName + ' | PNR: ' + activePnr);
+
+            // مطابقة الحاج (نفس منطق V2)
+            var match = findPilgrim_(pax.firstName, pax.lastName, activePnr, allData, ticketData.bookingId);
+            if (!match) {
+              var cleanedFull = deepClean_(pax.fullName || (pax.firstName + ' ' + pax.lastName));
+              if (cleanedFull && cleanedFull !== (pax.firstName + ' ' + pax.lastName).trim()) {
+                var cp = cleanedFull.split(/\s+/);
+                var cf = cp[0] || '';
+                var cl = cp.length >= 2 ? cp.slice(1).join(' ') : '';
+                match = findPilgrim_(cf, cl, activePnr, allData, ticketData.bookingId);
+                if (match) { pax.firstName = cf; pax.lastName = cl; pax.fullName = cleanedFull; }
+              }
+            }
+
+            var status = match ? 'تم المطابقة' : 'لم يُطابَق';
+            if (match) Logger.log('  ✅ ' + match.sysFirstName + ' ' + match.sysLastName);
+            else Logger.log('  ⚠️ لم يُطابَق');
+
+            var rowData = {
+              pnr: activePnr,
+              bookingId: ticketData.bookingId,
+              incidentNum: incidentNum,
+              pdfFirstName: pax.firstName || '',
+              pdfLastName: pax.lastName || '',
+              sysFirstName: match ? match.sysFirstName : '',
+              sysLastName: match ? match.sysLastName : '',
+              serialNum: match ? match.serial : '',
+              passport: match ? match.passport : '',
+              pkgNum: match ? match.pkgNum : '',
+              pkgName: match ? match.pkgName : '',
+              flightType: match ? match.flightType : '',
+              bookingType: match ? (String(match.source || '').indexOf('B2C') !== -1 ? 'B2C' : 'B2B') : '',
+              outboundLegs: ticketData.outboundLegs,
+              returnLegs: ticketData.returnLegs,
+              curOutFlight1: match ? match.curOutFlight1 : '',
+              curOutDate1: match ? match.curOutDate1 : '',
+              curRetFlight1: match ? match.curRetFlight1 : '',
+              curRetDate1: match ? match.curRetDate1 : '',
+              pdfLink: shareLink,
+              emailDate: date,
+              status: status,
+              source: 'PDF',
+              notes: match ? '' : ('PNR: ' + activePnr)
+            };
+
+            writeUnifiedRow_(unifiedSheet, rowData);
+            existingKeys[dupKey] = true;
+            threadProcessed = true;
+          }
+          results.processed++;
+        }
+      } catch (e) {
+        Logger.log('  ❌ خطأ: ' + e.message);
+        results.errors++;
+      }
+    }
+
+    if (threadProcessed) thread.addLabel(processedLabel);
+    else thread.addLabel(skippedLabel);
+  }
+
+  Logger.log('\n=== V3 ✅ PDF: ' + results.processed + ' | 📝 نص: ' + results.textProcessed + ' | ⏭️ متجاهَل: ' + results.skipped + ' | ❌ ' + results.errors + ' ===');
+  return results;
+}
+
+
+/**
+ * معالجة إيميل نصّي للـ V3 — يكتب في الشيت الموحّد
+ */
+function processTextUnified_(message, body, subject, date, incidentNum, pnr, textLegs, allData, unifiedSheet, existingKeys) {
+  // استخراج إيميل المستلم الأصلي
+  var recipientEmail = '';
+  var emailMatch = body.match(/(?:إلى|To)\s*:?\s*([A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,})/);
+  if (emailMatch) recipientEmail = emailMatch[1].toLowerCase();
+
+  if (!pnr) {
+    var bookMatch = body.match(/Booking\s+([A-Z0-9]{5,8})/i);
+    if (bookMatch) {
+      var candidate = bookMatch[1].toUpperCase();
+      // تطبيق نفس القائمة السوداء لتجنب "NUMBER" / "RESERVAT" / إلخ
+      var BLACKLIST2 = {
+        'NUMBER':1,'NUMBERS':1,'BOOKING':1,'FLIGHT':1,'FLIGHTS':1,
+        'TICKET':1,'TICKETS':1,'CHANGE':1,'CHANGES':1,'SCHEDULE':1,
+        'PLEASE':1,'REGARDS':1,'THANKS':1,'DETAILS':1,'INVOICE':1,
+        'DEPART':1,'ARRIVE':1,'AIRPORT':1,'CANCEL':1,'UPDATE':1,
+        'UPDATED':1,'HISTORY':1,'ALERT':1,'NOTICE':1,'ABOUT':1,
+        'WITHIN':1,'BECAUSE':1,'SUBJECT':1,'MESSAGE':1,'CONFIRM':1,
+        'RESERVA':1,'RESERVAT':1,'REFEREN':1,'REFERNC':1
+      };
+      if (!BLACKLIST2[candidate]) pnr = candidate;
+    }
+  }
+
+  // مفتاح V3 للنص — PNR + Incident + "TEXT" + recipientEmail
+  var dupKey = (
+    (pnr || '') + '|' +
+    (incidentNum || '') + '|' +
+    'TEXT|' +
+    (recipientEmail || '')
+  ).toUpperCase();
+
+  if (existingKeys[dupKey]) {
+    Logger.log('  ⏭️ مكرر نصّي: ' + incidentNum);
+    return false;
+  }
+
+  // مطابقة
+  var match = null;
+  if (pnr) {
+    for (var i = 0; i < allData.pd.length && !match; i++) {
+      var contract = String(allData.pd[i][CONFIG.PD.CONTRACT_NAME] || '').toUpperCase();
+      if (contract.indexOf(pnr) !== -1) {
+        match = buildPDResult_(allData.pd[i]);
+        match.source = 'PD (text PNR)';
+        var cur = findCurrentFlights_(pnr, allData.flights);
+        if (cur) {
+          match.curOutFlight1 = cur.outFlight1; match.curOutDate1 = cur.outDate1;
+          match.curRetFlight1 = cur.retFlight1; match.curRetDate1 = cur.retDate1;
+        }
+      }
+    }
+  }
+  if (!match && recipientEmail) match = findByEmail_(recipientEmail, pnr, allData);
+
+  var dataObj = { outboundLegs: [], returnLegs: [] };
+  classifyLegs_(dataObj, textLegs);
+
+  var status = match ? 'تم المطابقة' : 'لم يُطابَق';
+  Logger.log('  ' + (match ? '✅' : '⚠️') + ' نصّي — PNR: ' + pnr + ' | ' + recipientEmail);
+
+  var threadId = message.getThread().getId();
+  var emailLink = 'https://mail.google.com/mail/u/0/#inbox/' + threadId;
+
+  var rowData = {
+    pnr: pnr || '',
+    bookingId: '',
+    incidentNum: incidentNum,
+    pdfFirstName: '',
+    pdfLastName: '',
+    sysFirstName: match ? match.sysFirstName : '',
+    sysLastName: match ? match.sysLastName : '',
+    serialNum: match ? match.serial : '',
+    passport: match ? match.passport : '',
+    pkgNum: match ? match.pkgNum : '',
+    pkgName: match ? match.pkgName : '',
+    flightType: match ? match.flightType : '',
+    bookingType: match ? (String(match.source || '').indexOf('B2C') !== -1 ? 'B2C' : 'B2B') : '',
+    outboundLegs: dataObj.outboundLegs,
+    returnLegs: dataObj.returnLegs,
+    curOutFlight1: match ? match.curOutFlight1 : '',
+    curOutDate1: match ? match.curOutDate1 : '',
+    curRetFlight1: match ? match.curRetFlight1 : '',
+    curRetDate1: match ? match.curRetDate1 : '',
+    pdfLink: emailLink,
+    emailDate: date,
+    status: status,
+    source: 'نص',
+    notes: 'إيميل نصّي' + (recipientEmail ? ' | ' + recipientEmail : '')
+  };
+
+  writeUnifiedRow_(unifiedSheet, rowData);
+  existingKeys[dupKey] = true;
+  return true;
 }

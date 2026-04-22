@@ -733,3 +733,261 @@ function getComparisonStats() {
   Logger.log('📊 المقارنة — الإجمالي: ' + stats.total + ' | ✅ متطابق: ' + stats.matched + ' | ⚠️ غير متطابق: ' + stats.unmatched + ' | ❌ لا اسم: ' + stats.noName);
   return stats;
 }
+
+
+// =====================================================
+// === V3: شيت موحّد (دمج التغييرات + المقارنة) ========
+// =====================================================
+
+/**
+ * إنشاء أو الحصول على شيت V3 الموحّد
+ */
+function getOrCreateUnifiedSheet_() {
+  var ss;
+  var ssId = PropertiesService.getScriptProperties().getProperty('UNIFIED_SS_ID') || '';
+
+  if (ssId) {
+    try { ss = SpreadsheetApp.openById(ssId); } catch (e) {}
+  }
+
+  if (!ss) {
+    ss = SpreadsheetApp.create('تغييرات الطيران V3 — إكرام الضيف');
+    var file = DriveApp.getFileById(ss.getId());
+    var folder = DriveApp.getFolderById(CONFIG.PARENT_FOLDER_ID);
+    folder.addFile(file);
+    DriveApp.getRootFolder().removeFile(file);
+    PropertiesService.getScriptProperties().setProperty('UNIFIED_SS_ID', ss.getId());
+    Logger.log('✅ Spreadsheet V3 جديد: ' + ss.getId());
+  }
+
+  var sheet = ss.getSheetByName(CONFIG.UNIFIED_SHEET_NAME);
+  if (!sheet) {
+    sheet = ss.getActiveSheet();
+    sheet.setName(CONFIG.UNIFIED_SHEET_NAME);
+    createUnifiedHeaders_(sheet);
+    Logger.log('✅ تم إنشاء شيت: ' + CONFIG.UNIFIED_SHEET_NAME);
+  }
+
+  return sheet;
+}
+
+
+/**
+ * هيدر V3 — 46 عموداً يدمج التغييرات + المقارنة + تحذيرات + إخطارات
+ */
+function createUnifiedHeaders_(sheet) {
+  var headers = [
+    // هوية (A-E)
+    'رقم التغيير',                 // A
+    'PNR',                         // B
+    'Booking ID',                  // C
+    'Incident #',                  // D
+    'تاريخ الإيميل',               // E
+    // أسماء (F-J)
+    'الاسم الأول (PDF)',            // F
+    'اسم العائلة (PDF)',            // G
+    'الاسم الأول (النظام)',         // H
+    'اسم العائلة (النظام)',         // I
+    'حالة المطابقة',               // J
+    // بيانات النظام (K-P)
+    'الرقم التسلسلي',              // K
+    'رقم الجواز',                  // L
+    'رقم الباقة',                  // M
+    'اسم الباقة',                  // N
+    'نوع الحجز',                   // O
+    'نوع الرحلة',                  // P
+    // رحلات جديدة — ذهاب 1 (Q-T)
+    'جديد: ذهاب رحلة 1',           // Q
+    'جديد: ذهاب المسار 1',         // R
+    'جديد: ذهاب تاريخ 1',          // S
+    'جديد: ذهاب وقت 1',            // T
+    // رحلات جديدة — ذهاب 2 (U-X)
+    'جديد: ذهاب رحلة 2',           // U
+    'جديد: ذهاب المسار 2',         // V
+    'جديد: ذهاب تاريخ 2',          // W
+    'جديد: ذهاب وقت 2',            // X
+    // رحلات جديدة — عودة 1 (Y-AB)
+    'جديد: عودة رحلة 1',           // Y
+    'جديد: عودة المسار 1',         // Z
+    'جديد: عودة تاريخ 1',          // AA
+    'جديد: عودة وقت 1',            // AB
+    // رحلات جديدة — عودة 2 (AC-AF)
+    'جديد: عودة رحلة 2',           // AC
+    'جديد: عودة المسار 2',         // AD
+    'جديد: عودة تاريخ 2',          // AE
+    'جديد: عودة وقت 2',            // AF
+    // الرحلات الحالية (AG-AJ)
+    'حالي: ذهاب رحلة 1',           // AG
+    'حالي: ذهاب تاريخ 1',          // AH
+    'حالي: عودة رحلة 1',           // AI
+    'حالي: عودة تاريخ 1',          // AJ
+    // إضافي (AK-AN)
+    'رابط التذكرة',                // AK
+    'المصدر',                      // AL (PDF / نص)
+    'ملاحظات',                     // AM
+    '⚠️ تحذيرات',                   // AN
+    // إخطار البوت (AO-AP)
+    'حالة إخطار الحاج',            // AO
+    'تاريخ الإخطار'                // AP
+  ];
+
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
+  sheet.setFrozenRows(1);
+
+  // تلوين الأقسام
+  sheet.getRange(1, 1, 1, 5).setBackground('#4a86c8').setFontColor('#fff');    // هوية
+  sheet.getRange(1, 6, 1, 5).setBackground('#f0ad4e').setFontColor('#fff');    // أسماء
+  sheet.getRange(1, 11, 1, 6).setBackground('#5cb85c').setFontColor('#fff');   // النظام
+  sheet.getRange(1, 17, 1, 16).setBackground('#476831').setFontColor('#fff');  // رحلات جديدة
+  sheet.getRange(1, 33, 1, 4).setBackground('#232E64').setFontColor('#fff');   // رحلات حالية
+  sheet.getRange(1, 37, 1, 4).setBackground('#777').setFontColor('#fff');      // إضافي
+  sheet.getRange(1, 41, 1, 2).setBackground('#9B6FB1').setFontColor('#fff');   // إخطار البوت
+}
+
+
+/**
+ * كتابة صف موحّد V3 — يدمج بيانات التغيير + المطابقة + التحذيرات
+ */
+function writeUnifiedRow_(sheet, data) {
+  var changeNum = data.changeNum || ('CHG-' + String(sheet.getLastRow()).padStart(4, '0'));
+  var ob1 = data.outboundLegs && data.outboundLegs[0] ? data.outboundLegs[0] : {};
+  var ob2 = data.outboundLegs && data.outboundLegs[1] ? data.outboundLegs[1] : {};
+  var rt1 = data.returnLegs && data.returnLegs[0] ? data.returnLegs[0] : {};
+  var rt2 = data.returnLegs && data.returnLegs[1] ? data.returnLegs[1] : {};
+
+  // التحقق المنطقي — يولّد تحذيرات إن وُجدت
+  var warnings = validateFlightLegs_(data.outboundLegs, data.returnLegs);
+
+  // حالة المطابقة — متطابق / غير متطابق / لا يوجد اسم
+  var matchStatus = 'لا يوجد اسم';
+  if (data.pdfFirstName || data.pdfLastName) {
+    matchStatus = data.status === 'تم المطابقة' ? 'متطابق' : 'غير متطابق';
+  }
+
+  var row = [
+    // هوية
+    changeNum,
+    data.pnr || '',
+    data.bookingId || '',
+    data.incidentNum || '',
+    data.emailDate || '',
+    // أسماء
+    data.pdfFirstName || '',
+    data.pdfLastName || '',
+    data.sysFirstName || '',
+    data.sysLastName || '',
+    matchStatus,
+    // النظام
+    data.serialNum || '',
+    data.passport || '',
+    data.pkgNum || '',
+    data.pkgName || '',
+    data.bookingType || '',
+    data.flightType || '',
+    // رحلات جديدة — ذهاب 1
+    ob1.flightNumber || '',
+    ob1.fromCity && ob1.toCity ? 'من ' + ob1.fromCity + ' إلى ' + ob1.toCity : '',
+    ob1.depDate || '',
+    ob1.depTime || '',
+    // رحلات جديدة — ذهاب 2
+    ob2.flightNumber || '',
+    ob2.fromCity && ob2.toCity ? 'من ' + ob2.fromCity + ' إلى ' + ob2.toCity : '',
+    ob2.depDate || '',
+    ob2.depTime || '',
+    // رحلات جديدة — عودة 1
+    rt1.flightNumber || '',
+    rt1.fromCity && rt1.toCity ? 'من ' + rt1.fromCity + ' إلى ' + rt1.toCity : '',
+    rt1.depDate || '',
+    rt1.depTime || '',
+    // رحلات جديدة — عودة 2
+    rt2.flightNumber || '',
+    rt2.fromCity && rt2.toCity ? 'من ' + rt2.fromCity + ' إلى ' + rt2.toCity : '',
+    rt2.depDate || '',
+    rt2.depTime || '',
+    // الرحلات الحالية
+    data.curOutFlight1 || '',
+    data.curOutDate1 || '',
+    data.curRetFlight1 || '',
+    data.curRetDate1 || '',
+    // إضافي
+    data.pdfLink || '',
+    data.source || 'PDF',
+    data.notes || '',
+    warnings,
+    // إخطار البوت (فارغان ابتداءً)
+    '-',
+    ''
+  ];
+
+  var newRow = sheet.getLastRow() + 1;
+  sheet.getRange(newRow, 1, 1, row.length).setValues([row]);
+
+  // تلوين صف التحذيرات إن وُجدت
+  if (warnings) {
+    sheet.getRange(newRow, 40).setBackground('#fff3cd'); // AN = تحذيرات
+  }
+
+  // تلوين حالة المطابقة
+  var matchCell = sheet.getRange(newRow, 10); // J
+  if (matchStatus === 'متطابق') matchCell.setBackground('#d4edda');
+  else if (matchStatus === 'غير متطابق') matchCell.setBackground('#fff3cd');
+}
+
+
+/**
+ * تحميل مفاتيح الصفوف الموجودة في V3 — للـ dedup
+ * المفتاح الجديد: PNR + Incident# + firstName + lastName
+ */
+function loadUnifiedKeys_(sheet) {
+  var keys = {};
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return keys;
+
+  // B=PNR(idx1), D=Incident(idx3), F=firstName(idx5), G=lastName(idx6)
+  var data = sheet.getRange(2, 1, lastRow - 1, 7).getValues();
+  for (var i = 0; i < data.length; i++) {
+    var key = (
+      String(data[i][1]) + '|' +  // PNR
+      String(data[i][3]) + '|' +  // Incident
+      String(data[i][5]) + '|' +  // firstName
+      String(data[i][6])           // lastName
+    ).toUpperCase();
+    keys[key] = true;
+  }
+  return keys;
+}
+
+
+/**
+ * إحصائيات V3
+ */
+function getUnifiedStats() {
+  var sheet = getOrCreateUnifiedSheet_();
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return { total: 0 };
+
+  var data = sheet.getRange(2, 10, lastRow - 1, 31).getValues(); // J (matchStatus) إلى AN (warnings)
+  var stats = { total: lastRow - 1, matched: 0, unmatched: 0, noName: 0, withWarnings: 0 };
+
+  data.forEach(function(row) {
+    var status = String(row[0]); // J
+    var warn = String(row[30]);   // AN (offset 30 from J)
+    if (status === 'متطابق') stats.matched++;
+    else if (status === 'غير متطابق') stats.unmatched++;
+    else stats.noName++;
+    if (warn) stats.withWarnings++;
+  });
+
+  Logger.log('📊 V3 — الإجمالي: ' + stats.total + ' | ✅ مطابق: ' + stats.matched + ' | ⚠️ غير مطابق: ' + stats.unmatched + ' | ❌ لا اسم: ' + stats.noName + ' | 🚨 بتحذيرات: ' + stats.withWarnings);
+  return stats;
+}
+
+
+/**
+ * رابط شيت V3
+ */
+function getUnifiedSheetUrl() {
+  var id = PropertiesService.getScriptProperties().getProperty('UNIFIED_SS_ID') || '';
+  return id ? 'https://docs.google.com/spreadsheets/d/' + id : '(غير موجود)';
+}

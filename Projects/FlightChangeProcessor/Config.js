@@ -14,6 +14,9 @@ var CONFIG = {
   COMPARISON_SPREADSHEET_ID: '',
   COMPARISON_SHEET_NAME: 'مقارنة الأسماء',
 
+  // === V3: شيت موحّد (دمج التغييرات + المقارنة) ===
+  UNIFIED_SHEET_NAME: 'تغييرات الطيران V3',
+
   // === أسماء الشيتات في Spreadsheet الرئيسي ===
   PD_SHEET: 'Presonal Details',
   FLIGHT_SHEET: 'الطيران',
