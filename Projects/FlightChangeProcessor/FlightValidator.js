@@ -75,10 +75,16 @@ function validateLegGroup_(legs, groupName) {
   }
 
   // قاعدة ٤: استمرارية الترانزيت (مطار وصول = مطار مغادرة التالي)
+  // استثناء: MED↔JED طبيعي — الحاج ينتقل براً بين المدينة ومكة (جدة)
+  var SAUDI_TRANSFER_AIRPORTS = { 'JED': 1, 'MED': 1 };
   for (var k = 0; k < legs.length - 1; k++) {
     var cur = legs[k];
     var next = legs[k + 1];
     if (cur && next && cur.toCity && next.fromCity && cur.toCity !== next.fromCity) {
+      // استثناء: كلاهما في السعودية (JED أو MED) = انتقال بري طبيعي
+      if (SAUDI_TRANSFER_AIRPORTS[cur.toCity] && SAUDI_TRANSFER_AIRPORTS[next.fromCity]) {
+        continue; // لا تحذير
+      }
       warnings.push('⚠️ ' + groupName + ': فجوة في الترانزيت (' + cur.toCity + ' → ' + next.fromCity + ')');
     }
   }
@@ -129,6 +135,15 @@ var VALID_AIRPORTS_ = {
   'ADD': 1, 'NBO': 1, 'DAR': 1, 'EBB': 1, 'KGL': 1, 'LAD': 1,
   // أمريكا
   'JFK': 1, 'EWR': 1, 'IAD': 1, 'ORD': 1, 'LAX': 1, 'SFO': 1, 'YYZ': 1, 'YUL': 1,
+  'DFW': 1, 'SEA': 1, 'MIA': 1, 'DTW': 1, 'IAH': 1, 'ATL': 1, 'BOS': 1, 'PHL': 1,
+  'DEN': 1, 'PHX': 1, 'LAS': 1, 'MSP': 1, 'CLT': 1, 'MCO': 1, 'FLL': 1,
+  // أمريكا الوسطى/الجنوبية
+  'PTY': 1, 'MEX': 1, 'GRU': 1, 'EZE': 1, 'BOG': 1, 'LIM': 1, 'SCL': 1,
+  // أوروبا إضافية
+  'ATH': 1, 'OTP': 1, 'BSL': 1, 'LYS': 1, 'NCE': 1, 'MRS': 1, 'BUD': 1, 'PRG': 1,
+  'WAW': 1, 'SOF': 1, 'BEG': 1, 'SKP': 1, 'SJJ': 1, 'ZAG': 1, 'LUX': 1, 'KEF': 1,
+  // شرق أوسط/عراق إضافية
+  'ISU': 1, 'EBL': 1, 'NJF': 1, 'BSR': 1, 'KRT': 1, 'SAH': 1, 'ADE': 1,
   // شرق آسيا
   'HKG': 1, 'PEK': 1, 'PVG': 1, 'ICN': 1, 'NRT': 1, 'HND': 1,
   // قوقاز

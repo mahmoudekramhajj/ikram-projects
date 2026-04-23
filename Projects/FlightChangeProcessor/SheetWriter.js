@@ -744,7 +744,8 @@ function getComparisonStats() {
  */
 function getOrCreateUnifiedSheet_() {
   var ss;
-  var ssId = PropertiesService.getScriptProperties().getProperty('UNIFIED_SS_ID') || '';
+  var ssId = (CONFIG.UNIFIED_SPREADSHEET_ID || '') ||
+             PropertiesService.getScriptProperties().getProperty('UNIFIED_SS_ID') || '';
 
   if (ssId) {
     try { ss = SpreadsheetApp.openById(ssId); } catch (e) {}
@@ -796,39 +797,51 @@ function createUnifiedHeaders_(sheet) {
     'اسم الباقة',                  // N
     'نوع الحجز',                   // O
     'نوع الرحلة',                  // P
-    // رحلات جديدة — ذهاب 1 (Q-T)
-    'جديد: ذهاب رحلة 1',           // Q
-    'جديد: ذهاب المسار 1',         // R
-    'جديد: ذهاب تاريخ 1',          // S
-    'جديد: ذهاب وقت 1',            // T
-    // رحلات جديدة — ذهاب 2 (U-X)
-    'جديد: ذهاب رحلة 2',           // U
-    'جديد: ذهاب المسار 2',         // V
-    'جديد: ذهاب تاريخ 2',          // W
-    'جديد: ذهاب وقت 2',            // X
-    // رحلات جديدة — عودة 1 (Y-AB)
-    'جديد: عودة رحلة 1',           // Y
-    'جديد: عودة المسار 1',         // Z
-    'جديد: عودة تاريخ 1',          // AA
-    'جديد: عودة وقت 1',            // AB
-    // رحلات جديدة — عودة 2 (AC-AF)
-    'جديد: عودة رحلة 2',           // AC
-    'جديد: عودة المسار 2',         // AD
-    'جديد: عودة تاريخ 2',          // AE
-    'جديد: عودة وقت 2',            // AF
-    // الرحلات الحالية (AG-AJ)
-    'حالي: ذهاب رحلة 1',           // AG
-    'حالي: ذهاب تاريخ 1',          // AH
-    'حالي: عودة رحلة 1',           // AI
-    'حالي: عودة تاريخ 1',          // AJ
-    // إضافي (AK-AN)
-    'رابط التذكرة',                // AK
-    'المصدر',                      // AL (PDF / نص)
-    'ملاحظات',                     // AM
-    '⚠️ تحذيرات',                   // AN
-    // إخطار البوت (AO-AP)
-    'حالة إخطار الحاج',            // AO
-    'تاريخ الإخطار'                // AP
+    // === ذهاب — مرحلة 1 قبل الترانزيت (Q-W) === 7 أعمدة
+    'FlightNo1 (ذهاب)',           // Q
+    'Date TAKEOFF 1',             // R
+    'TAKEOFF TIME 1',             // S
+    'From 1',                     // T
+    'To 1',                       // U
+    'DATE LANDING 1',             // V
+    'LANDING TIME 1',             // W
+    // === ذهاب — مرحلة 2 وصول السعودية (X-AD) === 7 أعمدة
+    'FlightNo 2 (ذهاب)',          // X
+    'Date TAKEOFF 2',             // Y
+    'TAKEOFF TIME 2',             // Z
+    'From 2',                     // AA
+    'To 2',                       // AB
+    'DATE LANDING 2',             // AC
+    'LANDING TIME 2',             // AD
+    // === عودة — مرحلة 1 مغادرة السعودية (AE-AK) === 7 أعمدة
+    'FlightNo1 (عودة)',           // AE
+    'Date TAKEOFF 1',             // AF
+    'TAKEOFF TIME 1',             // AG
+    'From 1',                     // AH
+    'To 1',                       // AI
+    'DATE LANDING 1',             // AJ
+    'LANDING TIME 1',             // AK
+    // === عودة — مرحلة 2 ترانزيت للبلد (AL-AR) === 7 أعمدة
+    'FlightNo 2 (عودة)',          // AL
+    'Date TAKEOFF 2',             // AM
+    'TAKEOFF TIME 2',             // AN
+    'From 2',                     // AO
+    'To 2',                       // AP
+    'DATE LANDING 2',             // AQ
+    'LANDING TIME 2',             // AR
+    // الرحلات الحالية (AS-AV)
+    'حالي: ذهاب رحلة 1',           // AS
+    'حالي: ذهاب تاريخ 1',          // AT
+    'حالي: عودة رحلة 1',           // AU
+    'حالي: عودة تاريخ 1',          // AV
+    // إضافي (AW-AZ)
+    'رابط التذكرة',                // AW
+    'المصدر',                      // AX (PDF / نص)
+    'ملاحظات',                     // AY
+    '⚠️ تحذيرات',                   // AZ
+    // إخطار البوت (BA-BB)
+    'حالة إخطار الحاج',            // BA
+    'تاريخ الإخطار'                // BB
   ];
 
   sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
@@ -839,10 +852,11 @@ function createUnifiedHeaders_(sheet) {
   sheet.getRange(1, 1, 1, 5).setBackground('#4a86c8').setFontColor('#fff');    // هوية
   sheet.getRange(1, 6, 1, 5).setBackground('#f0ad4e').setFontColor('#fff');    // أسماء
   sheet.getRange(1, 11, 1, 6).setBackground('#5cb85c').setFontColor('#fff');   // النظام
-  sheet.getRange(1, 17, 1, 16).setBackground('#476831').setFontColor('#fff');  // رحلات جديدة
-  sheet.getRange(1, 33, 1, 4).setBackground('#232E64').setFontColor('#fff');   // رحلات حالية
-  sheet.getRange(1, 37, 1, 4).setBackground('#777').setFontColor('#fff');      // إضافي
-  sheet.getRange(1, 41, 1, 2).setBackground('#9B6FB1').setFontColor('#fff');   // إخطار البوت
+  sheet.getRange(1, 17, 1, 14).setBackground('#476831').setFontColor('#fff');  // ذهاب (28 → actually 14 cols)
+  sheet.getRange(1, 31, 1, 14).setBackground('#6c9a48').setFontColor('#fff');  // عودة
+  sheet.getRange(1, 45, 1, 4).setBackground('#232E64').setFontColor('#fff');   // رحلات حالية
+  sheet.getRange(1, 49, 1, 4).setBackground('#777').setFontColor('#fff');      // إضافي
+  sheet.getRange(1, 53, 1, 2).setBackground('#9B6FB1').setFontColor('#fff');   // إخطار البوت
 }
 
 
@@ -851,13 +865,31 @@ function createUnifiedHeaders_(sheet) {
  */
 function writeUnifiedRow_(sheet, data) {
   var changeNum = data.changeNum || ('CHG-' + String(sheet.getLastRow()).padStart(4, '0'));
-  var ob1 = data.outboundLegs && data.outboundLegs[0] ? data.outboundLegs[0] : {};
-  var ob2 = data.outboundLegs && data.outboundLegs[1] ? data.outboundLegs[1] : {};
-  var rt1 = data.returnLegs && data.returnLegs[0] ? data.returnLegs[0] : {};
-  var rt2 = data.returnLegs && data.returnLegs[1] ? data.returnLegs[1] : {};
+
+  // === قاعدة التفريغ (مطابقة شيت الطيران) ===
+  // الذهاب: GO2 دائماً = رحلة وصول السعودية. GO1 = مرحلة الترانزيت قبلها (إن وُجدت).
+  // العودة: RET1 دائماً = رحلة مغادرة السعودية. RET2 = مرحلة الترانزيت بعدها (إن وُجدت).
+  var outbound = data.outboundLegs || [];
+  var returnL  = data.returnLegs  || [];
+
+  var ob1 = {}, ob2 = {};
+  if (outbound.length === 1) {
+    ob2 = outbound[0];  // مباشر → GO2 فقط
+  } else if (outbound.length >= 2) {
+    ob1 = outbound[0];
+    ob2 = outbound[outbound.length - 1]; // آخر رحلة = وصول السعودية
+  }
+
+  var rt1 = {}, rt2 = {};
+  if (returnL.length === 1) {
+    rt1 = returnL[0];  // مباشر → RET1 فقط
+  } else if (returnL.length >= 2) {
+    rt1 = returnL[0];  // أول رحلة = مغادرة السعودية
+    rt2 = returnL[returnL.length - 1];
+  }
 
   // التحقق المنطقي — يولّد تحذيرات إن وُجدت
-  var warnings = validateFlightLegs_(data.outboundLegs, data.returnLegs);
+  var warnings = validateFlightLegs_(outbound, returnL);
 
   // حالة المطابقة — متطابق / غير متطابق / لا يوجد اسم
   var matchStatus = 'لا يوجد اسم';
@@ -865,67 +897,65 @@ function writeUnifiedRow_(sheet, data) {
     matchStatus = data.status === 'تم المطابقة' ? 'متطابق' : 'غير متطابق';
   }
 
+  function legFields(leg) {
+    return [
+      leg.flightNumber || '',
+      leg.depDate || '',
+      leg.depTime || '',
+      leg.fromCity || '',
+      leg.toCity || '',
+      leg.arrDate || leg.depDate || '',
+      leg.arrTime || ''
+    ];
+  }
+
   var row = [
-    // هوية
+    // هوية (A-E)
     changeNum,
     data.pnr || '',
     data.bookingId || '',
     data.incidentNum || '',
     data.emailDate || '',
-    // أسماء
+    // أسماء (F-J)
     data.pdfFirstName || '',
     data.pdfLastName || '',
     data.sysFirstName || '',
     data.sysLastName || '',
     matchStatus,
-    // النظام
+    // النظام (K-P)
     data.serialNum || '',
     data.passport || '',
     data.pkgNum || '',
     data.pkgName || '',
     data.bookingType || '',
-    data.flightType || '',
-    // رحلات جديدة — ذهاب 1
-    ob1.flightNumber || '',
-    ob1.fromCity && ob1.toCity ? 'من ' + ob1.fromCity + ' إلى ' + ob1.toCity : '',
-    ob1.depDate || '',
-    ob1.depTime || '',
-    // رحلات جديدة — ذهاب 2
-    ob2.flightNumber || '',
-    ob2.fromCity && ob2.toCity ? 'من ' + ob2.fromCity + ' إلى ' + ob2.toCity : '',
-    ob2.depDate || '',
-    ob2.depTime || '',
-    // رحلات جديدة — عودة 1
-    rt1.flightNumber || '',
-    rt1.fromCity && rt1.toCity ? 'من ' + rt1.fromCity + ' إلى ' + rt1.toCity : '',
-    rt1.depDate || '',
-    rt1.depTime || '',
-    // رحلات جديدة — عودة 2
-    rt2.flightNumber || '',
-    rt2.fromCity && rt2.toCity ? 'من ' + rt2.fromCity + ' إلى ' + rt2.toCity : '',
-    rt2.depDate || '',
-    rt2.depTime || '',
-    // الرحلات الحالية
+    data.flightType || ''
+  ]
+  .concat(legFields(ob1))  // Q-W
+  .concat(legFields(ob2))  // X-AD
+  .concat(legFields(rt1))  // AE-AK
+  .concat(legFields(rt2))  // AL-AR
+  .concat([
+    // الرحلات الحالية (AS-AV)
     data.curOutFlight1 || '',
     data.curOutDate1 || '',
     data.curRetFlight1 || '',
     data.curRetDate1 || '',
-    // إضافي
+    // إضافي (AW-AZ)
     data.pdfLink || '',
     data.source || 'PDF',
     data.notes || '',
     warnings,
-    // إخطار البوت (فارغان ابتداءً)
+    // إخطار البوت (BA-BB)
     '-',
     ''
-  ];
+  ]);
 
   var newRow = sheet.getLastRow() + 1;
   sheet.getRange(newRow, 1, 1, row.length).setValues([row]);
 
   // تلوين صف التحذيرات إن وُجدت
   if (warnings) {
-    sheet.getRange(newRow, 40).setBackground('#fff3cd'); // AN = تحذيرات
+    sheet.getRange(newRow, 52).setBackground('#fff3cd'); // AZ = تحذيرات (index 52 in 1-based)
   }
 
   // تلوين حالة المطابقة
@@ -990,4 +1020,106 @@ function getUnifiedStats() {
 function getUnifiedSheetUrl() {
   var id = PropertiesService.getScriptProperties().getProperty('UNIFIED_SS_ID') || '';
   return id ? 'https://docs.google.com/spreadsheets/d/' + id : '(غير موجود)';
+}
+
+
+/**
+ * اختبار صف واحد: يُزيل labels من ثريد معيّن ويشغّل scanEmails
+ */
+function testOneThread(threadId) {
+  threadId = threadId || '19db50525b7431b5';
+  var thread = GmailApp.getThreadById(threadId);
+  if (!thread) return { error: 'thread_not_found', threadId: threadId };
+
+  // إزالة labels المعالجة والمتخطاة
+  var labels = thread.getLabels();
+  for (var i = 0; i < labels.length; i++) {
+    var n = labels[i].getName();
+    if (n === CONFIG.PROCESSED_LABEL || n === CONFIG.SKIPPED_LABEL) {
+      thread.removeLabel(labels[i]);
+    }
+  }
+  Logger.log('✅ تم إزالة labels من thread ' + threadId);
+
+  // تشغيل scanEmails — سيعالج فقط هذا الثريد
+  return scanEmails();
+}
+
+
+/**
+ * Re-run validation on all V4 rows in place — no Gmail rescan.
+ * Updates column AZ (warnings) only.
+ */
+function revalidateAllV3() {
+  var sheet = getOrCreateUnifiedSheet_();
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return { total: 0 };
+
+  // V4 schema: legs start at Q (col 17), 7 cols per leg × 4 legs = 28 cols (Q-AR)
+  // GO1=Q-W(0-6), GO2=X-AD(7-13), RET1=AE-AK(14-20), RET2=AL-AR(21-27)
+  var data = sheet.getRange(2, 17, lastRow - 1, 28).getValues();
+  var updates = [];
+  var cleared = 0, newCount = 0;
+
+  for (var i = 0; i < data.length; i++) {
+    var row = data[i];
+    function mkLeg(offset) {
+      return {
+        flightNumber: row[offset],
+        depDate: row[offset + 1],
+        depTime: row[offset + 2],
+        fromCity: row[offset + 3],
+        toCity: row[offset + 4],
+        arrDate: row[offset + 5],
+        arrTime: row[offset + 6]
+      };
+    }
+    var outLegs = [];
+    if (row[0])  outLegs.push(mkLeg(0));  // GO1
+    if (row[7])  outLegs.push(mkLeg(7));  // GO2
+    var retLegs = [];
+    if (row[14]) retLegs.push(mkLeg(14)); // RET1
+    if (row[21]) retLegs.push(mkLeg(21)); // RET2
+
+    var newWarn = validateFlightLegs_(outLegs, retLegs) || '';
+    updates.push([newWarn]);
+    if (newWarn) newCount++; else cleared++;
+  }
+
+  // Bulk write to column AZ (52)
+  sheet.getRange(2, 52, updates.length, 1).setValues(updates);
+
+  Logger.log('🔁 revalidateAllV3 | الإجمالي: ' + updates.length + ' | بتحذيرات: ' + newCount + ' | نظيف: ' + cleared);
+  return { total: updates.length, withWarnings: newCount, clean: cleared };
+}
+
+
+/**
+ * List rows with warnings (from unified sheet V4)
+ */
+function listWarningRows() {
+  var sheet = getOrCreateUnifiedSheet_();
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) { Logger.log('لا بيانات'); return []; }
+
+  // V4: AZ=warnings (col 52, index 51)
+  var data = sheet.getRange(2, 1, lastRow - 1, 52).getValues();
+  var out = [];
+  for (var i = 0; i < data.length; i++) {
+    var warn = String(data[i][51]); // AZ index=51
+    if (warn && warn.trim() !== '') {
+      out.push({
+        row: i + 2,
+        chg: String(data[i][0]),
+        pnr: String(data[i][1]),
+        name: String(data[i][5]) + ' ' + String(data[i][6]),
+        warning: warn
+      });
+    }
+  }
+  Logger.log('🚨 عدد الصفوف بتحذيرات: ' + out.length);
+  out.forEach(function(r) {
+    Logger.log('صف ' + r.row + ' | ' + r.chg + ' | ' + r.pnr + ' | ' + r.name + ' → ' + r.warning);
+  });
+  return out;
 }
