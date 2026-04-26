@@ -52,7 +52,7 @@ GDS2.TicketProcessor = {
    * @param {string} passport
    * @return {Object} تقرير كامل — بدون كتابة لأي شيت
    */
-  processOne: function(passport) {
+  processOne: function(passport, options) {
     var overallStart = new Date();
 
     // 1. البحث عن الصف في B2C
