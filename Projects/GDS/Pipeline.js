@@ -37,6 +37,7 @@ GDS2.Pipeline = {
     }
 
     var stats = {
+      project_version: GDS2.Config.PROJECT_VERSION,
       started_at: new Date().toISOString(),
       started_ms: new Date().getTime(),
       rows_scanned: 0,
@@ -335,6 +336,21 @@ GDS2.Pipeline = {
 
 function runPipeline() {
   return GDS2.Pipeline.run();
+}
+
+/**
+ * يُرجع نسخة المشروع الحالية المُحمَّلة في GAS runtime.
+ * للتأكد من أن trigger يستخدم آخر deploy.
+ */
+function getProjectVersion() {
+  return {
+    version: GDS2.Config.PROJECT_VERSION,
+    timestamp_now: new Date().toISOString(),
+    has_rate_limited_field: ('rate_limited_count' in {
+      project_version: GDS2.Config.PROJECT_VERSION,
+      rate_limited_count: 0
+    })
+  };
 }
 
 function runCanary() {

@@ -8,6 +8,10 @@
 var GDS2 = (typeof GDS2 !== 'undefined') ? GDS2 : {};
 
 GDS2.Config = {
+  // ==================== Version Marker ====================
+  // يتغيّر مع كل deploy للتأكد من تحميل الكود الجديد
+  PROJECT_VERSION: '@61-2026-04-26-version-marker',
+
   // ==================== Spreadsheet ====================
   SS_ID: '1z4b3BmTLDLvYUs8H8cPU8MJrOuvuN5GztZ9pLlYhF6s',
 
