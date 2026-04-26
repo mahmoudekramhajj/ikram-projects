@@ -100,7 +100,7 @@ function mergeJourneyData() {
 
   for (var j = 1; j < journeyData.length; j++) {
     var jRow = journeyData[j];
-    var appId = String(jRow[jIdx['ApplicationId']] || '').trim();
+    var appId = String(jRow[jIdx['ApplicationId / Group Number'] !== undefined ? jIdx['ApplicationId / Group Number'] : jIdx['ApplicationId']] || '').trim();
     var gender = String(jRow[jIdx['Gender']] || '').trim();
     var isMain = String(jRow[jIdx['IsMain']] || '').trim();
 

@@ -1,0 +1,61 @@
+{
+  "project": "IkramHajjBot",
+  "function": "getPilgrimFlightData_",
+  "duration": "7.941s",
+  "timestamp": "2026-04-22T02:18:17.795Z",
+  "success": true,
+  "result": {
+    "flightType": "B2C",
+    "airline": {
+      "code": "",
+      "nameAr": "",
+      "nameEn": ""
+    },
+    "arrival": {
+      "direct": false,
+      "legs": [
+        {
+          "flightNo": "SV-559",
+          "takeoffDate": "2026-05-19T07:00:00.000Z",
+          "takeoffTime": "1899-12-31T00:00:00.000Z",
+          "from": "DXB",
+          "to": "RUH",
+          "landDate": "2026-05-19T07:00:00.000Z",
+          "landTime": "1899-12-31T01:00:00.000Z"
+        },
+        {
+          "flightNo": "SV-1045",
+          "takeoffDate": "2026-05-19T07:00:00.000Z",
+          "takeoffTime": "1899-12-31T03:00:00.000Z",
+          "from": "RUH",
+          "to": "JED",
+          "landDate": "2026-05-19T07:00:00.000Z",
+          "landTime": "1899-12-31T04:45:00.000Z"
+        }
+      ]
+    },
+    "return": {
+      "direct": false,
+      "legs": [
+        {
+          "flightNo": "SV-1030",
+          "takeoffDate": "2026-06-03T07:00:00.000Z",
+          "takeoffTime": "1899-12-30T20:00:00.000Z",
+          "from": "JED",
+          "to": "RUH",
+          "landDate": "2026-06-03T07:00:00.000Z",
+          "landTime": "1899-12-30T21:45:00.000Z"
+        },
+        {
+          "flightNo": "SV-560",
+          "takeoffDate": "2026-06-03T07:00:00.000Z",
+          "takeoffTime": "1899-12-31T00:00:00.000Z",
+          "from": "RUH",
+          "to": "DXB",
+          "landDate": "",
+          "landTime": ""
+        }
+      ]
+    }
+  }
+}

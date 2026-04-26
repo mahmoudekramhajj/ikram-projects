@@ -1,0 +1,52 @@
+{
+  "project": "IkramHajjBot",
+  "function": "getPilgrimFlightData_",
+  "duration": "4.882s",
+  "timestamp": "2026-04-22T02:08:19.519Z",
+  "success": true,
+  "result": {
+    "flightType": "B2B",
+    "airline": {
+      "code": "SV",
+      "nameAr": "SV",
+      "nameEn": "SV"
+    },
+    "arrival": {
+      "direct": false,
+      "legs": [
+        {
+          "flightNo": "SV144",
+          "takeoffDate": "2026-05-18T07:00:00.000Z",
+          "takeoffTime": "1899-12-30T19:30:00.000Z",
+          "from": "CDG",
+          "to": "RUH",
+          "landDate": "2026-05-18T07:00:00.000Z",
+          "landTime": "1899-12-31T02:45:00.000Z"
+        },
+        {
+          "flightNo": "SV1469",
+          "takeoffDate": "2026-05-19T07:00:00.000Z",
+          "takeoffTime": "1899-12-30T10:40:00.000Z",
+          "from": "RUH",
+          "to": "MED",
+          "landDate": "2026-05-19T07:00:00.000Z",
+          "landTime": "1899-12-30T12:15:00.000Z"
+        }
+      ]
+    },
+    "return": {
+      "direct": true,
+      "legs": [
+        {
+          "flightNo": "SV131",
+          "takeoffDate": "2026-05-31T07:00:00.000Z",
+          "takeoffTime": "1899-12-30T09:20:00.000Z",
+          "from": "JED",
+          "to": "CDG",
+          "landDate": "2026-05-31T07:00:00.000Z",
+          "landTime": "1899-12-30T14:25:00.000Z"
+        }
+      ]
+    }
+  }
+}

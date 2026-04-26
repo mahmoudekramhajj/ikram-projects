@@ -1,0 +1,61 @@
+{
+  "project": "IkramHajjBot",
+  "function": "getPilgrimFlightData_",
+  "duration": "5.676s",
+  "timestamp": "2026-04-22T02:18:06.307Z",
+  "success": true,
+  "result": {
+    "flightType": "B2B",
+    "airline": {
+      "code": "QR",
+      "nameAr": "QR",
+      "nameEn": "QR"
+    },
+    "arrival": {
+      "direct": false,
+      "legs": [
+        {
+          "flightNo": "QR1378",
+          "takeoffDate": "2026-05-06T07:00:00.000Z",
+          "takeoffTime": "1899-12-31T04:40:00.000Z",
+          "from": "JNB",
+          "to": "DOH",
+          "landDate": "2026-05-06T07:00:00.000Z",
+          "landTime": "1899-12-30T13:55:00.000Z"
+        },
+        {
+          "flightNo": "QR1178",
+          "takeoffDate": "2026-05-07T07:00:00.000Z",
+          "takeoffTime": "1899-12-30T15:25:00.000Z",
+          "from": "DOH",
+          "to": "MED",
+          "landDate": "2026-05-07T07:00:00.000Z",
+          "landTime": "1899-12-30T17:40:00.000Z"
+        }
+      ]
+    },
+    "return": {
+      "direct": false,
+      "legs": [
+        {
+          "flightNo": "QR1185",
+          "takeoffDate": "2026-06-02T07:00:00.000Z",
+          "takeoffTime": "1899-12-30T13:10:00.000Z",
+          "from": "JED",
+          "to": "DOH",
+          "landDate": "2026-06-02T07:00:00.000Z",
+          "landTime": "1899-12-30T15:10:00.000Z"
+        },
+        {
+          "flightNo": "QR1377",
+          "takeoffDate": "2026-06-02T07:00:00.000Z",
+          "takeoffTime": "1899-12-30T17:45:00.000Z",
+          "from": "DOH",
+          "to": "JNB",
+          "landDate": "2026-06-02T07:00:00.000Z",
+          "landTime": "1899-12-31T01:15:00.000Z"
+        }
+      ]
+    }
+  }
+}

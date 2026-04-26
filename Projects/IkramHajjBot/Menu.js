@@ -12,6 +12,7 @@ function sendMainMenu_(chatId, lang) {
     [{ text: T_('btn_my_qr', lang), callback_data: 'my_qr' }, { text: T_('btn_announcements', lang), callback_data: 'announcements' }],
     [{ text: T_('btn_my_data', lang), callback_data: 'my_data' }, { text: T_('btn_emergency', lang), callback_data: 'emergency' }],
     [{ text: T_('btn_contact', lang), callback_data: 'contact_company' }, { text: T_('btn_change_lang', lang), callback_data: 'change_lang' }],
+    [{ text: T_('btn_report_error', lang), callback_data: 'report_error' }, { text: T_('btn_my_reports', lang), callback_data: 'my_reports' }],
     [{ text: T_('btn_refresh', lang), callback_data: 'refresh_data' }, { text: T_('btn_switch', lang), callback_data: 'switch_pilgrim' }]
   ];
 

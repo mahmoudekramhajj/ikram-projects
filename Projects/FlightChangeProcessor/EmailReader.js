@@ -634,19 +634,79 @@ function scanEmailsV3() {
 
         // === نوع B: إيميل نصّي ===
         if (nusukPDFs.length === 0) {
-          var textLegs = extractFlightLegs_(body);
-          if (textLegs && textLegs.length > 0) {
-            Logger.log('  📝 إيميل نصّي — ' + textLegs.length + ' رحلة');
+          // V5 — جرّب Claude على النص أولاً
+          var textData = parseTextWithClaude_(body);
+
+          if (textData && !textData.skipped && textData.outboundLegs) {
+            // Claude نجح في استخراج رحلات من النص
+            Logger.log('  📝 Claude-text: ' + textData.passengers.length + ' مسافر + ' + (textData.outboundLegs.length + textData.returnLegs.length) + ' رحلة');
+
+            // حماية ذاتية
+            var validationText = validateClaudeResult_(textData, allData);
+            if (!validationText.valid) {
+              Logger.log('  ⛔ رفض text — ' + validationText.reason);
+              results.skipped++;
+              continue;
+            }
+
+            // تحويل إلى legs قديم (للتوافق مع processTextUnified_)
+            var convertedLegs = [];
+            for (var ol = 0; ol < textData.outboundLegs.length; ol++) {
+              var leg = textData.outboundLegs[ol];
+              convertedLegs.push({
+                direction: 'outbound',
+                flightNumber: leg.flightNumber || '',
+                fromCity: leg.fromCity,
+                toCity: leg.toCity,
+                depDate: leg.depDate,
+                depTime: leg.depTime,
+                arrDate: leg.arrDate,
+                arrTime: leg.arrTime
+              });
+            }
+            for (var rl = 0; rl < textData.returnLegs.length; rl++) {
+              var leg2 = textData.returnLegs[rl];
+              convertedLegs.push({
+                direction: 'return',
+                flightNumber: leg2.flightNumber || '',
+                fromCity: leg2.fromCity,
+                toCity: leg2.toCity,
+                depDate: leg2.depDate,
+                depTime: leg2.depTime,
+                arrDate: leg2.arrDate,
+                arrTime: leg2.arrTime
+              });
+            }
+
+            var activePnr = textData.pnr || pnr;
             var wroteText = processTextUnified_(
-              message, body, subject, date, incidentNum, pnr, textLegs,
+              message, body, subject, date, incidentNum, activePnr, convertedLegs,
               allData, unifiedSheet, existingKeys
             );
             if (wroteText) {
               results.textProcessed++;
               threadProcessed = true;
+            } else {
+              results.skipped++;
+            }
+            continue;
+          }
+
+          // إذا Claude قال skip أو فشل، جرّب Regex القديم
+          var textLegs = extractFlightLegs_(body);
+          if (textLegs && textLegs.length > 0) {
+            Logger.log('  📝 Regex-text — ' + textLegs.length + ' رحلة');
+            var wroteText2 = processTextUnified_(
+              message, body, subject, date, incidentNum, pnr, textLegs,
+              allData, unifiedSheet, existingKeys
+            );
+            if (wroteText2) {
+              results.textProcessed++;
+              threadProcessed = true;
             }
           } else {
-            Logger.log('  ⏭️ بدون PDF ولا نص — تخطي');
+            var reason = textData && textData.reason ? textData.reason : 'no_content';
+            Logger.log('  ⏭️ بلا بيانات رحلة — ' + reason);
             results.skipped++;
           }
           continue;
@@ -660,11 +720,34 @@ function scanEmailsV3() {
           var driveFile = changesFolder.createFile(pdf);
           var shareLink = createShareLink_(driveFile);
 
-          var text = extractTextFromPDF_(driveFile.getId());
-          var ticketData = parseNusukTicket_(text);
+          // V5 — استخدام Claude بدل OCR+Regex
+          var ticketData = parseWithClaude_(pdf);
+
+          // Fallback للطريقة القديمة إذا Claude فشل كلياً (null)
+          if (!ticketData) {
+            Logger.log('  ⚠️ Claude فشل — محاولة OCR القديم');
+            var text = extractTextFromPDF_(driveFile.getId());
+            ticketData = parseNusukTicket_(text);
+          }
+
           if (!ticketData) {
             Logger.log('  ❌ لم يتم التعرف على التذكرة');
             results.errors++;
+            continue;
+          }
+
+          // إذا Claude قال skip (ثقة منخفضة أو ليس تذكرة) → لا نكتب
+          if (ticketData.skipped) {
+            Logger.log('  ⏭️ تخطي — ' + ticketData.reason);
+            results.skipped++;
+            continue;
+          }
+
+          // حماية أدنى — validation قبل الكتابة
+          var validation = validateClaudeResult_(ticketData, allData);
+          if (!validation.valid) {
+            Logger.log('  ⛔ رفض — ' + validation.reason);
+            results.skipped++;
             continue;
           }
 

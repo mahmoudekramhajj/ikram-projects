@@ -1,7 +1,7 @@
 // ============================================
 // جمع بيانات الحاج — هاتف سعودي + أرقام غرف + صورة جواز
 // شيت: Pilgrim Data
-// أعمدة: Passport | Name | SaudiPhone | Room1 | Room2 | Room3 | PassportPhotoURL | UpdatedAt
+// أعمدة: Passport | Name | SaudiPhone | Room1 | Room2 | Room3 | PassportPhotoURL | UpdatedAt | ReceptionStatus | ReceptionTime | ReceptionStaff
 // ============================================
 
 // ============================================
@@ -12,7 +12,7 @@ function getPilgrimDataSheet_() {
   var sheet = ss.getSheetByName(PILGRIM_DATA_SHEET);
   if (!sheet) {
     sheet = ss.insertSheet(PILGRIM_DATA_SHEET);
-    sheet.appendRow(['Passport', 'Name', 'SaudiPhone', 'Room1', 'Room2', 'Room3', 'PassportPhotoURL', 'UpdatedAt']);
+    sheet.appendRow(['Passport', 'Name', 'SaudiPhone', 'Room1', 'Room2', 'Room3', 'PassportPhotoURL', 'UpdatedAt', 'ReceptionStatus', 'ReceptionTime', 'ReceptionStaff']);
     sheet.setFrozenRows(1);
   }
   return sheet;
@@ -70,7 +70,7 @@ function savePilgrimField_(passport, pilgrimName, fieldIndex, value) {
 
   if (row === -1) {
     // إنشاء صف جديد
-    var newRow = [key, pilgrimName, '', '', '', '', '', new Date().toISOString()];
+    var newRow = [key, pilgrimName, '', '', '', '', '', new Date().toISOString(), '', '', ''];
     newRow[fieldIndex] = value;
     sheet.appendRow(newRow);
   } else {

@@ -1,0 +1,25 @@
+{
+  "success": true,
+  "result": {
+    "row": 6130,
+    "seq": "940430",
+    "group": "757839",
+    "type": "عضو عائلة",
+    "category": "مجاملة",
+    "passport": "U0425342",
+    "nameAr": "عبدالله ابو ورده",
+    "nameEn": "ABDALLAH ABUWARDEH",
+    "email": "KHETAM.ABDULLAH2019@GMAIL.COM",
+    "phone": "962790922613",
+    "guideName": "",
+    "packageNo": "8804",
+    "packageName": "اكرام الضيف ليجيند 134",
+    "flightType": "B2C",
+    "contractName": "NUSUK-26-03-000029435",
+    "visaStatus": "تمت الموافقة على التأشيرة",
+    "ticketNo": "A26030452543250",
+    "ticketUrl": "https://doc.almosafer.com/api/download/3ec1f7095f6e34316ce31420e6b087acALM2f4c493556336570744e6b6f796c412b536d414a394b4c4a4b6e583941706c6e4757654853706f4877796e78795230695a4156595a563438782f463730376971397762776463366a36333745542b43334b5075545755302b2f734c76635a6c476a58777a2b584c747032536d6e34736a7a636a4b4b7464397045394c6f78436f78487353672b6d357339436245574e6d526e74426e413d3d.pdf",
+    "invoiceNo": "NH24-0183766",
+    "camp": "مخيم  72ب"
+  }
+}

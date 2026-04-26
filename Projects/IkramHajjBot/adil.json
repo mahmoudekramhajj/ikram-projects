@@ -1,0 +1,25 @@
+{
+  "success": true,
+  "result": {
+    "row": 5135,
+    "seq": "839611",
+    "group": "678803",
+    "type": "رئيسي",
+    "category": "أفراد",
+    "passport": "YB7306014",
+    "nameAr": " ",
+    "nameEn": "ADIL EL ATTARI",
+    "email": "ELATTARIADIL178@GMAIL.COM",
+    "phone": "33758377279",
+    "guideName": "",
+    "packageNo": "8231",
+    "packageName": "اكرام الضيف بارك بلازا 103",
+    "flightType": "B2C",
+    "contractName": "NUSUK-26-02-01041007",
+    "visaStatus": "تمت الموافقة على التأشيرة",
+    "ticketNo": "A260201128823250",
+    "ticketUrl": "https://doc.almosafer.com/api/download/ab1e56f20fd843c20af019c8100a8cbeALM464b4f613872494a634c686a493375615142683658754a4256537a50326a6f2f795932566e36315369426453303845425a6c30374775365a717373625358717a326842612f7853647871622f4d776e636345347673736f49647673505a64567750326a5a3467506d632b54535033486d5457744762433464596a517847573933672f6a697a59425a714d597a396d38396a50625363513d3d.pdf",
+    "invoiceNo": "NH24-0165886",
+    "camp": "مخيم  المعيصم"
+  }
+}

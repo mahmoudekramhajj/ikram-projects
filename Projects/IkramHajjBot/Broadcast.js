@@ -74,7 +74,7 @@ function processAdminMessages_() {
 }
 
 // ============================================
-// جلب الجلسات المستهدفة
+// جلب الجلسات المستهدفة — من Presonal Details بدل رحلة الحاج
 // ============================================
 function getTargetSessions_(target, targetValue) {
   var sessionSheet = SpreadsheetApp.openById(SHEET_ID).getSheetByName('BotSessions');
@@ -93,15 +93,37 @@ function getTargetSessions_(target, targetValue) {
 
   if (target === 'all') return verified;
 
-  // نحتاج بيانات رحلة الحاج للاستهداف
-  var journeySheet = SpreadsheetApp.openById(SHEET_ID).getSheetByName(JOURNEY_SHEET);
-  var journeyData = journeySheet.getDataRange().getValues();
+  // نقرأ Presonal Details للاستهداف
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var pdSheet = ss.getSheetByName(PERSONAL_SHEET);
+  if (!pdSheet) return verified;
 
-  // بناء خريطة: passport → rowData
+  var pdData = pdSheet.getDataRange().getValues();
+
+  // بناء خريطة: passport → pdRow
   var passportMap = {};
-  for (var j = 1; j < journeyData.length; j++) {
-    var pp = String(journeyData[j][8] || '').toUpperCase().trim();
-    if (pp) passportMap[pp] = journeyData[j];
+  for (var j = 1; j < pdData.length; j++) {
+    var pp = String(pdData[j][PD.PASSPORT] || '').toUpperCase().trim();
+    if (pp) passportMap[pp] = pdData[j];
+  }
+
+  // للفلترة بالرحلة — نحتاج الطيران
+  var flightMap = null;
+  if (target === 'flight') {
+    flightMap = {};
+    var fltSheet = ss.getSheetByName(FLIGHTS_SHEET);
+    if (fltSheet) {
+      var fltData = fltSheet.getDataRange().getValues();
+      var pkgCols = [FLT.PKG1_NO, FLT.PKG2_NO, FLT.PKG3_NO, FLT.PKG4_NO, FLT.PKG5_NO,
+                     FLT.PKG6_NO, FLT.PKG7_NO, FLT.PKG8_NO, FLT.PKG9_NO, FLT.PKG10_NO];
+      for (var f = 2; f < fltData.length; f++) {
+        var go1 = String(fltData[f][FLT.GO1_FLIGHT] || '').trim().toUpperCase();
+        for (var pk = 0; pk < pkgCols.length; pk++) {
+          var pkgNo = String(fltData[f][pkgCols[pk]] || '').trim();
+          if (pkgNo) flightMap[pkgNo] = go1;
+        }
+      }
+    }
   }
 
   var filtered = [];
@@ -109,16 +131,18 @@ function getTargetSessions_(target, targetValue) {
 
   for (var k = 0; k < verified.length; k++) {
     var s = verified[k];
-    var row = passportMap[s.passport.toUpperCase().trim()];
-    if (!row) continue;
+    var pdRow = passportMap[s.passport.toUpperCase().trim()];
+    if (!pdRow) continue;
 
     var match = false;
     if (target === 'package') {
-      match = String(row[1] || '').toUpperCase().trim() === tv; // PackageId
+      match = String(pdRow[PD.PACKAGE_NO] || '').toUpperCase().trim() === tv;
     } else if (target === 'nationality') {
-      match = String(row[12] || '').toUpperCase().trim().indexOf(tv) !== -1; // NationalityEn
-    } else if (target === 'flight') {
-      match = String(row[24] || '').toUpperCase().trim().indexOf(tv) !== -1; // ArrivalFlightNumber
+      match = String(pdRow[PD.NATIONALITY] || '').toUpperCase().trim().indexOf(tv) !== -1;
+    } else if (target === 'flight' && flightMap) {
+      var pilgrimPkg = String(pdRow[PD.PACKAGE_NO] || '').trim();
+      var pilgrimFlight = flightMap[pilgrimPkg] || '';
+      match = pilgrimFlight.indexOf(tv) !== -1;
     }
 
     if (match) filtered.push(s);

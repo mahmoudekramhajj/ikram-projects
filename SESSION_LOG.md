@@ -4,6 +4,55 @@
 
 ---
 
+## 2026-04-23 | ClaudeBrain M1 — إنشاء المخ المركزي (Orchestrator)
+
+**ما تم إنجازه:**
+- تصميم كامل لـ ClaudeBrain: Orchestrator مركزي لكل عمليات الأتمتة في إكرام الضيف
+- قرارات معمارية مُعتمدة: خليط ذكي للنماذج (Haiku/Sonnet/Opus) + 6 شخصيات + الفقيه مستشار داخلي
+- الأسئلة الشرعية تحويل 100% لـ (مرشد + 1966) — المخ لا يُفتي
+- أول تطبيق مستهدف للربط: FlightChangeProcessor
+- مفتاح Claude API مخصّص للمخ (منفصل عن باقي المشاريع)
+
+**M1 (الهيكل الفارغ) — مكتمل:**
+- `Projects/ClaudeBrain/` مشروع GAS جديد
+- Script ID: `1ht-aJiQZE3JwgqUx563pbUykNLe--Xwfms2a-E1KhwEa8gtFnWReH98_`
+- Deployment (M1 Clean): `AKfycbzi2Vft_DeQMSkVQGKBvbzmzO5yhjdnat498L5Dnsg2S4RPFKIyQCcqhhf5Rbobcjko`
+- Web App URL: https://script.google.com/macros/s/AKfycbzi2Vft_DeQMSkVQGKBvbzmzO5yhjdnat498L5Dnsg2S4RPFKIyQCcqhhf5Rbobcjko/exec
+
+**الملفات (8):**
+- `Main.js` — doPost + doGet + event router
+- `Config.js` — قراءة Script Properties + أسعار النماذج + حساب التكلفة
+- `Claude.js` — استدعاء Anthropic API + retry exponential على 529/503/429
+- `Auth.js` — HMAC-SHA256 verification (constant-time compare)
+- `Budget.js` — حد يومي $2 + ساعي $0.5 مع تتبّع في Script Properties
+- `Identity.js` — الهوية الأساسية (system prompt)
+- `ClaudeAPI.js` — التحكم عن بُعد (ping/list/run)
+- `_Setup.js` — فارغ (كان يحتوي المفاتيح مؤقتاً ثم نُظّف)
+
+**الاختبارات الناجحة:**
+- ✅ GET / → رد ترحيبي
+- ✅ GET ?action=ping → ClaudeAPI يعمل
+- ✅ POST echo مع HMAC صحيح → رد JSON
+- ✅ POST ping → Claude Haiku ردّ بالعربية (1.87s، 39+31 tokens)
+- ✅ POST مع HMAC خاطئ → 401
+- ✅ POST بلا X-Signature → 401
+
+**ما ليس موجوداً بعد (لاحقاً في M2+):**
+- ❌ Tools (قراءة شيت، تيليغرام، إلخ)
+- ❌ Intents (FlightChange، TicketHandler، إلخ)
+- ❌ نظام الموافقة البشرية
+- ❌ ربط FlightChangeProcessor
+
+**الخطوة التالية:**
+- M2: أول intent + أول tool (readPilgrim)
+- بعدها: Tools قراءة للشيت (flight، package، transport)
+- ثم: intent flight_change + ربط FlightChangeProcessor
+
+**⚠️ عمل أمني لم يكتمل:**
+- المفتاح `sk-ant-api03-_j74n_bO8...` ظهر في سجل المحادثة → يجب تدويره: احذفه من console.anthropic.com وأنشئ جديداً ثم استبدل `CLAUDE_API_KEY` في Script Properties
+
+---
+
 ## 2026-04-08 | تصميم Infographic إحصائيات الحجاج حسب الجنسية
 
 **ما تم إنجازه:**

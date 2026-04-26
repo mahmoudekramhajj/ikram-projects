@@ -1,0 +1,138 @@
+{
+  "description": "Deployment manifest — script IDs, stable deployment IDs, live URLs, and version tracking",
+  "baseUrl": "https://script.google.com/macros/s/{deploymentId}/exec",
+  "projects": {
+    "Ikram": {
+      "scriptId": "1txmPRRjW5lx1k7RGhUXk0CxO3OOvvgiUeSmszZMsF3kcBtcgw7v76dbd",
+      "deploymentId": "AKfycbyBKuj5n7MCPGNHHYC2bOg7z_HEWoYpIevjz1sH2VcETiBJE1fHrp7ppRerwAoEyjiotA",
+      "lastVersion": null,
+      "lastDeployed": null
+    },
+    "Airport Search": {
+      "scriptId": "1Izf0A04wscTnuIaex1-oipNR6y8LHWNr_w6qa2YbCIhS_EiKtyVkZcuz",
+      "deploymentId": "AKfycby3C4-UVdtIVp2BGwta1YaR6hZqOG-BG5fOk0fifx0C9cHCedhbOG9Xt-EsESGrtudz",
+      "lastVersion": null,
+      "lastDeployed": null
+    },
+    "Hotel Management": {
+      "scriptId": "1FhtOVMzFALclBnYtBOP1fL89cgx6fLtEI_YxLijARg6QNv7nGGaWbJ3U",
+      "deploymentId": "AKfycbxNDwq4pJxhpE7p5iey0F61NbI-N6aDTrG67jUuhzryRQRp4rwl1D2xEI438zf62Ple",
+      "lastVersion": "69",
+      "lastDeployed": "2026-04-10T22:53:27Z"
+    },
+    "Reception Airport": {
+      "scriptId": "14g-5fXLwm1-kAXuKSCFP-at1rJvemajuZMpBFUdOrohJbwpdUan-2jif",
+      "deploymentId": "AKfycbzX_6PAon6GgwGdA19ai-w3mmXHIKT4RglJlO6qs6qBBRtqqDKtfXDEs4ZksyIcRBWG",
+      "lastVersion": null,
+      "lastDeployed": null
+    },
+    "Mina Camp Search": {
+      "scriptId": "1grSxyHbhrNbz5o8dsc3gy4vYQc3JRe9f-hrN8CGd36RF-ttweXtPEXu3",
+      "deploymentId": "AKfycbz1Nzfl9EwYc5VQaKyYW3cALetbGXbpbelW3kZA0_KdRaF9Bp6APMGxFW8ereKSW_nW",
+      "lastVersion": null,
+      "lastDeployed": null
+    },
+    "Sales Operations Report": {
+      "scriptId": "1q86OcUWZOI29jfQMLxwohrwgaliq5yOi96wJVEfdX0zYrxa7k8jkObk-",
+      "deploymentId": "AKfycbyrjdPf6Tx03HLyID9N5Y8kC4jV0XZ-WGmzT-IJ6VlkDMqjZJTci4h6zw0DqkaLuAWl",
+      "lastVersion": null,
+      "lastDeployed": null
+    },
+    "Pilgrim App": {
+      "scriptId": "1a7NzodkK9oiwwl4K-cMP4Qhr6mWCFPpm01RfzvB6xCzsVxo44xGGIpYX",
+      "deploymentId": "AKfycby6wMDtgNToRFw0XQG40D_I0SWcoT9vMidueMMJm2B5ufPan6CVOnUhAH_GJvS4nveAXA",
+      "lastVersion": null,
+      "lastDeployed": null
+    },
+    "Guide App": {
+      "scriptId": "1Ssf8TLv4pM0z5KARbzvu5m0hSHaiDHoZeg5qrxmvZS8v7JGVhPxKD30O",
+      "deploymentId": "AKfycbwirA68K9peWAsnAmcYZV3sDU1Bpy9TWQKt9lvtlF0kDGcvtxgqvAmJzhBdvD_eUf9Bdg",
+      "lastVersion": null,
+      "lastDeployed": null
+    },
+    "Transport Management": {
+      "scriptId": "1q7S0gljNiKtm3UCfHBmLBO_Dq3PuWmG22Ixcv-ATJUFySGiTjpyw8uQt",
+      "deploymentId": "AKfycbzekwok8gO8R29UkxDD_QX-tvKJ9E3vvd7buhIJsPTe65sEohfSJbtRDhwYVqapXT2XVg",
+      "lastVersion": null,
+      "lastDeployed": null
+    },
+    "IkramAdmin": {
+      "scriptId": "1f-zr0LuP9_NjDz0kLYHj5C60qQsVvWQCvf5pQzoFkR5sB843D-Z_ZZW1",
+      "deploymentId": null,
+      "lastVersion": null,
+      "lastDeployed": null
+    },
+    "Report Builder": {
+      "scriptId": "1pZjXdk0So0FeOokQGTOy-BHFp7DDyxO7NFCMNOeBBB-Cp7HZ4inztU0F",
+      "deploymentId": null,
+      "lastVersion": null,
+      "lastDeployed": null
+    },
+    "PilgrimStats": {
+      "scriptId": "1GaNM_2vPTp4KNMAY9tmm5Z5pv38ucviz52mYZkVYiZeL7hA6fO5LiV3F",
+      "deploymentId": null,
+      "lastVersion": null,
+      "lastDeployed": null
+    },
+    "IkramHajjBot": {
+      "scriptId": "1hJ5pojmbbYTy3Xv2fEt2yDwISpBof4GF8hywZHuL7LQvuJ-tgUzwrLYi",
+      "deploymentId": null,
+      "lastVersion": null,
+      "lastDeployed": null
+    },
+    "GDS": {
+      "scriptId": "181VvHqb5RpNebfMkRMoqi9oNo-26rDbAPF_ZLjkLCka81xS0cJXsUax4",
+      "deploymentId": null,
+      "lastVersion": null,
+      "lastDeployed": null
+    },
+    "B2C Sync": {
+      "scriptId": "1IJ9LsGSSlfdzHkbzn16zc4i--TWdrYvV4zUh4oSNv6O-xtMMyVYcrGLz",
+      "deploymentId": null,
+      "lastVersion": null,
+      "lastDeployed": null
+    },
+    "Holiday In Bakkah": {
+      "scriptId": "1uxCF_apaYDy8xA29NZOW-W5eWefYHNjmvsY-6qr7bD82iwXMf5BrVFN_",
+      "deploymentId": null,
+      "lastVersion": null,
+      "lastDeployed": null
+    },
+    "PNR Target Countries Sync": {
+      "scriptId": "1ZNY7dC2k96mDyKR3cZoNEf59vNAGXlC_BUx2Nkgs5KK4_9ZAxUK7Z51N",
+      "deploymentId": null,
+      "lastVersion": null,
+      "lastDeployed": null
+    },
+    "IkramAgent": {
+      "scriptId": "1hwFQRZjt4ZfwgHcoM64IWdbxHPun4GXi8rrBV2ytHA5ttY0hBQuXdAZv",
+      "deploymentId": null,
+      "lastVersion": null,
+      "lastDeployed": null
+    },
+    "TourGuide Manager": {
+      "scriptId": "1dSWbcN-CVc3IyFvJIk0ravd2UJNl7lhMFd_IhT37s5CkILegS_YMMOGE",
+      "deploymentId": null,
+      "lastVersion": null,
+      "lastDeployed": null
+    },
+    "Ticket Processor": {
+      "scriptId": "1TUIJyz8kYhxRINh73A3rfwBGCrueP-XoF7e1Jk6PTOskcAflDLLKiXg-",
+      "deploymentId": null,
+      "lastVersion": null,
+      "lastDeployed": null
+    }
+  },
+  "webOnlyApps": {
+    "_comment": "Apps in index.html without local clasp directories",
+    "Pilgrim Preferences": {
+      "deploymentId": "AKfycbxlRpr91U0GveYbt6A8Quui0KtTS9v02Eov7RunYBIaoAJEkF8CxfR8TbxNyOS1TOx6"
+    },
+    "Personal Interviews": {
+      "deploymentId": "AKfycbxxGMPD3ang8V5sVF5j1UeHiXVHfH7WdxrCnjUwAG_tbN96HU-eFGvKr4JHX7EwPMcG"
+    },
+    "Readiness Check": {
+      "deploymentId": "AKfycbyWOio_NjQBUp5H4FBNCSMB4LehCc5dkmeWlu2rEyy6472ZKK_g1ED5VUt5VUfmMhmBBQ"
+    }
+  }
+}

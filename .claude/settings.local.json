@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e \":*)",
+      "Bash(node C:/tmp/b2b_report.js)",
+      "Bash(node -e \"var d=JSON.parse\\(require\\(''fs''\\).readFileSync\\(''D:/اكرام الضيف/Ekram Aldyf/Projects/SheetData/sheets/رحلة الحاج .json'',''utf8''\\)\\); console.log\\(''Total rows:'', d.length\\); var found=d.filter\\(r=>String\\(r[8]||''''\\).toUpperCase\\(\\).includes\\(''M00204827''\\)||String\\(r[8]||''''\\).toUpperCase\\(\\).includes\\(''21CF54445''\\)\\); console.log\\(''Found:'', found.length\\); if\\(found.length\\) found.forEach\\(r=>console.log\\(''Passport:'', r[8], ''Name:'', r[7]\\)\\);\")",
+      "Bash(node -e \"var d=JSON.parse\\(require\\(''fs''\\).readFileSync\\(''D:/اكرام الضيف/Ekram Aldyf/Projects/SheetData/sheets/رحلة الحاج .json'',''utf8''\\)\\); console.log\\(''Sample passports \\(rows 2-10\\):''\\); for\\(var i=2;i<12&&i<d.length;i++\\) console.log\\(''Row'',i,'': passport=[''+d[i][8]+''] name=[''+d[i][7]+'']''\\);\")",
+      "Bash(node -e \"var d=JSON.parse\\(require\\(''fs''\\).readFileSync\\(''D:/اكرام الضيف/Ekram Aldyf/Projects/SheetData/sheets/رحلة الحاج .json'',''utf8''\\)\\); console.log\\(''Type:'', typeof d[0], Array.isArray\\(d[0]\\)\\); console.log\\(''Row 0 keys:'', d[0] ? Object.keys\\(d[0]\\).slice\\(0,10\\) : ''N/A''\\); console.log\\(''Row 2:'', JSON.stringify\\(d[2]\\).substring\\(0,300\\)\\);\")",
+      "Bash(clasp versions:*)",
+      "Bash(node -e \"var d=JSON.parse\\(require\\(''fs''\\).readFileSync\\(''D:/اكرام الضيف/Ekram Aldyf/Projects/SheetData/sheets/رحلة الحاج .json'',''utf8''\\)\\); var found=d.filter\\(r=>r.Passport && \\(r.Passport.toUpperCase\\(\\).indexOf\\(''21CF54445''\\)!==-1 || r.Passport.toUpperCase\\(\\).indexOf\\(''M00204827''\\)!==-1\\)\\); console.log\\(''Found:'', found.length\\); found.forEach\\(r=>console.log\\(r.Passport, r.Name\\)\\);\")",
+      "Bash(clasp pull:*)",
+      "Bash(node -e \"var d=JSON.parse\\(require\\(''fs''\\).readFileSync\\(''D:/اكرام الضيف/Ekram Aldyf/Projects/SheetData/sheets/رحلة الحاج .json'',''utf8''\\)\\); console.log\\(''Total rows:'', d.length\\); console.log\\(''Sample passport col 8:'', d[5] ? d[5].Passport : ''N/A''\\); console.log\\(''Has Passport field:'', d[0] ? ''Passport'' in d[0] : ''N/A''\\);\")",
+      "Bash(node -e \"var d=JSON.parse\\(require\\(''fs''\\).readFileSync\\(''D:/اكرام الضيف/Ekram Aldyf/Projects/SheetData/sheets/رحلة الحاج .json'',''utf8''\\)\\); var count=0; for\\(var i=0;i<d.length;i++\\){if\\(d[i].Passport && String\\(d[i].Passport\\).trim\\(\\)!==''''\\){count++;}} console.log\\(''Rows with passport:'', count, ''/ Total:'', d.length\\); var sample=d.filter\\(r=>r.Passport&&String\\(r.Passport\\).trim\\(\\)!==''''\\).slice\\(0,3\\); sample.forEach\\(r=>console.log\\(''  '',r.Passport,''|'',r.Name\\)\\);\")",
+      "Bash(clasp run:*)",
+      "mcp__c1fc4002-5f49-5f9d-a4e5-93c4ef5d6a75__google_drive_search"
+    ]
+  }
+}

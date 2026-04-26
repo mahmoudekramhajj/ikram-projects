@@ -3,7 +3,7 @@
 // ============================================
 
 function setWebhook() {
-  var webAppUrl = 'https://script.google.com/macros/s/AKfycbzwttFqmWLBnKtn10E7c2Jzp-XhBTLARGiMHKRM9SgH-ULjyW8FHODpSedHQzOGQjo9Rg/exec';
+  var webAppUrl = 'https://script.google.com/macros/s/AKfycbyRxUEkiKfLHB9aUZn0m2Mc7jgGgCC9ltdXD5qug2ZDiuDEflzei11oewnR1cR3EcgICg/exec';
   var res = UrlFetchApp.fetch(TELEGRAM_API + '/setWebhook', {
     method: 'post',
     contentType: 'application/json',
@@ -30,17 +30,17 @@ function testBot() {
     Logger.log('Write ERROR: ' + e.message);
   }
 
-  Logger.log('=== Test 2: Journey Sheet ===');
+  Logger.log('=== Test 2: Presonal Details ===');
   try {
     var ss = SpreadsheetApp.openById(SHEET_ID);
-    var jSheet = ss.getSheetByName(JOURNEY_SHEET);
-    Logger.log('Journey sheet found: ' + (jSheet ? 'YES' : 'NO'));
-    if (jSheet) {
-      var headers = jSheet.getRange(1, 1, 1, 15).getValues()[0];
+    var pdSheet = ss.getSheetByName(PERSONAL_SHEET);
+    Logger.log('Presonal Details sheet found: ' + (pdSheet ? 'YES' : 'NO'));
+    if (pdSheet) {
+      var headers = pdSheet.getRange(1, 1, 1, 15).getValues()[0];
       Logger.log('First 15 headers: ' + headers.join(' | '));
     }
   } catch(e) {
-    Logger.log('Journey ERROR: ' + e.message);
+    Logger.log('Presonal Details ERROR: ' + e.message);
   }
 
   Logger.log('=== Test 3: Telegram ===');
@@ -62,11 +62,8 @@ function testBot() {
 
 function clearAllCache() {
   CacheService.getScriptCache().removeAll([]);
-  // removeAll with empty doesn't work, use a different approach
   var cache = CacheService.getScriptCache();
-  // Can't enumerate keys, so just log
-  Logger.log('Note: CacheService cannot enumerate keys. Cache will expire naturally (30 min TTL).');
-  Logger.log('Workaround: setting TTL to 1 second for known patterns.');
+  Logger.log('Note: CacheService cannot enumerate keys. Cache will expire naturally (5 min TTL).');
 }
 
 function debugHotelMap() {
@@ -101,20 +98,58 @@ function debugHotelMap() {
 function debugTransport() {
   var ss = SpreadsheetApp.openById(SHEET_ID);
 
-  var jSheet = ss.getSheetByName(JOURNEY_SHEET);
-  var jData = jSheet.getDataRange().getValues();
-  for (var i = 1; i < jData.length; i++) {
-    if (String(jData[i][8]).toUpperCase().trim() === '674711081') {
-      Logger.log('Journey PackageId: [' + jData[i][1] + '] type: ' + typeof jData[i][1]);
+  var pdSheet = ss.getSheetByName(PERSONAL_SHEET);
+  var pdData = pdSheet.getDataRange().getValues();
+  for (var i = 1; i < pdData.length; i++) {
+    if (String(pdData[i][PD.PASSPORT]).toUpperCase().trim() === '674711081') {
+      Logger.log('PD PackageNo: [' + pdData[i][PD.PACKAGE_NO] + '] type: ' + typeof pdData[i][PD.PACKAGE_NO]);
       break;
     }
   }
 
-  var pSheet = ss.getSheetByName('الباقات');
+  var pSheet = ss.getSheetByName(PACKAGES_SHEET);
   var pData = pSheet.getDataRange().getValues();
   Logger.log('Row0 headers count: ' + pData[0].length);
-  Logger.log('Row1 BN value: [' + pData[1][65] + ']');
+  Logger.log('Row1 BN value: [' + pData[1][PKG.TRANSPORT] + ']');
   for (var j = 2; j < 7 && j < pData.length; j++) {
-    Logger.log('Row' + j + ' B=[' + pData[j][1] + '] type=' + typeof pData[j][1] + ' BN=[' + pData[j][65] + ']');
+    Logger.log('Row' + j + ' B=[' + pData[j][PKG.NUSK_NO] + '] type=' + typeof pData[j][PKG.NUSK_NO] + ' BN=[' + pData[j][PKG.TRANSPORT] + ']');
   }
 }
+
+function debugFlight() {
+  var passport = '25FD36016';
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var pdSheet = ss.getSheetByName(PERSONAL_SHEET);
+  var pdData = pdSheet.getDataRange().getValues();
+  var pd = null;
+  for (var i = 1; i < pdData.length; i++) {
+    if (String(pdData[i][PD.PASSPORT]).toUpperCase().trim() === passport) { pd = pdData[i]; break; }
+  }
+  if (!pd) { Logger.log('not found'); return; }
+
+  var contractName = String(pd[PD.CONTRACT_NAME] || '').trim();
+  var fltSheet = ss.getSheetByName(FLIGHTS_SHEET);
+  var fltData = fltSheet.getDataRange().getValues();
+
+  // Find the row
+  var row = -1;
+  for (var f = 2; f < fltData.length; f++) {
+    if (String(fltData[f][FLT.CONTRACT_NAME] || '').trim() === contractName) { row = f; break; }
+  }
+  if (row === -1) { Logger.log('row not found'); return; }
+
+  // Print columns 35-50 headers (row 0 + row 1) and data
+  Logger.log('=== COLUMNS 35-50 (RET1 + RET2 area) ===');
+  for (var c = 35; c <= 50; c++) {
+    var colLetter = getColLetter_(c);
+    Logger.log('[' + c + '] ' + colLetter + ': header0=[' + fltData[0][c] + '] header1=[' + fltData[1][c] + '] data=[' + fltData[row][c] + ']');
+  }
+}
+
+function getColLetter_(n) {
+  var s = '';
+  n++;
+  while (n > 0) { n--; s = String.fromCharCode(65 + (n % 26)) + s; n = Math.floor(n / 26); }
+  return s;
+}
+// v86-webhook

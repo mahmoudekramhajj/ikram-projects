@@ -6,7 +6,7 @@
 var CONFIG = {
   SPREADSHEET_ID: '1z4b3BmTLDLvYUs8H8cPU8MJrOuvuN5GztZ9pLlYhF6s',
   SHEET_NAME: 'Presonal Details',
-  CACHE_KEY: 'PILGRIM_STATS_V7',
+  CACHE_KEY: 'PILGRIM_STATS_V8',
   CACHE_DURATION: 300
 };
 
@@ -22,6 +22,14 @@ var COL = {
 
 function doGet(e) {
   var view = (e && e.parameter && e.parameter.view) || '';
+
+  // ── منفذ تشخيصي — يعيد JSON ──
+  if (view === 'diagnose') {
+    return ContentService
+      .createTextOutput(JSON.stringify(diagnosePilgrimStats_(), null, 2))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
   var viewMap = {
     'kpi': 'KpiView',
     'summary': 'SummaryView',
@@ -80,7 +88,7 @@ function getPilgrimStats() {
     if (ci.CAMP < 0) ci.CAMP = 27;          // عمود AB
 
     // المتغيرات
-    var total = data.length;
+    var total = 0;
     var gM = 0, gF = 0;
     var b2bM = 0, b2bF = 0, b2bT = 0;
     var b2cM = 0, b2cF = 0, b2cT = 0;
@@ -94,8 +102,11 @@ function getPilgrimStats() {
     var courByCo = {};   // المجاملة حسب الدولة مع ذكور/إناث
     var indByCo = {};    // الأفراد حسب الدولة مع ذكور/إناث
 
-    for (var i = 0; i < total; i++) {
+    for (var i = 0; i < data.length; i++) {
       var row = data[i];
+      // تجاهل الصفوف الفارغة (لا اسم في عمود A)
+      if (!row[0] || String(row[0]).trim() === '') continue;
+      total++;
       var g = String(row[ci.GENDER] || '').trim();
       var isMale = (g === 'ذكر') ? 1 : 0;
       var isFemale = (g === 'انثى') ? 1 : 0;
@@ -359,4 +370,143 @@ function countryCode_(name) {
 function mapCat_(cat) {
   var m = { 'Standard': 'اقتصادية', 'Economy': 'اقتصادية', 'Premium': 'مميزة', 'Premium Shifting': 'مميزة انتقالية', 'Luxury': 'فاخرة', 'Luxury Shifting': 'فاخرة انتقالية' };
   return m[cat] || cat || 'أخرى';
+}
+
+// ══════════════════════════════════════════════════════════════
+// 🔬 دالة تشخيصية مؤقتة — لكشف سبب تضخم الإجمالي
+// ══════════════════════════════════════════════════════════════
+function diagnosePilgrimStats_() {
+  var ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+  var sheet = ss.getSheetByName(CONFIG.SHEET_NAME);
+
+  var report = {
+    sheetName: CONFIG.SHEET_NAME,
+    sheetId: CONFIG.SPREADSHEET_ID,
+    timestamp: new Date().toISOString()
+  };
+
+  // 1) أبعاد الشيت — مصادر مختلفة
+  report.dimensions = {
+    getLastRow: sheet.getLastRow(),
+    getLastColumn: sheet.getLastColumn(),
+    getMaxRows: sheet.getMaxRows(),
+    getMaxColumns: sheet.getMaxColumns(),
+    getDataRange_numRows: sheet.getDataRange().getNumRows(),
+    getDataRange_numCols: sheet.getDataRange().getNumColumns()
+  };
+
+  // 2) الرؤوس (أول 30 عمود)
+  var lastCol = sheet.getLastColumn();
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  report.headers = {};
+  for (var h = 0; h < Math.min(headers.length, 30); h++) {
+    report.headers['col_' + (h+1) + '_' + columnLetter_(h+1)] = String(headers[h]);
+  }
+
+  // 3) قراءة كل البيانات
+  var lastRow = sheet.getLastRow();
+  var data = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  report.totalRowsRead = data.length;
+
+  // 4) فحص العمود A — كم صف فيه قيمة، كم فارغ، كم formula
+  var colA_filled = 0, colA_empty = 0;
+  var colA_samples_filled = [], colA_samples_empty = [];
+  for (var i = 0; i < data.length; i++) {
+    var v = data[i][0];
+    if (v === '' || v === null || v === undefined || String(v).trim() === '') {
+      colA_empty++;
+      if (colA_samples_empty.length < 3) colA_samples_empty.push({ row: i+2, allRowSample: sliceRow_(data[i], 6) });
+    } else {
+      colA_filled++;
+      if (colA_samples_filled.length < 3) colA_samples_filled.push({ row: i+2, value: String(v) });
+    }
+  }
+  report.columnA = {
+    name: String(headers[0]),
+    filled: colA_filled,
+    empty: colA_empty,
+    samplesFilled: colA_samples_filled,
+    samplesEmpty: colA_samples_empty
+  };
+
+  // 5) محاولة إيجاد عمود رقم الجواز
+  var passportCol = -1;
+  var passportNames = ['رقم الجواز', 'جواز السفر', 'Passport', 'Passport No', 'رقم جواز السفر'];
+  for (var pn = 0; pn < passportNames.length; pn++) {
+    var idx = headers.indexOf(passportNames[pn]);
+    if (idx >= 0) { passportCol = idx; break; }
+  }
+  report.passportColumn = passportCol >= 0
+    ? { found: true, index: passportCol, header: String(headers[passportCol]) }
+    : { found: false, hint: 'لم يُعثر على عمود الجواز بأحد الأسماء المتوقعة' };
+
+  // 6) إن وُجد عمود جواز — تحليل التكرار
+  if (passportCol >= 0) {
+    var passportCount = {};
+    for (var j = 0; j < data.length; j++) {
+      var p = String(data[j][passportCol] || '').trim();
+      if (!p) continue;
+      passportCount[p] = (passportCount[p] || 0) + 1;
+    }
+    var distribution = { '1x': 0, '2x': 0, '3x': 0, '4x': 0, '5x+': 0 };
+    var dupSamples = [];
+    for (var pk in passportCount) {
+      var c = passportCount[pk];
+      if (c === 1) distribution['1x']++;
+      else if (c === 2) distribution['2x']++;
+      else if (c === 3) distribution['3x']++;
+      else if (c === 4) distribution['4x']++;
+      else distribution['5x+']++;
+      if (c > 1 && dupSamples.length < 5) dupSamples.push({ passport: pk, occurrences: c });
+    }
+    report.duplication = {
+      uniquePassports: Object.keys(passportCount).length,
+      distribution: distribution,
+      duplicateSamples: dupSamples
+    };
+  }
+
+  // 7) فحص عمود فئة الحجاج (D) — قيم مميزة
+  var catValues = {};
+  for (var k = 0; k < data.length; k++) {
+    var cv = String(data[k][3] || '').trim() || '(فارغ)';
+    catValues[cv] = (catValues[cv] || 0) + 1;
+  }
+  report.categoryColumnD = catValues;
+
+  // 8) فحص عمود نوع الطيران (U / index 20)
+  var ftValues = {};
+  for (var m = 0; m < data.length; m++) {
+    var fv = String(data[m][20] || '').trim().toUpperCase() || '(فارغ)';
+    ftValues[fv] = (ftValues[fv] || 0) + 1;
+  }
+  report.flightTypeColumnU = ftValues;
+
+  // 9) فحص عمود المخيم (AB / index 27)
+  var campValues = {};
+  for (var n = 0; n < data.length; n++) {
+    var cmv = String(data[n][27] || '').trim() || '(فارغ)';
+    campValues[cmv] = (campValues[cmv] || 0) + 1;
+  }
+  report.campColumnAB = campValues;
+
+  return report;
+}
+
+function sliceRow_(row, n) {
+  var out = [];
+  for (var i = 0; i < Math.min(row.length, n); i++) {
+    out.push(String(row[i] || '').substring(0, 30));
+  }
+  return out;
+}
+
+function columnLetter_(colNum) {
+  var s = '';
+  while (colNum > 0) {
+    var m = (colNum - 1) % 26;
+    s = String.fromCharCode(65 + m) + s;
+    colNum = Math.floor((colNum - m) / 26);
+  }
+  return s;
 }

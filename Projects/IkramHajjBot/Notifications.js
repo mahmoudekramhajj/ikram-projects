@@ -140,8 +140,8 @@ function sendNotif_arrival_reminder_(chatId, lang, r, guide) {
   var flight = String(r[24] || '-');
   var from = String(r[21] || '-');
   var to = String(r[19] || '-');
-  var date = formatDate_(r[20]);
-  var time = formatTime_(r[23]);
+  var date = (lang === 'ar') ? formatArabicDate_(r[20]) : formatDate_(r[20]);
+  var time = (lang === 'ar') ? formatArabicTime_(r[23]) : formatTime_(r[23]);
 
   var guideLine = '';
   if (guide) {
@@ -183,7 +183,7 @@ function sendNotif_arrival_tomorrow_(chatId, lang, r, guide) {
   var flight = String(r[24] || '-');
   var from = String(r[21] || '-');
   var to = String(r[19] || '-');
-  var time = formatTime_(r[23]);
+  var time = (lang === 'ar') ? formatArabicTime_(r[23]) : formatTime_(r[23]);
   var house1 = String(r[36] || '-');
 
   var hotel = '';
@@ -407,8 +407,8 @@ function sendNotif_new_hotel_info_(chatId, lang, r) {
     hotel2 = (lang === 'ar') ? String(r[42] || '-') : String(r[43] || '-');
   }
 
-  var checkIn = formatDate_(r[40]);
-  var checkOut = formatDate_(r[41]);
+  var checkIn = (lang === 'ar') ? formatArabicDate_(r[40]) : formatDate_(r[40]);
+  var checkOut = (lang === 'ar') ? formatArabicDate_(r[41]) : formatDate_(r[41]);
 
   var mapLink = getHotelMapLink_(hotel2);
   var mapLine = mapLink ? '\n📍 <a href="' + mapLink + '">' + T_('lbl_map', lang) + hotel2 + '</a>' : '';
@@ -448,8 +448,8 @@ function sendNotif_ask_room_(chatId, lang, hotelNum) {
 // #12 — تذكير قبل المغادرة بيومين
 function sendNotif_departure_2days_(chatId, lang, r) {
   var flight = String(r[34] || '-');
-  var date = formatDate_(r[32]);
-  var time = formatTime_(r[33]);
+  var date = (lang === 'ar') ? formatArabicDate_(r[32]) : formatDate_(r[32]);
+  var time = (lang === 'ar') ? formatArabicTime_(r[33]) : formatTime_(r[33]);
   var from = String(r[31] || '-');
   var to = String(r[29] || '-');
 
@@ -487,8 +487,8 @@ function sendNotif_departure_tomorrow_(chatId, lang, r) {
   var flight = String(r[34] || '-');
   var from = String(r[31] || '-');
   var to = String(r[29] || '-');
-  var date = formatDate_(r[32]);
-  var time = formatTime_(r[33]);
+  var date = (lang === 'ar') ? formatArabicDate_(r[32]) : formatDate_(r[32]);
+  var time = (lang === 'ar') ? formatArabicTime_(r[33]) : formatTime_(r[33]);
 
   var msgs = {
     ar: '📢 <b>غداً رحلة عودتك!</b>\n━━━━━━━━━━━━━━\n' +
@@ -522,7 +522,7 @@ function sendNotif_departure_tomorrow_(chatId, lang, r) {
 // #14 — يوم المغادرة
 function sendNotif_departure_today_(chatId, lang, r) {
   var flight = String(r[34] || '-');
-  var time = formatTime_(r[33]);
+  var time = (lang === 'ar') ? formatArabicTime_(r[33]) : formatTime_(r[33]);
   var from = String(r[31] || '-');
 
   var msgs = {
