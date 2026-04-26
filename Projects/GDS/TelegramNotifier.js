@@ -112,18 +112,10 @@ GDS2.TelegramNotifier = {
   },
 
   sendNusukAuth: function(pilgrim) {
-    var text = [
-      '🔒 رابط نسك محمي',
-      '',
-      '🧳 الحاج: ' + (pilgrim.name || '—'),
-      '📔 الجواز: ' + (pilgrim.passport || '—'),
-      '📋 الرابط يحتاج تسجيل دخول لنسك',
-      '⏸️ المعالجة متوقفة — راجع يدوياً',
-      '',
-      '🔗 رابط التذكرة:',
-      pilgrim.url || '—'
-    ].join('\n');
-    return GDS2.TelegramNotifier.send(text);
+    // مُعطّل — لم نعد نُصنّف Drive URLs كـ "نسك محمي" بعد إصلاح Drive transformation
+    // الإبقاء على الدالة لتجنب أخطاء عند استدعاء كود قديم مُخزَّن في GAS cache
+    GDS2.Log.info('sendNusukAuth: disabled (no-op)', { pilgrim: pilgrim && pilgrim.passport });
+    return { status: 'skipped', reason: 'function_disabled' };
   },
 
   sendRisks: function(pilgrim, riskText) {
