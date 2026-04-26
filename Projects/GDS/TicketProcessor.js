@@ -78,6 +78,19 @@ GDS2.TicketProcessor = {
       }
     }
 
+    // Rate limit (429) — تخطٍ مؤقت بدون تسجيل فشل
+    if (dl.status === 'rate_limited') {
+      return {
+        status: 'rate_limited',
+        stage: 'download',
+        passport: passport,
+        name: name,
+        url: url,
+        details: dl,
+        total_elapsed_sec: (new Date() - overallStart) / 1000
+      };
+    }
+
     if (dl.status !== 'ok') {
       return {
         status: 'error',
@@ -315,6 +328,11 @@ function processAndWrite(passport) {
   }
 
   var parseResult = processWithValidation(passport, { audit: auditMode });
+
+  // Rate limit مؤقت (429) — تخطٍ بدون تسجيل فشل ولا إشعار
+  if (parseResult.status === 'rate_limited') {
+    return parseResult;
+  }
 
   // لو الفشل قبل Claude (download/ocr/claude): سجّل فشل على الصف
   if (parseResult.status !== 'ok') {

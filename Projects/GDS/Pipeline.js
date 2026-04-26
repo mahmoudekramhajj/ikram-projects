@@ -45,6 +45,7 @@ GDS2.Pipeline = {
       failure_count: 0,
       disaster_count: 0,
       nusuk_auth_count: 0,
+      rate_limited_count: 0,
       skipped_already: 0,
       skipped_manual: 0,
       skipped_max_fails: 0,
@@ -193,8 +194,8 @@ GDS2.Pipeline = {
     try {
       var result = processAndWrite(passport);
 
-      // إشعارات تيليغرام (اختيارية)
-      if (notifyTelegram && result.status !== 'written') {
+      // إشعارات تيليغرام (اختيارية) — لا إشعار للـ rate_limited
+      if (notifyTelegram && result.status !== 'written' && result.status !== 'rate_limited') {
         GDS2.Pipeline._notifyIfNeeded(result);
       }
 
@@ -312,6 +313,9 @@ GDS2.Pipeline = {
       }
     } else if (result.status === 'disaster') {
       stats.disaster_count++;
+    } else if (result.status === 'rate_limited') {
+      // Drive rate limit مؤقت — لن نُشعر، سنحاول الدورة التالية
+      stats.rate_limited_count++;
     } else if (result.status === 'validation_failed') {
       stats.failure_count++;
     } else {

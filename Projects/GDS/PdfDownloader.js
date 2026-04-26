@@ -34,7 +34,13 @@ GDS2.PdfDownloader = {
     var startTime = new Date();
 
     // تحويل Drive view URLs إلى صيغة تحميل مباشر
+    var originalUrl = url;
     url = GDS2.PdfDownloader._transformDriveUrl(url);
+
+    // Drive يفرض rate limits — sleep 500ms قبل التحميل
+    if (url !== originalUrl) {
+      Utilities.sleep(500);
+    }
 
     try {
       var response = UrlFetchApp.fetch(url, {
@@ -42,6 +48,17 @@ GDS2.PdfDownloader = {
         followRedirects: true
       });
       var code = response.getResponseCode();
+
+      // 429 = Rate limited — لا نعتبره فشلاً، نتخطى للدورة التالية
+      if (code === 429) {
+        return {
+          status: 'rate_limited',
+          reason: 'http_429',
+          http_code: 429,
+          elapsed_sec: (new Date() - startTime) / 1000
+        };
+      }
+
       if (code !== 200) {
         return {
           status: 'error',
