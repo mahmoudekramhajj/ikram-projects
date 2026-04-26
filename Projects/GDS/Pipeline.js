@@ -221,12 +221,6 @@ GDS2.Pipeline = {
       return;
     }
 
-    // Nusuk auth — تُرسل مرة واحدة (BM=TRUE من processAndWrite)
-    if (result.nusuk_marked) {
-      GDS2.TelegramNotifier.sendNusukAuth(pilgrim);
-      return;
-    }
-
     // باقي الفشل: فقط عند التوقف النهائي (BL وصل للحد)
     if (!result.stopped) {
       return;
@@ -320,17 +314,8 @@ GDS2.Pipeline = {
       stats.disaster_count++;
     } else if (result.status === 'validation_failed') {
       stats.failure_count++;
-    } else if (result.stage === 'download' && result.details && result.details.status === 'not_pdf') {
-      // يُعامَل كـ nusuk auth needed
-      stats.nusuk_auth_count++;
-      // تعليم BM=TRUE للصف
-      if (result.pilgrim) {
-        try {
-          // نحتاج معرفة رقم الصف
-          // سنتركه للمرحلة التالية — الآن نكتفي بالإحصائية
-        } catch (e) {}
-      }
     } else {
+      // أي فشل آخر (تحميل/OCR/Claude/تحقق) يُعدّ failure
       stats.failure_count++;
     }
 

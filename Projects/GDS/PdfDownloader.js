@@ -11,6 +11,20 @@ var GDS2 = (typeof GDS2 !== 'undefined') ? GDS2 : {};
 
 GDS2.PdfDownloader = {
   /**
+   * تحويل رابط Drive view إلى رابط تحميل مباشر.
+   * من: https://drive.google.com/file/d/FILE_ID/view
+   * إلى: https://drive.google.com/uc?id=FILE_ID&export=download
+   */
+  _transformDriveUrl: function(url) {
+    if (!url) return url;
+    var m = String(url).match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+    if (m && m[1]) {
+      return 'https://drive.google.com/uc?id=' + m[1] + '&export=download';
+    }
+    return url;
+  },
+
+  /**
    * تحميل PDF مباشرة بدون حفظ في Drive (للاستخدام مع Claude).
    * @param {string} url
    * @return {Object} { status, blob?, bytes?, size, content_type, reason? }
@@ -18,6 +32,9 @@ GDS2.PdfDownloader = {
   downloadBlob: function(url) {
     if (!url) return { status: 'error', reason: 'empty_url' };
     var startTime = new Date();
+
+    // تحويل Drive view URLs إلى صيغة تحميل مباشر
+    url = GDS2.PdfDownloader._transformDriveUrl(url);
 
     try {
       var response = UrlFetchApp.fetch(url, {

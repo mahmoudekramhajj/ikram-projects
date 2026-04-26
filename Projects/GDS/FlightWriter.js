@@ -193,6 +193,40 @@ function markManual(passport) {
 }
 
 /**
+ * مسح BM=TRUE لكل الصفوف (لإلغاء وضع "نسك محمي").
+ * يُستخدم بعد إصلاح Drive URL transformation — الصفوف المُعلَّمة سابقاً ستُعالَج من جديد.
+ */
+function clearAllNusukAuth() {
+  var sheet = SpreadsheetApp.openById(GDS2.Config.SS_ID).getSheetByName(GDS2.Config.SHEET_B2C);
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return { count: 0 };
+
+  var range = sheet.getRange(2, GDS2.Config.COL.NUSUK_AUTH, lastRow - 1, 1);
+  var values = range.getValues();
+  var cleared = 0;
+  var clearedRows = [];
+
+  for (var i = 0; i < values.length; i++) {
+    var v = values[i][0];
+    if (v === true || String(v).toUpperCase() === 'TRUE') {
+      values[i][0] = '';
+      cleared++;
+      clearedRows.push(i + 2);
+    }
+  }
+
+  if (cleared > 0) {
+    range.setValues(values);
+    // إعادة تلوين الصفوف للحالة الافتراضية (أبيض)
+    for (var j = 0; j < clearedRows.length; j++) {
+      sheet.getRange(clearedRows[j], 1, 1, GDS2.Config.COL.RET3_ARR_TIME).setBackground(null);
+    }
+  }
+
+  return { count: cleared, rows: clearedRows };
+}
+
+/**
  * تعليم عدة صفوف معاً.
  * مثال: markManualBatch(["AP0316524", "AA5710607", "AA6703604", "RD7621315"])
  */

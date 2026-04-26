@@ -327,18 +327,11 @@ function processAndWrite(passport) {
         if (String(passports2[k][0] || '').trim() === String(passport).trim()) {
           var row2 = k + 2;
 
-          // حالة خاصة: رابط نسك محمي → علّم BM=TRUE فوراً (لا retry)
-          if (r.stage === 'download' && r.details && r.details.status === 'not_pdf') {
-            GDS2.FlightWriter.markNusukAuthNeeded(row2);
-            r.row = row2;
-            r.nusuk_marked = true;
-            r.stopped = true;
-          } else {
-            var fr = GDS2.FlightWriter.recordFailure(row2, r.stage || 'error');
-            r.row = row2;
-            r.bl_after = fr.new_fail_count;
-            r.stopped = fr.stopped;
-          }
+          // فشل عادي (تحميل/OCR/Claude) — ألغينا حالة "نسك محمي" خاصة
+          var fr = GDS2.FlightWriter.recordFailure(row2, r.stage || 'error');
+          r.row = row2;
+          r.bl_after = fr.new_fail_count;
+          r.stopped = fr.stopped;
 
           // إصلاح: pilgrim info
           if (!r.pilgrim) {
