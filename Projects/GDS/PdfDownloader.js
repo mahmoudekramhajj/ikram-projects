@@ -103,10 +103,21 @@ GDS2.PdfDownloader = {
         elapsed_sec: (new Date() - startTime) / 1000
       };
     } catch (e) {
+      // Drive rate limit يأتي كـ exception (ليس HTTP 429)
+      // أمثلة: "تم تجاوز حصة معدل نقل البيانات" / "quota exceeded" / "rate limit"
+      var msg = String(e && e.message || '');
+      if (/تجاوز.*حصة|quota|rate.*(limit|exceed)|معدل.*نقل/i.test(msg)) {
+        return {
+          status: 'rate_limited',
+          reason: 'drive_quota_exception',
+          exception: msg,
+          elapsed_sec: (new Date() - startTime) / 1000
+        };
+      }
       return {
         status: 'error',
         reason: 'exception',
-        exception: e.message,
+        exception: msg,
         elapsed_sec: (new Date() - startTime) / 1000
       };
     }

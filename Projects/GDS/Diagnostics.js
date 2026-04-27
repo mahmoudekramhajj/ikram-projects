@@ -271,6 +271,175 @@ function gdsShowPending() {
   GDS2.Diagnostics.alertList(list, '⏳ حجاج معلّقون (بدون معالجة)');
 }
 
+/**
+ * فحص صف B2C كاملاً بجواز معيّن — للتشخيص.
+ * يُرجع كل الأعمدة المهمة بمسمياتها العربية.
+ */
+function inspectRow(passport) {
+  var ss = SpreadsheetApp.openById(GDS2.Config.SS_ID).getSheetByName(GDS2.Config.SHEET_B2C);
+  var lastRow = ss.getLastRow();
+  if (lastRow < 2) return { error: 'sheet_empty' };
+  var target = String(passport).trim();
+  var data = ss.getRange(2, 1, lastRow - 1, GDS2.Config.COL.RET3_ARR_TIME).getValues();
+  var C = GDS2.Config.COL;
+  for (var i = 0; i < data.length; i++) {
+    var p = String(data[i][C.PASSPORT - 1] || '').trim();
+    if (p !== target) continue;
+    var r = data[i];
+    return {
+      row: i + 2,
+      passport: p,
+      name_en: (String(r[C.FIRST_NAME_EN-1]||'') + ' ' + String(r[C.LAST_NAME_EN-1]||'')).trim(),
+      name_ar: (String(r[C.FIRST_NAME_AR-1]||'') + ' ' + String(r[C.LAST_NAME_AR-1]||'')).trim(),
+      package_no: r[C.PACKAGE_NO-1],
+      package_name: r[C.PACKAGE_NAME-1],
+      contract_type: r[C.CONTRACT_TYPE-1],
+      ticket_no: r[C.TICKET_NO-1],
+      ticket_url: r[C.TICKET_URL-1],
+      pnr: r[C.PNR-1],
+      bj_last_url: r[C.LAST_URL-1],
+      bk_manual: r[C.MANUAL-1],
+      bl_fail_count: r[C.FAIL_COUNT-1],
+      bm_nusuk: r[C.NUSUK_AUTH-1],
+      dep1: { fn: r[33-1], depDate: r[34-1], depTime: r[35-1], from: r[36-1], to: r[37-1], arrDate: r[38-1], arrTime: r[39-1] },
+      dep2: { fn: r[40-1], depDate: r[41-1], depTime: r[42-1], from: r[43-1], to: r[44-1], arrDate: r[45-1], arrTime: r[46-1] },
+      ret1: { fn: r[47-1], depDate: r[48-1], depTime: r[49-1], from: r[50-1], to: r[51-1], arrDate: r[52-1], arrTime: r[53-1] },
+      ret2: { fn: r[54-1], depDate: r[55-1], depTime: r[56-1], from: r[57-1], to: r[58-1], arrDate: r[59-1], arrTime: r[60-1] },
+      dep0: { fn: r[71-1], depDate: r[72-1], depTime: r[73-1], from: r[74-1], to: r[75-1], arrDate: r[76-1], arrTime: r[77-1] },
+      ret3: { fn: r[78-1], depDate: r[79-1], depTime: r[80-1], from: r[81-1], to: r[82-1], arrDate: r[83-1], arrTime: r[84-1] }
+    };
+  }
+  return { error: 'passport_not_found', searched: target };
+}
+
+/**
+ * فحص Presonal Details — البحث بالجواز أو بجزء من الاسم.
+ * يُرجع كل التطابقات مع الأعمدة المهمة.
+ */
+function inspectPD(query) {
+  var ss = SpreadsheetApp.openById(GDS2.Config.SS_ID).getSheetByName(GDS2.Config.SHEET_PD);
+  if (!ss) return { error: 'PD_sheet_not_found' };
+  var lastRow = ss.getLastRow();
+  var lastCol = ss.getLastColumn();
+  if (lastRow < 2) return { error: 'PD_empty' };
+  var headers = ss.getRange(1, 1, 1, lastCol).getValues()[0];
+  var data = ss.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  var q = String(query).trim().toLowerCase();
+  var matches = [];
+  for (var i = 0; i < data.length; i++) {
+    var row = data[i];
+    var hit = false;
+    for (var c = 0; c < row.length; c++) {
+      var v = String(row[c] || '').toLowerCase();
+      if (v === q || (v.indexOf(q) !== -1 && q.length >= 4)) { hit = true; break; }
+    }
+    if (!hit) continue;
+    var obj = { row: i + 2 };
+    for (var h = 0; h < headers.length; h++) {
+      var key = String(headers[h] || ('col_' + (h+1))).trim();
+      if (key) obj[key] = row[h];
+    }
+    matches.push(obj);
+  }
+  return { query: query, total_matches: matches.length, matches: matches.slice(0, 10), pd_headers: headers };
+}
+
+/**
+ * إحصاء الصفوف المتوقفة (BL=MAX) مع تصنيف نمط المشكلة لكل صف.
+ * الأنماط:
+ *  - missing_dep2: dep2.from أو dep2.to فارغ (الإصلاح الأخير قد يحلها)
+ *  - bad_url: ticket_url ليس http
+ *  - has_data: عنده dep2 و url صحيح (سبب آخر)
+ *  - empty: bj فارغ
+ */
+function auditStopped() {
+  var ss = SpreadsheetApp.openById(GDS2.Config.SS_ID).getSheetByName(GDS2.Config.SHEET_B2C);
+  var lastRow = ss.getLastRow();
+  if (lastRow < 2) return { error: 'sheet_empty' };
+  var C = GDS2.Config.COL;
+  var data = ss.getRange(2, 1, lastRow - 1, C.RET3_ARR_TIME).getValues();
+  var stats = { total_stopped: 0, missing_dep2: 0, bad_url: 0, has_data: 0, empty: 0, by_pattern: {} };
+  var samples = { missing_dep2: [], bad_url: [], has_data: [] };
+
+  for (var i = 0; i < data.length; i++) {
+    var r = data[i];
+    var bl = Number(r[C.FAIL_COUNT-1]) || 0;
+    if (bl < GDS2.Config.MAX_FAIL_ATTEMPTS) continue;
+    stats.total_stopped++;
+    var passport = String(r[C.PASSPORT-1]||'').trim();
+    var name = (String(r[C.FIRST_NAME_EN-1]||'') + ' ' + String(r[C.LAST_NAME_EN-1]||'')).trim();
+    var url = String(r[C.TICKET_URL-1]||'').trim();
+    var dep2_from = String(r[43-1]||'').trim();
+    var dep2_to = String(r[44-1]||'').trim();
+    var pattern = '';
+    if (!url || url.indexOf('http') !== 0) pattern = 'bad_url';
+    else if (!dep2_from || !dep2_to) pattern = 'missing_dep2';
+    else pattern = 'has_data';
+    stats[pattern]++;
+    if (samples[pattern].length < 5) {
+      samples[pattern].push({ row: i+2, passport: passport, name: name, url_prefix: url.substring(0,60), dep2: dep2_from + '-' + dep2_to });
+    }
+  }
+  stats.samples = samples;
+  return stats;
+}
+
+/**
+ * مزامنة ticket_url من PD إلى B2C لجواز معيّن.
+ * يستخدم لإصلاح صفوف B2C التي ticket_url فيها خاطئ (اسم ملف بدلاً من رابط).
+ * يمسح BJ تلقائياً ليُعاد المعالجة في الدورة القادمة.
+ */
+function syncTicketUrlFromPD(passport) {
+  var ss = SpreadsheetApp.openById(GDS2.Config.SS_ID);
+  var pd = ss.getSheetByName(GDS2.Config.SHEET_PD);
+  if (!pd) return { error: 'pd_not_found' };
+  var pdLastRow = pd.getLastRow();
+  var pdLastCol = pd.getLastColumn();
+  var headers = pd.getRange(1, 1, 1, pdLastCol).getValues()[0];
+  var passportColIdx = -1, urlColIdx = -1, ticketNoColIdx = -1;
+  for (var h = 0; h < headers.length; h++) {
+    var hh = String(headers[h] || '').trim();
+    if (hh === 'رقم جواز السفر') passportColIdx = h;
+    else if (hh === 'رابط التذكرة') urlColIdx = h;
+    else if (hh === 'رقم التذكرة') ticketNoColIdx = h;
+  }
+  if (passportColIdx < 0 || urlColIdx < 0) return { error: 'pd_columns_not_found', headers: headers };
+
+  var pdData = pd.getRange(2, 1, pdLastRow - 1, pdLastCol).getValues();
+  var pdUrl = '', pdTicketNo = '', pdRow = -1;
+  for (var i = 0; i < pdData.length; i++) {
+    if (String(pdData[i][passportColIdx] || '').trim() === String(passport).trim()) {
+      pdUrl = String(pdData[i][urlColIdx] || '').trim();
+      pdTicketNo = ticketNoColIdx >= 0 ? String(pdData[i][ticketNoColIdx] || '').trim() : '';
+      pdRow = i + 2;
+      break;
+    }
+  }
+  if (pdRow < 0) return { error: 'passport_not_found_in_pd', passport: passport };
+  if (!pdUrl) return { error: 'pd_url_empty', pd_row: pdRow };
+
+  var b2c = ss.getSheetByName(GDS2.Config.SHEET_B2C);
+  var b2cLastRow = b2c.getLastRow();
+  var passports = b2c.getRange(2, GDS2.Config.COL.PASSPORT, b2cLastRow - 1, 1).getValues();
+  for (var j = 0; j < passports.length; j++) {
+    if (String(passports[j][0] || '').trim() === String(passport).trim()) {
+      var row = j + 2;
+      var oldUrl = String(b2c.getRange(row, GDS2.Config.COL.TICKET_URL).getValue() || '').trim();
+      var oldTicketNo = String(b2c.getRange(row, GDS2.Config.COL.TICKET_NO).getValue() || '').trim();
+      b2c.getRange(row, GDS2.Config.COL.TICKET_URL).setValue(pdUrl);
+      var changes = { url: { old: oldUrl, new: pdUrl } };
+      if (pdTicketNo && oldTicketNo !== pdTicketNo) {
+        b2c.getRange(row, GDS2.Config.COL.TICKET_NO).setValue(pdTicketNo);
+        changes.ticket_no = { old: oldTicketNo, new: pdTicketNo };
+      }
+      b2c.getRange(row, GDS2.Config.COL.LAST_URL).setValue('');
+      b2c.getRange(row, GDS2.Config.COL.FAIL_COUNT).setValue(0);
+      return { status: 'ok', b2c_row: row, pd_row: pdRow, passport: passport, changes: changes, bj_cleared: true, bl_reset: true };
+    }
+  }
+  return { error: 'passport_not_found_in_b2c', passport: passport };
+}
+
 function gdsListTriggers() {
   var t = GDS2.Triggers.list();
   var lines = ['Triggers (' + t.count + ')', ''];
