@@ -10,7 +10,7 @@ var GDS2 = (typeof GDS2 !== 'undefined') ? GDS2 : {};
 GDS2.Config = {
   // ==================== Version Marker ====================
   // يتغيّر مع كل deploy للتأكد من تحميل الكود الجديد
-  PROJECT_VERSION: '@61-2026-04-26-version-marker',
+  PROJECT_VERSION: '@70-2026-04-28-saudi-airports',
 
   // ==================== Spreadsheet ====================
   SS_ID: '1z4b3BmTLDLvYUs8H8cPU8MJrOuvuN5GztZ9pLlYhF6s',
@@ -161,7 +161,7 @@ GDS2.Config = {
   // ==================== موسم الحج ====================
   SEASON_START: '2026-04-01',
   SEASON_END: '2026-07-31',
-  SAUDI_ARRIVAL_AIRPORTS: ['JED', 'MED'],
+  SAUDI_ARRIVAL_AIRPORTS: ['JED', 'MED', 'RUH', 'DMM', 'TIF', 'AHB', 'GIZ', 'ELQ', 'TUU'],
 
   // ==================== Script Properties keys ====================
   PROP: {

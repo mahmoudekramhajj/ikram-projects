@@ -1,5 +1,14 @@
 {
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [{
+          "type": "command",
+          "command": "echo 'تذكير: تحقق من البيانات قبل التصرف، وأكّد خرائط الأعمدة'"
+        }]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Write|Edit",

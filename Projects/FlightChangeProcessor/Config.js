@@ -3,6 +3,10 @@
  */
 
 var CONFIG = {
+  // ⛔ DEPRECATED 2026-04-28 — FCP v1 مهجور رسمياً، يُستبدَل بـ FCP v2
+  // عند true: scanEmails() يخرج فوراً بدون أي قراءة/كتابة. لا تُغيّر هذا إلا بقرار صريح.
+  READ_ONLY_MODE: true,
+
   // === Spreadsheet الرئيسي (Ikram Abuown — للقراءة فقط) ===
   MAIN_SPREADSHEET_ID: '1z4b3BmTLDLvYUs8H8cPU8MJrOuvuN5GztZ9pLlYhF6s',
 

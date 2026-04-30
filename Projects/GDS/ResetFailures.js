@@ -30,7 +30,7 @@ GDS2.ResetFailures = {
         sheet.getRange(row, blCol).setValue(0);
         sheet.getRange(row, bjCol).setValue(''); // امسح BJ حتى يعاد المعالجة
         // أزل لون الخلفية
-        sheet.getRange(row, 1, 1, GDS2.Config.COL.NUSUK_AUTH).setBackground(null);
+        sheet.getRange(row, 1, 1, GDS2.Config.COL.RET3_ARR_TIME).setBackground(null);
         reset.push(row);
       }
     }
@@ -56,7 +56,7 @@ GDS2.ResetFailures = {
       if (bl === 1) {
         var row = i + 2;
         sheet.getRange(row, blCol).setValue(0);
-        sheet.getRange(row, 1, 1, GDS2.Config.COL.NUSUK_AUTH).setBackground(null);
+        sheet.getRange(row, 1, 1, GDS2.Config.COL.RET3_ARR_TIME).setBackground(null);
         reset.push(row);
       }
     }

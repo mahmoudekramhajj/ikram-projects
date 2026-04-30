@@ -5,6 +5,12 @@
 
 
 function scanEmails() {
+  // ⛔ Kill switch — FCP v1 مهجور (2026-04-28). الاستبدال جاري عبر FCP v2.
+  if (CONFIG.READ_ONLY_MODE) {
+    Logger.log('⛔ FCP v1 DEPRECATED — scanEmails() معطّلة. ارجع لـ FCP v2.');
+    return { processed: 0, skipped: 0, errors: 0, textProcessed: 0, deprecated: true };
+  }
+
   var startTime = new Date();
   var results = { processed: 0, skipped: 0, errors: 0, textProcessed: 0 };
 

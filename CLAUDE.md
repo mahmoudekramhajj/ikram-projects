@@ -1,5 +1,13 @@
 # إكرام الضيف — Ekram Aldyf
 
+## قواعد حرجة
+
+- **تحقّق من البيانات الفعلية أولاً:** تحقّق دائماً من البيانات الفعلية (صفوف الشيتات، سجلات الحجاج، تفاصيل البلاغات) قبل اقتراح أي إجراء أو صياغة رد أو إجراء تعديلات. لا تفترض قيم البيانات أبداً.
+- **لا عمليات تدميرية بدون إذن:** لا تشغّل عمليات تدميرية (حذف صفوف، إزالة مكررات، الكتابة فوق بيانات) دون إذن صريح من المستخدم. اعرض ما سيتغيّر دائماً قبل التنفيذ.
+- **إفصاح إلزامي قبل أي تعديل:** قبل أي تعديل على كود أو بيانات، أجب على ثلاثة أسئلة: 1) أي بيانات ستُقرأ ومن أي شيت؟ 2) أي أعمدة ستُستخدم؟ 3) ما الذي سيتغيّر؟ — ثم انتظر الموافقة الصريحة قبل المتابعة.
+
+---
+
 ## قواعد العمل معي
 - إذا لم تفهم الفكرة 100%، اطرح سؤالاً واحداً فقط وانتظر إجابتي
 - أبلّغني بالتعديلات المقترحة والنتائج المتوقعة قبل التنفيذ
@@ -18,7 +26,9 @@
 
 ---
 
-## نظرة عامة
+## نظرة عامة على المشروع
+
+هذا مشروع عمليات حج (إكرام الضيف). الأنظمة الرئيسية: Google Sheets (بيانات الحجاج، الطيران، الفنادق)، Google Apps Script (الخلفية)، بوت تيليغرام، لوحة GitHub Pages. لا تخلط بين سياقَي B2B/B2C ولا تخلط بين نطاقات المشاريع.
 
 **مشروع واحد متكامل** لإدارة رحلات الحج والعمرة، مقسّم إلى تطبيقات فرعية لسهولة المتابعة.
 جميع التطبيقات تستمد بياناتها من **شيت Ikram Abuown** الموحّد.
@@ -28,6 +38,12 @@
 **التوقيت:** Asia/Riyadh
 **البيئة:** Google Apps Script V8 runtime
 **Spreadsheet ID:** `1z4b3BmTLDLvYUs8H8cPU8MJrOuvuN5GztZ9pLlYhF6s`
+
+---
+
+## البيانات والشيتات
+
+- **تأكيد أعمدة Sheets قبل الكود:** عند العمل مع خرائط أعمدة Google Sheets، أكّد دائماً أحرف/أسماء الأعمدة بدقة مع المستخدم قبل كتابة الكود. لا تفترض أن مواضع الأعمدة متطابقة بين الشيتات (مثل B2B vs B2C، GO1 vs GO2، Flights vs All).
 
 ---
 
@@ -493,6 +509,328 @@ Presonal Details (بيانات شخصية) ─┘
 | IkramAgent | `1hwFQRZjt4ZfwgHcoM64IWdbxHPun4GXi8rrBV2ytHA5ttY0hBQuXdAZv` |
 | TourGuide Manager | `1dSWbcN-CVc3IyFvJIk0ravd2UJNl7lhMFd_IhT37s5CkILegS_YMMOGE` |
 | Ticket Processor | `1TUIJyz8kYhxRINh73A3rfwBGCrueP-XoF7e1Jk6PTOskcAflDLLKiXg-` |
+
+---
+
+## خرائط الأعمدة في الكود (Code Constants)
+
+هذه الثوابت مُعرَّفة في `IkramHajjBot/Config.js` وتُستخدم في كل مشاريع GAS — **صفر-مبني (0-based index)**:
+
+### PD — Presonal Details
+```js
+PD = {
+  SEQ:0, GROUP:1, TYPE:2, CATEGORY:3, GENDER:4,
+  PASSPORT:5, PASSPORT_EXP:6, PASSPORT_ISSUE:7,
+  FIRST_NAME_AR:8, LAST_NAME_AR:9, FIRST_NAME_EN:10, LAST_NAME_EN:11,
+  DOB:12, EMAIL:13, PHONE:14, GUIDE_NAME:15,
+  COUNTRY_RESIDENCE:16, NATIONALITY:17,
+  PACKAGE_NO:18, PACKAGE_NAME:19,
+  FLIGHT_TYPE:20,   // B2B | B2C
+  CONTRACT_NAME:21, VISA_STATUS:22, IN_KSA:23,
+  TICKET_NO:24, TICKET_URL:25, INVOICE_NO:26, CAMP:27
+}
+```
+
+### FLT — شيت الطيران (B2B)
+```js
+FLT = {
+  NO:0, PNR:1, SUPPLIER:2, STATUS:3, COUNTRY:4, CITY:5, AIRLINE:6, PAX:7,
+  GO1_FLIGHT:21, GO1_TAKEOFF_DATE:22, GO1_TAKEOFF_TIME:23, GO1_FROM:24, GO1_TO:25, GO1_LAND_DATE:26, GO1_LAND_TIME:27,
+  GO2_FLIGHT:28, GO2_TAKEOFF_DATE:29, GO2_TAKEOFF_TIME:30, GO2_FROM:31, GO2_TO:32, GO2_LAND_DATE:33, GO2_LAND_TIME:34,
+  RET1_FLIGHT:35, RET1_TAKEOFF_DATE:36, RET1_TAKEOFF_TIME:37, RET1_FROM:38, RET1_TO:39, RET1_LAND_DATE:40, RET1_LAND_TIME:41,
+  RET2_FLIGHT:42, RET2_TAKEOFF_DATE:43, RET2_TAKEOFF_TIME:44, RET2_FROM:45, RET2_TO:46, RET2_LAND_DATE:47, RET2_LAND_TIME:48,
+  PKG1_NO:50, ..., PKG10_NO:68,
+  CONTRACT_NAME:90   // CM — مفتاح الربط مع PD.CONTRACT_NAME
+}
+```
+> مفتاح الربط B2B: `pd[PD.CONTRACT_NAME]` === `flt[FLT.CONTRACT_NAME]`
+
+### PKG — شيت الباقات
+```js
+PKG = {
+  NO:0, NUSK_NO:1, NAME_AR:2, CATEGORY:3, IKRAM_NO:4,
+  PRICE:5, DATE_START:6, DATE_END:7, NO_DAYS:8, CITY_START:9, NO_PILGRIM:10,
+  H1_CITY:11, H1_NAME_AR:12, H1_NAME_EN:13, H1_CHECKIN:14, H1_CHECKOUT:15,
+  H2_CITY:26, H2_NAME_AR:27, H2_NAME_EN:28, H2_CHECKIN:29, H2_CHECKOUT:30,
+  H3_CITY:41, H3_NAME_AR:42, H3_NAME_EN:43, H3_CHECKIN:44, H3_CHECKOUT:45,
+  NAME_EN:60, TRANSPORT:65
+}
+```
+> مفتاح الربط: `pd[PD.PACKAGE_NO]` === `pkg[PKG.NUSK_NO]` (من صف 2، الصف 1 = header ثانٍ)
+
+### B2CI — شيت B2C (يشترك مع PD في الأعمدة 0-31)
+```js
+B2CI = {
+  PASSPORT:5,   // نفس PD.PASSPORT
+  // ذهاب
+  ARR1_FLIGHT:32, ARR1_DATE:33, ARR1_TIME:34, ARR1_FROM:35, ARR1_TO:36, ARR1_LAND_DATE:37, ARR1_LAND_TIME:38,
+  ARR2_FLIGHT:39, ARR2_DATE:40, ARR2_TIME:41, ARR2_FROM:42, ARR2_TO:43, ARR2_LAND_DATE:44, ARR2_LAND_TIME:45,
+  // عودة
+  RET1_FLIGHT:46, RET1_DATE:47, RET1_TIME:48, RET1_FROM:49, RET1_TO:50, RET1_LAND_DATE:51, RET1_LAND_TIME:52,
+  RET2_FLIGHT:53, RET2_DATE:54, RET2_TIME:55, RET2_FROM:56, RET2_TO:57, RET2_LAND_DATE:58, RET2_LAND_TIME:59,
+  PNR:60,
+  // قطع إضافية (3-leg)
+  DEP0_FLIGHT:70, ..., DEP0_LAND_TIME:76,   // الذهاب الأبعد
+  RET3_FLIGHT:77, ..., RET3_LAND_TIME:83    // العودة الأبعد
+}
+```
+> مفتاح الربط B2C: `pd[PD.PASSPORT]` === `b2c[B2CI.PASSPORT]` (وليس CONTRACT_NAME)
+
+### GDS2.Config.COL — نسخة 1-based للـ GDS
+```
+A=1 (SERIAL) | B=2 (GROUP) | C=3 (TYPE) | ... | F=6 (PASSPORT) | U=21 (CONTRACT_TYPE) | Z=26 (TICKET_URL)
+```
+
+---
+
+## علاقة B2B و B2C
+
+### تعريف
+| | B2B | B2C |
+|---|---|---|
+| **الفلسفة** | إكرام الضيف اشترت التذاكر بالجملة من شركة طيران | الحاج اشترى تذكرته بشكل مستقل |
+| **المسؤولية** | إكرام الضيف مسؤولة عن أي خطأ | الحاج يتواصل مع الناقل مباشرة |
+| **مصدر بيانات الطيران** | شيت "الطيران" (B2B contracts) | شيت "B2C" (مُعبَّأ من GDS + PDF نسك) |
+| **مفتاح الربط** | `pd[CONTRACT_NAME]` ↔ `flt[CONTRACT_NAME]` | `pd[PASSPORT]` ↔ `b2c[PASSPORT]` |
+| **رابط التذكرة** | من B2B شيت أو PD[TICKET_URL] | من B2C شيت أو PD[TICKET_URL] |
+| **الحقل المُحدِّد** | `pd[PD.FLIGHT_TYPE] === 'B2B'` | `pd[PD.FLIGHT_TYPE] === 'B2C'` |
+
+### منطق اختيار المصدر في الكود
+```js
+if (flightType === 'B2C') {
+  // البحث في شيت B2C بالجواز
+} else {
+  // B2B: البحث في شيت الطيران باسم العقد
+  var contractName = pd[PD.CONTRACT_NAME];
+  // ابحث عن flt[FLT.CONTRACT_NAME] === contractName
+}
+```
+
+### قاعدة B2C الحرجة
+- **حجاج B2C بدون رابط تذكرة** لا يدخلون شيت B2C — غيابهم ليس خطأ في الكود
+- بلاغات طيران B2C ليست من مسؤوليتنا — نُبلّغ الحاج بالتواصل مع الناقل
+
+### GDS — مصدر بيانات B2C
+مشروع GDS يعبّئ شيت B2C من:
+1. تحميل PDF التذكرة من Drive (عبر رابط `pd[TICKET_URL]`)
+2. استخراج بيانات الرحلة بـ Claude AI
+3. كتابة النتيجة في أعمدة ARR/RET في B2C
+
+---
+
+## معمارية IkramHajjBot
+
+### هيكل الملفات (18 ملف)
+| الملف | المسؤولية |
+|---|---|
+| `Router.js` | `doPost()` ← نقطة دخول Webhook، يوجّه لـ `handleMessage_` / `handleCallback_` |
+| `Config.js` | BOT_TOKEN، SHEET_ID، ثوابت الأعمدة (PD/FLT/PKG/B2CI)، خرائط المطارات/الجنسيات |
+| `DataFetcher.js` | `findPilgrimByPassport_()` — يبني Virtual Row من PD+الباقات+الطيران/B2C |
+| `Handlers.js` | معالجة كل callback (`handleMyFlight_`, `handleMyHotel_`, ...) |
+| `TelegramAPI.js` | `sendMessage_()`, `sendPhoto_()`, `answerCallback_()` |
+| `Auth.js` | `handlePassportInput_()` — التحقق من الحاج بالجواز، `isAdmin_()` |
+| `Menu.js` | `sendMainMenu_()`, `sendLanguageButtons_()` |
+| `i18n.js` | `T_(key, lang)` — ترجمة الرسائل (AR/EN/FR/DE/IT/ES) |
+| `TicketsMonitor.js` | مراقبة بلاغات الحجاج كل 15 دقيقة + إشعارات للمدير |
+| `ReportHandler.js` | `handleReportError_()` — تسجيل بلاغ جديد في شيت Tickets |
+| `Notifications.js` | إشعارات نظام (وصول، تغيير، إعلانات) |
+| `FlightChangeNotifier.js` | إخطار الحجاج بتغييرات الطيران (kill switch: `FLIGHT_NOTIFY_ENABLED=false`) |
+| `Broadcast.js` | `/broadcast` — إرسال جماعي للمدراء |
+| `Helpers.js` | `formatTime_()`, `formatDate_()`, دوال مساعدة |
+| `DataCollector.js` | جمع بيانات إضافية (غرفة، رقم جوال، صورة جواز) |
+| `Setup.js` | `setWebhook_()` — ربط Bot بـ Webhook |
+| `ClaudeAPI.js` | استدعاء Claude API لمعالجة النصوص |
+| `Auth.js` | جلسات المستخدم عبر `BotSessions` sheet + CacheService |
+
+### آلية العمل (Webhook)
+```
+الحاج يرسل رسالة تيليغرام
+    ↓
+Telegram API → POST إلى Web App URL (doPost)
+    ↓
+Router.js: message أو callback_query؟
+    ↓ message                    ↓ callback_query
+handleMessage_()           handleCallback_()
+    ↓
+تحقق الحالة (awaiting_passport / verified / admin)
+    ↓
+جلب بيانات الحاج (findPilgrimByPassport_)
+    ↓ B2B                        ↓ B2C
+شيت الطيران                  شيت B2C
+(CONTRACT_NAME)              (PASSPORT)
+    ↓
+إرسال الرد (TelegramAPI.js)
+```
+
+### الأوامر والأزرار
+| command/callback | الوظيفة |
+|---|---|
+| `/start` | ترحيب + اختيار اللغة |
+| `/menu` | القائمة الرئيسية (للمستخدمين المُتحقَّق منهم) |
+| `/broadcast` | إرسال جماعي (مدراء فقط) |
+| `/stats` | إحصائيات (مدراء فقط) |
+| `my_flight` | بيانات الطيران |
+| `my_hotel` | بيانات الفندق |
+| `my_package` | تفاصيل الباقة |
+| `my_transport` | موعد النقل |
+| `my_data` | البيانات الشخصية |
+| `report_error` | فتح بلاغ جديد → شيت Tickets |
+| `tm_*` | أزرار TicketsMonitor (مدراء) |
+| `rpt_*` | أزرار إجراءات البلاغات (مدراء) |
+
+### مجموعات العمليات (Ops Groups)
+```js
+OPS_GROUPS = {
+  madinah: '-4849598886',      // مطار المدينة
+  jeddah_t1: '-5220583519',    // مطار جدة - صالة 1
+  jeddah_north: '-5267173490'  // مطار جدة - الصالة الشمالية
+}
+OPS_LOCATION_GROUPS = {
+  makkah: '-4916619724',
+  madinah: '-5284394785',
+  mashaaer: '-5268778683'
+}
+```
+
+### CacheService
+- `session_{chatId}` → بيانات الجلسة (TTL 5 دقائق)
+- `pilgrim_{passport}` → بيانات الحاج المُجمَّعة
+- `flightdata_{passport}` → بيانات الطيران (legs)
+- `b2cflight_{passport}` → بيانات B2C
+- `transport_{packageId}` → بيانات النقل
+- إلغاء الـ cache يدوياً: `clearPilgrimCache_(passport)`
+
+---
+
+## سير نشر Apps Script (clasp)
+
+### الأدوات
+- `clasp` — CLI رسمي لرفع الكود ونشره
+- `deploy.sh` — سكريبت أتمتة يُنفذ الخطوات الأربع لكل مشروع
+- `deployments.json` — يحفظ `deploymentId` الثابت لكل مشروع (URL لا يتغيّر)
+
+### خطوات النشر (لمشروع واحد)
+```bash
+cd Projects/<ProjectName>
+clasp push -f                          # رفع الكود
+clasp deploy -i <deploymentId> -d "..."  # تحديث النشرة الموجودة (لا تنشئ جديدة)
+curl <webAppUrl>                        # تحقق أن URL يعمل (200/302)
+```
+
+### النشر الكامل (كل المشاريع)
+```bash
+cd Projects
+./deploy.sh              # ينشر كل 9 تطبيقات ويب
+./deploy.sh "Ikram"      # ينشر مشروعاً واحداً فقط
+```
+
+### deploy.sh خطوات التفصيل
+1. `clasp push -f` → رفع الكود
+2. `clasp deploy -i <id> -d "auto YYYY-MM-DD"` → تحديث نفس النشرة
+3. `curl -L <url>` → تحقق أن الـ URL يعمل (200 أو 302)
+4. تحديث `deployments.json` بـ version + timestamp
+
+### قواعد النشر الحرجة
+- **لا تنشئ نشرة جديدة** — استخدم `clasp deploy -i <existingId>` دائماً وإلا تتغيّر الروابط
+- **clasp push أولاً ثم deploy** — بدون deploy لا يصل الكود للمستخدمين
+- **الـ Trigger قد ينفّذ كوداً قديماً** بعد deploy — احذف Trigger وأعد إنشاءه إن لزم
+- كل مشروع له `deploymentId` ثابت في `deployments.json`
+
+### تبعيات OAuth لكل مشروع
+| المشروع | صلاحيات إضافية |
+|---|---|
+| FlightChangeProcessor | `gmail.modify`, `drive`, `documents`, `script.scriptapp` |
+| GDS | `drive` (Advanced), `script.send_mail`, `userinfo.email` |
+| IkramHajjBot | `gmail.compose`, `gmail.modify`, `drive`, `script.scriptapp` |
+| TicketLinker | `drive` (Advanced), `documents`, `userinfo.email` |
+| Ticket Processor | `drive` (Advanced) |
+| Airport Search | `cloud-platform`, `script.send_mail` |
+
+> **تحذير:** `Report Builder` يستخدم `America/New_York` — خطأ محتمل، الصحيح `Asia/Riyadh`
+
+---
+
+## الشيتات الإضافية (غير موثَّقة سابقاً)
+
+### Tickets — بلاغات الحجاج
+| العمود | الحقل | الوصف |
+|---|---|---|
+| ticketId | TKT-XXXX | معرّف البلاغ |
+| chatId | Telegram chatId | معرّف المحادثة |
+| passport | رقم الجواز | مفتاح الربط مع PD |
+| name | اسم الحاج | من النص |
+| section | hotel/flight/transport/personal/visa | نوع المشكلة |
+| issue | نص المشكلة | |
+| correction | الشيء الصحيح | |
+| status | new/in_progress/resolved/closed | |
+| createdAt/resolvedAt/resolvedBy | تواريخ | |
+
+### Hotel Check-in — تسجيل دخول الفنادق
+| العمود | الوصف |
+|---|---|
+| BookingId | مفتاح الربط |
+| HotelName/HotelCity | تفاصيل الفندق |
+| RoomGroup_ID | رقم مجموعة الغرفة |
+| Room_Number | رقم الغرفة |
+| CheckIn_Status | pending/checked_in |
+| CheckIn_Time/CheckIn_By | وقت وموظف التسجيل |
+
+### AdminMessages — رسائل إدارية للبوت
+```js
+AM = {
+  ID:0, TITLE:1, MSG_AR:2, MSG_EN:3, MSG_FR:4, MSG_DE:5, MSG_IT:6, MSG_ES:7,
+  IMAGE_URL:8, FILE_URL:9, FILE_NAME:10,
+  TARGET:11, TARGET_VALUE:12,   // الجمهور المستهدف
+  PRIORITY:13, STATUS:14, SENT_AT:15, SENT_COUNT:16, FAIL_COUNT:17, CREATED_BY:18
+}
+```
+
+### تغييرات الطيران — FlightChangeProcessor
+| الأعمدة | المحتوى |
+|---|---|
+| 0-3 | رقم التغيير CHG-XXXX، PNR، BookingID، رقم الحادثة |
+| 4-9 | اسم الحاج، الرقم التسلسلي، الجواز، الباقة، اسم الباقة، نوع العقد |
+| 10-17 | ذهاب1 (رقم رحلة، من، إلى، تواريخ، أوقات) |
+| 18-25 | ذهاب2 |
+| 26-33 | عودة1 |
+| 34-41 | عودة2 |
+| 42-49 | معلومات الوصول/المغادرة النهائية |
+
+---
+
+## بنية كل مشروع (ملفات .js)
+
+### IkramHajjBot (18 ملف)
+`Router` → `Handlers` → `DataFetcher` + `TelegramAPI` + `Auth` + `Menu` + `i18n`
+`TicketsMonitor` + `ReportHandler` + `Notifications` + `FlightChangeNotifier` + `Broadcast`
+
+### GDS (18 ملف)
+`Pipeline` → `PdfDownloader` → `PdfTextExtractor` → `PromptBuilder` → `AnthropicClient` → `FlightWriter`
+`Classifier` + `FamilyProcessor` + `State` + `Logger` + `SchemaManager` + `IATARegistry` + `AirlineRegistry`
+
+### FlightChangeProcessor (11 ملف أساسي + 9 أدوات تشخيص)
+`EmailReader` → `NusukParser` → `PilgrimMatcher` → `SheetWriter`
+`FlightValidator` + `ClaudeParser` + `Audit` + `Config`
+أدوات: `_Setup`, `_TriggerCheck`, `_DeepAudit`, `_FullAudit`, `_RecoveryAudit`, ...
+
+### TicketLinker (13 ملف)
+`Pipeline` → `Matcher` + `PnrResolver` + `ClaudeMatcher` → `Writer`
+`SourceSync` + `HourlyTrigger` + `TelegramReport` + `UnresolvedHandler`
+
+### Transport Management (6 ملف)
+`TransportApp` (Web App) + `TransportData` + `TransportActions` + `TransportHelpers` + `TransportPlanner`
+
+---
+
+## سير العمل (Workflow)
+
+- **إصلاحات شاملة لا تراكمية:** فضّل الإصلاحات الشاملة على دورات deploy-test التراكمية. اجمع التغييرات المرتبطة وانشرها مرة واحدة بدلاً من تعديلات صغيرة وإعادة نشر متكررة.
+
+---
+
+## التصحيح (Debugging)
+
+- **افحص تعديلاتك أولاً:** عند التصحيح، افحص تعديلاتك الأخيرة على الكود أولاً قبل التحقيق في الأسباب الخارجية (بيانات الشيتات، أسماء الأعمدة، الـ APIs). إذا كان قد تم clasp push للتو، تحقق من عدم تضمّن ملفات غير ذات صلة.
 
 ---
 
