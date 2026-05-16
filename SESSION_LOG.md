@@ -4,6 +4,42 @@
 
 ---
 
+## 2026-05-16 | فرز السكن/التنقل كرونولوجياً — إصلاح Makkah-first
+
+**البلاغ:** الحاج `19AI08726` رأى تضارباً بين خطة التنقل وخطة السكن.
+
+**ما اكتُشف:**
+- البيانات الفعلية للحاج (Railway + B2C_v2): يصل MED بـ VF205 يوم 15 مايو، يقيم في Dar Almaqam/مكة (15 مايو–3 يونيو) ثم Concorde/المدينة (3–6 يونيو)، يغادر من JED بـ VF190 يوم 6 يونيو. خطته الفعلية **مكة-أولاً ثم المدينة**.
+- شيت "تعديل المرشدين" يضعه H1=Concorde (المدينة) و H2=Dar Almaqam (مكة) — الترتيب غير كرونولوجي.
+- `HajjBotServer/src/feature-hotel.js:buildPilgrimHotelList` كان يثق بترتيب الأعمدة H1→H2→H3 ولا يفرز. `feature-transport.js` يستهلك نفس القائمة → الخلل مزدوج (سكن + تنقّل).
+- جلسة 2026-05-13 افترضت "ترتيب الشيت كرونولوجي بطبيعته" — هذه الفرضية **خاطئة**.
+
+**النطاق:** فُحص الشيت كاملاً → **1,144 من 6,793 حاجاً (≈17%)** لديهم `H2.checkIn < H1.checkIn`. حالة عامة، ليست خاصة بهذا الحاج. باقات متكررة متأثرة: Concorde+Park Plaza، Concorde+Biak، Al Shakreen+EMAAR AL RAWDA 2، Concorde+Dar Almaqam.
+
+**الإصلاح:**
+- `commit aa112cb` (مدفوع لـ main، Railway نشره تلقائياً).
+- في `feature-hotel.js` قبل Stage A: فرز `rawSlots` بـ `toIsoDate_(checkIn)`. الفنادق بلا تاريخ سليم → نهاية الترتيب (Infinity).
+- إصلاح واحد يغطي السكن والتنقل (مصدر موحَّد).
+
+**التحقّق بعد deploy:**
+- `trace-pilgrim?passport=19AI08726`:
+  - السكن 1 = مكة (المقام) 15 مايو→3 يونيو ✓
+  - السكن 2 = المدينة (كونكورد) 3→6 يونيو ✓
+  - التنقل: وصول→المقام، انتقال مكة→المدينة في 3 يونيو، مغادرة كونكورد→JED ✓
+- Case 1 تطبَّق صحيحاً: 14-May→15-May (تأخير الدخول للوصول الفعلي).
+
+**ذاكرة:**
+- `project_hotel_chronological_sort.md` — جديد.
+- `MEMORY.md` — index مُحدَّث.
+
+**ما لم يُلمَس (خارج النطاق):**
+- HajjBotServer scripts غير المُتعقَّبة (10 ملفات تحليل) + `daily-b2c-arrivals-2026-05-15.js` معدَّل.
+- الـ working tree في الجذر يحوي تعديلات في IkramHajjBot/GDS/Guide App/TicketLinker — معلَّقة من جلسات سابقة، تنتظر قراراً منفصلاً.
+
+**القاعدة المستفادة:** لا تثق بترتيب أعمدة H1/H2/H3 — افرز دائماً بـ `checkIn`.
+
+---
+
 ## 2026-04-23 | ClaudeBrain M1 — إنشاء المخ المركزي (Orchestrator)
 
 **ما تم إنجازه:**
@@ -388,3 +424,32 @@
 - إنشاء repo على GitHub وربطه
 - تنفيذ نفس الإعداد على جهاز المكتب (git clone)
 - تحديد المطلوب من أعمدة عقود السكن/التنقل في التطبيقات
+
+---
+
+## 2026-05-16 — Closure جماعي على 239 فترة (Guide Admin Server)
+
+**الحالة:** متوقّف يدوياً (أمر "stop"). **66/239 مكتمل، 173 متبقي.** لا فشل حقيقي.
+
+### السياق
+بعد دمج المستخدم لتسميات Al Shakreen/Concorde، توليد قائمة حية من 239 فترة، تشغيل `/api/admin/execute-closure` لكل واحدة لتطبيق pool-based per-stay repack.
+
+### إنجازات الجلسة
+1. تشخيص أن `curl -u` يفشل أحياناً بـ 401 على Windows (SSL renegotiation schannel) → تحوّل لـ `Authorization: Basic <b64>` صراحةً.
+2. تشخيص أن "لا توجد بيانات للإرسال" + `forceDeleted ≥ 1` = نجاح متوقّع لتفريغ مرشدين يتامى (ليس فشلاً).
+3. سكريبت v2 نظيف: `C:/tmp/run_closure_v2.sh` مع retry + سجل واحد.
+4. أدوات تحليل: `analyze_results.js` و `build_done_set.js`.
+5. ASSIGNMENT_CLOSED تم تعطيله ويبقى OFF.
+
+### الاستئناف
+1. تحقّق فلاج: `curl '.../exec?closureStatus=1&key=ekram2026claude'`.
+2. `node C:/tmp/build_done_set.js` لتجديد todo (يلتقط الـ66 المنجزة).
+3. `bash C:/tmp/run_closure_v2.sh` في background.
+4. عند الاكتمال: `analyze_results.js` → 0 فشل → فعّل `?closure=on`.
+
+### ملفات مرجع
+- `C:/tmp/run_closure_v2.sh`
+- `C:/tmp/closure_results/v2_*.json` (نتائج)
+- `C:/tmp/closure_log_v2.txt` (سجل)
+- ذاكرة جديدة: `project_no_empty_bed_closure.md`
+
