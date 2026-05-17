@@ -4,6 +4,60 @@
 
 ---
 
+## 2026-05-17 | كشف السكن — أسماء الحجاج لكل فندق + إلغاء قسم "بدون تعيين"
+
+**البلاغ:** نموذج `hotels_SM477_2026-05-17.xlsx` المرسَل لمجموعات تلجرام الـ 3 للمطارات يحوي ملخّصاً فقط بلا أسماء حجاج. المطلوب: قسم لكل فندق بأسماء الحجاج، 7 أعمدة (اسم EN، جواز، مدينة الهبوط، رقم الرحلة، تاريخ، ساعة، باقة).
+
+**تصحيح حاسم أثناء التطوير:** المستخدم أكّد أنه **لا يوجد ولا يجوز وجود** حاج بدون سكن في الكشف — مصيبة إدارية بحتة. ممنوع ذكرهم في كشف المطارات حتى كمثال؛ يُبلَّغ عنهم عبر البوت إن وُجدوا.
+
+**التنفيذ (HajjBotServer, commit 5ef449c على main):**
+- `buildHotelDistribution`: `bucket.pilgrims[]` + `unassignedPilgrims[]` (للتنبيه فقط).
+- `buildHotelsExcel`: قسم لكل فندق برأس أخضر #476831 + جدول 8 أعمدة (`# | Name EN | Passport | مدينة الهبوط | رقم الرحلة | تاريخ | ساعة | باقة`). الملخّص العلوي يبقى. **لا قسم/سطر "بدون تعيين فندق" نهائياً.**
+- `appendHotelsBlock`: حُذف سطر `⚠️ بدون تعيين فندق: N` من رسائل تلجرام للمطارات.
+- `notifyAdminUnassignedPilgrims`: دالة جديدة ترسل تنبيه `🚨 حاج بدون سكن — مصيبة إدارية` لـ `ALERT_CHAT_ID` فقط، تُستدعى من runCycle (T-0 و T-6h/T-1h) عند `dist.unassigned > 0`.
+- `scripts/test-hotels-excel-2026-05-17.js`: سكريبت اختبار محلي يولّد عيّنة في `C:/tmp/`.
+
+**Deploy:** Railway تلقائي على push لـ main.
+
+**التحقّق الفعلي:** ينتظر أول رحلة T-6h القادمة في مجموعات المطارات.
+
+---
+
+## 2026-05-17 | إيقاف تطبيق Update-TKT-Email بالكامل
+
+**البلاغ:** المستخدم أرسل صورة من مجموعة `UPDATE TKT EMAIL` على تلجرام تُظهر تنبيهات PendingMatch (Incident# 1202327 و 1215736 بسبب "إيميل غير موجود في PD") وطلب إيقاف هذه التقارير.
+
+**التحقق:** ضمن الخيارات الثلاثة (إيقاف التنبيهات فقط، إيقاف التطبيق كاملاً، إيقاف PendingMatch فقط) اختار **إيقاف التطبيق بالكامل**.
+
+**السياق من الذاكرة:**
+- `session_update_tkt_email_2026-04-29_failures.md` — التطبيق متوقف عن التطوير من 17 يوماً: parser multi-pilgrim لم يُصلَح + زر "ألغى الحجز" معطّل + ترقيم البلاغات خاطئ. التنبيهات أصبحت إزعاجاً بلا فائدة عملية.
+
+**التنفيذ:**
+- scriptId: `1SFmbBd21hoVZQT7Pfujp0bGlzsH5ql9TlhHMLEbzEyy3yZg6nqKh22g3`
+- `clasp run deleteAllTriggers` فشل (Apps Script API غير مفعّلة كـ executable).
+- البديل الناجح: ClaudeAPI deployment @37 = `AKfycbzPKeOmd1DUkSZzI8D_5LQTIQ6UYXLhvVnMA4SvS8yPGQv8JlFGEHKpZFEMgu3Wny4_`.
+- نداء `?action=run&fn=deleteAllTriggers&key=ekram2026claude` → `تم حذف 2 trigger.` (`scanEmails` + `pollTelegramUpdates`).
+- التحقق: `listTriggers` → `لا توجد triggers.` ✓
+
+**ما لم يُلمَس (محفوظ للاستئناف):**
+- الكود الكامل (16 ملف) — لا تعديل.
+- Script Properties (PD_SPREADSHEET_ID، LOG_SPREADSHEET_ID، DRIVE_FOLDER_ID، TG_BOT_TOKEN، TG_CHAT_ID).
+- Gmail labels (TKT، TKT-v2-Done، TKT-PendingMatch، TKT-Cancelled، TKT-NoPDF).
+- شيتات PendingMatches + ChangesLog (سجل تاريخي).
+- 19 deployment على Apps Script (للرجوع لأي إصدار).
+
+**الذاكرة:**
+- `MEMORY.md` — أُضيف سطر `⛔ Update-TKT-Email موقوف بالكامل` في أعلى الـ index.
+- `project_update_tkt_email_flow.md` — أُضيف رأس بحالة `STOPPED`.
+
+**الاستئناف لاحقاً (إن لزم):**
+```
+curl ".../exec?action=run&fn=createTriggerHourly&key=ekram2026claude"
+```
+لكن لا يُستأنَف قبل إصلاح parser multi-pilgrim + زر "ألغى الحجز".
+
+---
+
 ## 2026-05-16 | فرز السكن/التنقل كرونولوجياً — إصلاح Makkah-first
 
 **البلاغ:** الحاج `19AI08726` رأى تضارباً بين خطة التنقل وخطة السكن.
