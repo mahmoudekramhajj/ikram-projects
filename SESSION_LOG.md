@@ -4,6 +4,31 @@
 
 ---
 
+## 2026-05-20 (02:00 PM) | HajjBotServer — Railway قُتل نهائياً + تصحيح ادعاء "Google Cloud block"
+
+**التطوّر بعد توثيق 13:30:** المستخدم سأل عن سبب "Google Cloud block". الفحص الحي كشف الحقيقة:
+- `railway.com` → HTTP 200 ✅ (الذاكرة قالت 525)
+- `backboard.railway.com` → HTTP 200 ✅ (الذاكرة قالت SSL error)
+- Railway deploys تنفّذ بشكل طبيعي (deployment `17a119d6` من اليوم 11:11)
+
+**النتيجة:** الذاكرة كانت قديمة. "Google Cloud block" كان حقيقياً يوم 19 مايو لكن **رُفع منذ ذلك**. لم يُوثّق السبب الجذري — لم أعرفه ولا المستخدم استلم إيميل تفسير.
+
+**قتل Railway النهائي:**
+- `railway scale sfo=0` فشل بـ `Unknown region sfo` (CLI الجديد يستخدم أسماء عامة، لا region IDs)
+- `railway scale us-west=0` نجح لكن لم يلمس sfo
+- `railway down -y` بعد retry → "No deployments found"
+- بعد 30 ثانية: `https://hajjbotserver-production.up.railway.app/` → **HTTP 404 "Application not found"**
+
+**الوضع النهائي:**
+- Railway: ميت تماماً (لا instances، لا deployments، لا تطبيق فعّال). env + كود + service ID + volume محفوظة كنسخة احتياطية.
+- Fly: primary وحيد. uptime 47د، 6794 صف PD، صفر ازدواج.
+
+**Runbook استيقاظ Railway (محدَّث):** يحتاج redeploy كامل (`railway up` أو deploy عبر CLI/GitHub) — ليس مجرد scale=1. سيستغرق دقائق بدل ثوانٍ.
+
+**ملفات معدّلة:** صفر كود. فقط `railway down` + تحديث ذاكرة.
+
+---
+
 ## 2026-05-20 (01:00 PM) | HajjBotServer — UrlWatcher + parity كامل لمتغيرات Fly
 
 **السياق:** التقرير الساعي 1pm من UrlWatcher أظهر 12 دورة / 8 تغييرات / **6 فشل + 2 متخطّى** — كل الفشل بنفس الرسالة: `parse: GEMINI_API_KEY not set`.
