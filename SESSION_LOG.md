@@ -4,6 +4,29 @@
 
 ---
 
+## 2026-05-20 (06:00 AM) | HajjBotServer — Fly صار Primary كامل + حادثة 426 تذكرة قطار
+
+**السياق:** بعد التصلّب الأمني، رفع المستخدم 426 تذكرة قطار جديدة في 05:42 AM. وصل تنبيه TrainTicketWatcher (من Railway). لكن البوت على Fly كان يقول "تذكرة القطار غير متوفرة" حتى لجوازات موجودة في القائمة (مثلاً `A09301911`).
+
+**التشخيص:**
+- اختبار مباشر على Fly: `trainTicketExists('A09301911') => true` (Drive يحوي الملف).
+- المشكلة: `TrainTicketWatcher` معطّل على Fly (STANDBY_MODE=true). Railway watcher مسح cache **على Railway**. Fly cache بقي قديماً (TTL=1ساعة) → لا يعرف بالتذاكر الجديدة.
+
+**الحل الفوري:** `flyctl machine restart 865139be693d18 --app hajjbot-standby` → cache يُفرَّغ → بناء فهرس جديد → التذاكر تظهر فوراً. اختبر المستخدم `A09301911` → ✅ التذكرة وصلت (99.8KB PDF).
+
+**الحل الدائم:** `flyctl secrets set STANDBY_MODE=false --app hajjbot-standby`
+- ✅ كل schedulers تعمل الآن على Fly: urlWatcher + arrivalAlerts + trainTicketWatcher + hourlyReport
+- ✅ كل رفع تذاكر جديد سيُكتشف خلال 3د ويُمسح cache تلقائياً
+- ⚠️ StandbyGuard معطّل (شرطه `STANDBY_MODE=true`). Railway عملياً ميت (Google Cloud حظر، deploys paused منذ 19 مايو) — لو رجع قد يحاول setWebhook ويسرق البوت.
+
+**درس مُهم (أُضيف للذاكرة):** عند تشغيل watcher على عدة instances لنفس البوت، **كل instance له cache منفصل**. مسح cache على instance A لا يفيد instance B. القاعدة: schedulers + bot على نفس الـ instance، أو cache مشترك (Redis).
+
+**فحص أمني سريع تم خلال الجلسة:** Railway dashboard لا يزال `SSL handshake failed (525)`، لكن لا يؤثر علينا.
+
+**حالة الكود:** لم تُعدّل أي ملفات كود (فقط إعداد `STANDBY_MODE` عبر Fly secret + إعادة تشغيل machine).
+
+---
+
 ## 2026-05-20 | HajjBotServer DR — Fly صار الأساسي + StandbyGuard مُصلَح
 
 **السياق:** Railway تعطّل عالمياً يوم 19 مايو. أُنشئت نسخة Fly كنسخة احتياطية ثم صارت الأساسي لأن Railway ظلّ متذبذباً.
