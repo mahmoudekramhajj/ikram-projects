@@ -4,6 +4,63 @@
 
 ---
 
+## 2026-05-20 (09:30 PM) | HajjBotServer — إصلاح رابط "قائمة الحجاج القادمين" في تنبيهات الوصول
+
+**البلاغ:** الضغط على زر "قائمة الحجاج القادمين 📋" في تنبيه SM493 (T-1h) فتح `https://hajjbot-standby.fly.dev/arrivals?flight=SM493&date=2026-05-20` → "غير مصرّح بالوصول، أضف ?key=YOUR_TOKEN".
+
+**السبب الجذري:** في `src/arrival-alerts.js:685` بناء الرابط لا يضيف `key`، لكن endpoint `/arrivals` في `server.js:69` محمي بـ `DASH_TOKEN`. كان الـbug صامتاً على Railway لأن `BASE_URL` كان فارغاً → الزر لا يظهر أصلاً. بعد نقل البوت لـ Fly في جلسة 05:00 PM وضبط `ARRIVAL_ALERTS_BASE_URL=https://hajjbot-standby.fly.dev`، الزر بدأ يظهر بدون مفتاح.
+
+**الإصلاح (commit التالي):**
+1. `src/arrival-alerts.js:96` — إضافة `const DASH_TOKEN = process.env.DASH_TOKEN || process.env.SYNC_TOKEN || '';`
+2. `src/arrival-alerts.js:685` — إلحاق `&key=${encodeURIComponent(DASH_TOKEN)}` عند توفّر التوكن.
+
+**التحقق:**
+- `flyctl deploy -a hajjbot-standby` ← machine started, DNS verified ✓
+- `curl /arrivals?flight=SM493&date=2026-05-20&key=<DASH_TOKEN>` → HTTP 200 ✓
+- التنبيه القديم لـ SM493 المُرسَل قبل deploy لن يعمل (يحتاج المستخدم لصق المفتاح يدوياً). كل التنبيهات القادمة ستحوي المفتاح تلقائياً.
+
+**ملفات معدّلة:** `Projects/HajjBotServer/src/arrival-alerts.js` (سطران).
+
+---
+
+## 2026-05-20 (05:00 PM) | HajjBotServer — مراجعة مهنية مستقلة لنقل Fly + إكمال النواقص
+
+**السياق:** المستخدم طلب مراجعة كاملة مستقلة لعملية نقل البوت من Railway إلى Fly. الجلسات السابقة وثّقت أن Fly = primary، لكن لم يُتحقَّق من مكتمليّة النقل.
+
+**الفحص الحي كشف:**
+- Fly فيه 19 secret فقط، Railway فيه 39 (الفرق 20).
+- `BASE_URL` غير مضبوط على Fly → عند restart يتخطّى webhook registration.
+- `field` tenant غير محمَّل على Fly (TENANT_2_* مفقودة) — بوت الميدان @ekram_field_bot كان معطَّلاً على Fly.
+- `REDIS_URL` مفقود على Fly → sessions تُفقد كل restart + log spam من analytics (incr/sadd/scard غير محققين في in-memory fallback).
+- Disk على Fly ephemeral (لا `[mounts]` في `fly.toml`) → ticket-cache.json + arrival-alerts-state.json تُفقد كل restart.
+- Railway فعلياً مضبوط `STANDBY_MODE=true` من قبل + لا `STANDBY_PUBLIC_URL` → صامت فعلاً (لا schedulers، لا setWebhook). race condition المخوَّف لا يحدث.
+- `HajjBotServer/CLAUDE.md` كان لا يزال يقول "webhook يشير لـ Railway" — معلومة قديمة مُضلِّلة.
+
+**الإجراءات المُنفَّذة:**
+1. **نسخ 10 secrets من Railway لـ Fly عبر `flyctl secrets import`:** REDIS_URL، FIELD_BOT_TOKEN (legacy)، FIELD_ROLES_JSON، TENANT_2_*، NUSUK_VIDEO_DRIVE_ID + قيم URL مُعاد توجيهها لـ Fly (BASE_URL، ARRIVAL_ALERTS_BASE_URL = `https://hajjbot-standby.fly.dev`).
+2. **بعد restart Fly تلقائياً:** keys_count قفز من 31 إلى 47، BASE_URL_set=true، tenants=[ikram, field] (بعدما كان [ikram] فقط).
+3. **اكتشاف عند فحص logs:** `REDIS_URL` المنسوخ من Railway = `redis://default:***@redis.railway.internal:6379` — عنوان داخلي لشبكة Railway فقط، لا يصل من Fly. spam جديد `ENOTFOUND redis.railway.internal`.
+4. **`flyctl secrets unset REDIS_URL`** → عاد الـ in-memory fallback. (التبعية: sessions لا تزال تُفقد عند restart، analytics لا يزال يَشِيب logs لكن أقل ضرراً من ENOTFOUND retry loop).
+5. **تحقّق webhook:** كلا البوتين (ikram + field) موجَّهين لـ Fly عبر `getWebhookInfo`. Telegram registers تم على Fly عند restart.
+6. **حُدِّث `HajjBotServer/CLAUDE.md`** بالكامل: Fly = primary فعلي، Railway = silent standby، روابط جديدة، تحذيرات Sessions/Spam/Disk، runbook التبديل بين الخادمين.
+7. **نُظِّفت ملفات tmp** التي تحوي secrets.
+
+**الوضع النهائي (متحقَّق عبر `/`):**
+- Fly: uptime ~1د بعد آخر restart، tenants=[ikram, field]، schedulers تعمل (urlWatcher كل 5د، arrivalAlerts، trainTicketWatcher).
+- Railway: HTTP 200، uptime 2.2h، STANDBY_MODE=true، tenants.field.exists=false، لا schedulers (مؤكَّد من env vars).
+
+**الثغرات المتبقّية (لم تُحَل، تحتاج قرار المستخدم):**
+1. **Redis حقيقي لـ Fly:** Upstash مجاناً يحلّ (sessions + analytics) — يحتاج المستخدم إنشاء حساب.
+2. **Fly Volume:** إضافة `[mounts]` في fly.toml + `flyctl volumes create` يحلّ مشكلة ephemeral disk للـ ticket-cache.
+3. **In-memory fallback ناقص:** يحتاج توسيع `src/redis.js` بـ incr/sadd/scard/hincrby/hgetall/expire — لو لم نختر Upstash.
+4. **`SESSION_LOG` 02:00 PM ادّعى Railway قُتل** لكنه يردّ 200 — إما redeploy تلقائي رجَّعه، أو الادعاء كان خاطئاً. الذاكرة `project_fly_dr_standby.md` تحتاج تحديث (`STANDBY_MODE` لا يزال `true` على Railway فعلاً).
+
+**ملفات معدَّلة:** `Projects/HajjBotServer/CLAUDE.md` (إعادة كتابة كاملة). صفر تعديل كود.
+
+**Secrets المضافة لـ Fly (10):** REDIS_URL (ثم أُلغي), FIELD_BOT_TOKEN, FIELD_ROLES_JSON, TENANT_2_TOKEN, TENANT_2_NAME, TENANT_2_KIND, TENANT_2_ADMIN_IDS, NUSUK_VIDEO_DRIVE_ID, BASE_URL, ARRIVAL_ALERTS_BASE_URL.
+
+---
+
 ## 2026-05-20 (02:00 PM) | HajjBotServer — Railway قُتل نهائياً + تصحيح ادعاء "Google Cloud block"
 
 **التطوّر بعد توثيق 13:30:** المستخدم سأل عن سبب "Google Cloud block". الفحص الحي كشف الحقيقة:
