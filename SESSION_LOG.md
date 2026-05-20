@@ -4,26 +4,66 @@
 
 ---
 
-## 2026-05-20 (01:00 PM) | HajjBotServer — UrlWatcher: GEMINI_API_KEY مفقود من Fly
+## 2026-05-20 (01:00 PM) | HajjBotServer — UrlWatcher + parity كامل لمتغيرات Fly
 
-**السياق:** التقرير الساعي 1pm من UrlWatcher أظهر 12 دورة / 8 تغييرات / **6 فشل + 2 متخطّى** — كل الفشل بنفس الرسالة: `parse: GEMINI_API_KEY not set` (محاولة 1).
+**السياق:** التقرير الساعي 1pm من UrlWatcher أظهر 12 دورة / 8 تغييرات / **6 فشل + 2 متخطّى** — كل الفشل بنفس الرسالة: `parse: GEMINI_API_KEY not set`.
 
-**التشخيص:**
-- `flyctl secrets list -a hajjbot-standby` ← `GEMINI_API_KEY` غير موجود في القائمة.
-- التوثيق السابق في `project_fly_dr_standby.md` ذكره ضمن المتغيرات المطلوبة لكنه لم يُضبط فعلياً على Fly عند تحويل STANDBY_MODE=false.
-- نتيجة: `urlWatcher` كان يكتشف URLs جديدة، يستدعي `getGemini()` في `src/ticket-parser.js:54`، فيرمي قبل أي parse.
-- الـ6 المعلَّقون: `21AH28829`, `PA0926857`, `A31417381`, `PAX874893` (×2), `23AR29327`.
+**التشخيص الأولي:** `GEMINI_API_KEY` غير موجود في أسرار Fly رغم ذكره في التوثيق.
 
-**الحل:**
-1. المستخدم وفّر القيمة → `flyctl secrets set GEMINI_API_KEY=... -a hajjbot-standby`
-2. Fly نفّذ rolling update لـ machine `865139be693d18` → started → cache failures انمحى (`failures: []`)
-3. تشغيل يدوي `POST /api/url-watcher/run` → `scanned=6790, diffs=0` (الدورة لم تجد URLs مختلفة لحظة الفحص — الدورة القادمة كل 5د ستلتقط أي جديد).
+**الحل المبدئي:** `flyctl secrets set GEMINI_API_KEY=... -a hajjbot-standby` → rolling update نجح → failures cache مُمحاة.
 
-**نُصِح المستخدم بتدوير المفتاح** لأنه ظهر بنص واضح في المحادثة.
+### اكتشاف أكبر: متغيرات كثيرة مفقودة من Fly
 
-**ملفات معدّلة:** صفر كود. فقط `flyctl secrets set` + تحديث `project_fly_dr_standby.md` (تصحيح حالة GEMINI_API_KEY).
+بعد إصلاح GEMINI، فحصت كل `process.env.X` في الكود مقابل أسرار Fly. النتيجة: **٦ متغيرات حرجة مفقودة:**
+- `TG_GROUP_MED=-4849598886`
+- `TG_GROUP_JED_T1=-5220583519`
+- `TG_GROUP_JED_NORTH=-5267173490`
+- `TG_GROUP_OPS_MAKKAH=-4916619724`
+- `TG_GROUP_OPS_MADINAH=-5284394785`
+- `NUSUK_VIDEO_FILE_ID=BAACAgQAAxkDAAEC_fl...`
 
-**المعلَّق:** الدورة الساعية القادمة (2pm) ستكشف هل المعالجة عادت طبيعية + متابعة الـ6 جوازات أعلاه إن لم يُعاد التقاطهم تلقائياً.
+**المفارقة:** هذه المتغيرات كانت "تعمل" طوال فترة تعطّل Railway dashboard. التفسير: **Control plane ≠ Data plane.** Railway dashboard/deploys معطّلة (Google Cloud حظر)، لكن الـ container القديم لا يزال يعمل بـ env المحقونة وقت آخر start ناجح. التنبيهات كانت تخرج من Railway runtime لا من Fly.
+
+### نقل المتغيرات وتفعيل خطة "Fly = أساس، Railway = طوارئ"
+
+1. `railway login` (المستخدم) ← `railway variables --kv` → استخراج القيم
+2. `flyctl secrets set TG_GROUP_MED=... TG_GROUP_JED_T1=... ... NUSUK_VIDEO_FILE_ID=... -a hajjbot-standby` (دفعة واحدة، rolling restart واحد)
+3. على Railway: `railway variables --set "STANDBY_MODE=true" --skip-deploys` ← `railway scale sfo=0` ← **Queued (Google Cloud block يمنع التنفيذ)**
+
+### الوضع النهائي
+
+- **Fly:** مستقل 100% (13 secret أصلية + 7 جديدة = 20 secret). جميع schedulers عليه (`STANDBY_MODE=false`).
+- **Railway:** runtime الـ container القديم لا يزال شغّال (لا نستطيع قتله الآن). env محدّث بـ `STANDBY_MODE=true` + `scale=0` معلّقان في الطابور، سيُنفَّذان تلقائياً عند رفع Google Cloud الحظر.
+- **ازدواج مؤقت:** urlWatcher idempotent (ضرر صفر). arrival-alerts + train-ticket-watcher قد ترسل تنبيهات مكرّرة لساعات/أيام حتى يموت الـ container القديم تلقائياً.
+- **ALERT_CHAT_ID** غير موجود حتى على Railway → fallback لـ `ADMIN_IDS[0]` يعمل في الجانبين.
+
+### Runbook استيقاظ Railway (لو Fly سقط مستقبلاً)
+
+```bash
+# 1. تحويل Railway من standby لـ primary (env)
+cd C:/Users/mubar/Ekram-Aldyf/Projects/HajjBotServer
+railway variables --set "STANDBY_MODE=false" --skip-deploys
+
+# 2. إعادة الـ container للحياة (لو سبق ومات بـ scale=0)
+railway scale sfo=1
+
+# 3. تحويل webhook لـ Railway
+curl "https://api.telegram.org/bot$BOT_TOKEN/setWebhook?url=https://hajjbotserver-production.up.railway.app/webhook/$BOT_TOKEN"
+
+# 4. (اختياري) تعطيل Fly مؤقتاً
+flyctl secrets set STANDBY_MODE=true -a hajjbot-standby
+```
+
+**ملفات معدّلة:** صفر كود. فقط:
+- `flyctl secrets set` ×2 (GEMINI + الستة)
+- `railway variables --set STANDBY_MODE=true --skip-deploys`
+- `railway scale sfo=0` (معلّق)
+- تحديث `project_fly_dr_standby.md` + `MEMORY.md` (سطر الفهرس) + هذه الجلسة
+
+**المعلَّق:**
+- ازدواج تنبيهات مؤقت لساعات/أيام (مقبول، lid على نفسه عند رفع Google Cloud)
+- التقرير الساعي 2pm: التحقق أن urlWatcher عاد طبيعي + متابعة الـ6 جوازات (`21AH28829`, `PA0926857`, `A31417381`, `PAX874893` ×2, `23AR29327`)
+- تدوير `GEMINI_API_KEY` لاحقاً (ظهر بنص واضح في المحادثة)
 
 ---
 
