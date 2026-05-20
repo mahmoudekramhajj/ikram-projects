@@ -37,10 +37,29 @@ const assertWebhook = async () => {
 - محدَّث: `MEMORY.md` — سطر في أعلى الـ index
 - محدَّث: `HajjBotServer/SESSION_LOG.md` — جلسة كاملة
 
+**تحديث ساعة لاحقاً — مراجعة أمنية كاملة (commits `fc492ec` + `0aac003`):**
+
+- **اكتشاف:** `/arrivals*` و `/dashboard/*` كانت مفتوحة للعموم (تسريب أسماء + جوازات + فنادق الحجاج بـ Excel للجميع). `SYNC_TOKEN` له default `'change-me-please'`. لا rate limit. لا helmet. body limit 50MB كاسح.
+- **الإصلاحات (دون لمس سرعة البوت — /webhook مستثنى من كل middleware):**
+  1. SYNC_TOKEN إجباري (`process.exit(1)` لو غائب).
+  2. DASH_TOKEN جديد يحمي اللوحات (`?key=...`). القيمة: `m37p8KW-OxXpX_tjdj5aDdArhScoUZst`.
+  3. `express-rate-limit`: 120/د على /api، 60/د على اللوحات.
+  4. `helmet`: HSTS + X-Frame=SAMEORIGIN + nosniff + Referrer-Policy=no-referrer.
+  5. body limit 1MB افتراضي، 50MB حصراً لـ /api/sync/push.
+  6. `npm audit`: 0 ثغرات.
+- **سرعة البوت:** 0.49ث (لم تتأثر، بل أسرع قليلاً من قبل).
+
+**روابط اللوحات الجديدة للعمليات:**
+```
+/arrivals-report?key=m37p8KW-OxXpX_tjdj5aDdArhScoUZst
+/dashboard/early-arrivals?key=m37p8KW-OxXpX_tjdj5aDdArhScoUZst&date=YYYY-MM-DD
+```
+
 **معلَّق:**
 - إكمال fallback Redis (sadd/scard/incr/expire/hincrby/hgetall) لإسكات أخطاء analytics
 - تحقّق ملكية `wafahajj.com`
 - مراقبة استقرار StandbyGuard لأسبوع
+- ثغرتان غير قابلتين للإغلاق برمجياً: توكن البوت في URL (نمط تيليجرام)، Service Account JSON في Fly secret (لو سُرّب → صلاحيات شيت كاملة)
 
 ---
 
