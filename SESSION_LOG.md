@@ -4,6 +4,29 @@
 
 ---
 
+## 2026-05-20 (01:00 PM) | HajjBotServer — UrlWatcher: GEMINI_API_KEY مفقود من Fly
+
+**السياق:** التقرير الساعي 1pm من UrlWatcher أظهر 12 دورة / 8 تغييرات / **6 فشل + 2 متخطّى** — كل الفشل بنفس الرسالة: `parse: GEMINI_API_KEY not set` (محاولة 1).
+
+**التشخيص:**
+- `flyctl secrets list -a hajjbot-standby` ← `GEMINI_API_KEY` غير موجود في القائمة.
+- التوثيق السابق في `project_fly_dr_standby.md` ذكره ضمن المتغيرات المطلوبة لكنه لم يُضبط فعلياً على Fly عند تحويل STANDBY_MODE=false.
+- نتيجة: `urlWatcher` كان يكتشف URLs جديدة، يستدعي `getGemini()` في `src/ticket-parser.js:54`، فيرمي قبل أي parse.
+- الـ6 المعلَّقون: `21AH28829`, `PA0926857`, `A31417381`, `PAX874893` (×2), `23AR29327`.
+
+**الحل:**
+1. المستخدم وفّر القيمة → `flyctl secrets set GEMINI_API_KEY=... -a hajjbot-standby`
+2. Fly نفّذ rolling update لـ machine `865139be693d18` → started → cache failures انمحى (`failures: []`)
+3. تشغيل يدوي `POST /api/url-watcher/run` → `scanned=6790, diffs=0` (الدورة لم تجد URLs مختلفة لحظة الفحص — الدورة القادمة كل 5د ستلتقط أي جديد).
+
+**نُصِح المستخدم بتدوير المفتاح** لأنه ظهر بنص واضح في المحادثة.
+
+**ملفات معدّلة:** صفر كود. فقط `flyctl secrets set` + تحديث `project_fly_dr_standby.md` (تصحيح حالة GEMINI_API_KEY).
+
+**المعلَّق:** الدورة الساعية القادمة (2pm) ستكشف هل المعالجة عادت طبيعية + متابعة الـ6 جوازات أعلاه إن لم يُعاد التقاطهم تلقائياً.
+
+---
+
 ## 2026-05-20 (06:00 AM) | HajjBotServer — Fly صار Primary كامل + حادثة 426 تذكرة قطار
 
 **السياق:** بعد التصلّب الأمني، رفع المستخدم 426 تذكرة قطار جديدة في 05:42 AM. وصل تنبيه TrainTicketWatcher (من Railway). لكن البوت على Fly كان يقول "تذكرة القطار غير متوفرة" حتى لجوازات موجودة في القائمة (مثلاً `A09301911`).
