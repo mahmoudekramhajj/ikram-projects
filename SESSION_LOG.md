@@ -4,6 +4,46 @@
 
 ---
 
+## 2026-05-20 | HajjBotServer DR — Fly صار الأساسي + StandbyGuard مُصلَح
+
+**السياق:** Railway تعطّل عالمياً يوم 19 مايو. أُنشئت نسخة Fly كنسخة احتياطية ثم صارت الأساسي لأن Railway ظلّ متذبذباً.
+
+**العطل الحرج في الجلسة:** البوت سقط فجأة بعد ساعات من النشر. السبب: كود StandbyGuard الذي أُضيف بالأمس يستخدم متغيّر `tenants` غير معرّف → `ReferenceError` يكسر السيرفر كل دقيقتين حتى وصل `max restart count of 10`.
+
+**الإصلاح (commit `6ec50e9` على HajjBotServer/main):**
+```javascript
+const assertWebhook = async () => {
+  const tenants = getTenants();   // ← السطر المُضاف
+  for (const tenant of Object.values(tenants)) { ... }
+};
+```
+
+**الوضع الحالي:**
+- Fly app: `hajjbot-standby` (bom, 1 machine, 512MB)
+- URL: `https://hajjbot-standby.fly.dev`
+- STANDBY_MODE=true → schedulers على Fly معطّلة (لتجنّب تكرار الكتابة في B2C_v2 لو Railway رجع)
+- StandbyGuard كل 2د يستعيد الـ webhook لو Railway حاول سرقته
+- Redis fallback in-memory (REDIS_URL غير مضبوط)
+
+**أسئلة محمود في الجلسة (محسومة):**
+1. هل نضيف Render كنسخة ثالثة؟ — لا، تعقيد بلا فائدة.
+2. هل نستخدم نطاق `wafahajj.com`؟ — مفيد لو مملوك (تبديل DNS بين المزوّدين بدل تعديل webhook يدوياً)، لكن مؤجَّل حتى يتأكد من الملكية.
+3. كم طلب/ث يتحمّل البوت؟ — مريح 30-50/ث، ذروة 100/ث، سقف تيليجرام 30 رسالة/ث. لـ6500 حاج: صفر تأثير عملي.
+
+**Railway dashboard:** `backboard.railway.com` ردّ SSL 525 (Cloudflare). لا يؤثر — البوت لا يحتاج dashboard.
+
+**الذاكرة:**
+- جديد: `project_fly_dr_standby.md` — البنية الكاملة + متغيرات البيئة + أوامر flyctl + جدول الأعطال
+- محدَّث: `MEMORY.md` — سطر في أعلى الـ index
+- محدَّث: `HajjBotServer/SESSION_LOG.md` — جلسة كاملة
+
+**معلَّق:**
+- إكمال fallback Redis (sadd/scard/incr/expire/hincrby/hgetall) لإسكات أخطاء analytics
+- تحقّق ملكية `wafahajj.com`
+- مراقبة استقرار StandbyGuard لأسبوع
+
+---
+
 ## 2026-05-17 | كشف السكن — أسماء الحجاج لكل فندق + إلغاء قسم "بدون تعيين"
 
 **البلاغ:** نموذج `hotels_SM477_2026-05-17.xlsx` المرسَل لمجموعات تلجرام الـ 3 للمطارات يحوي ملخّصاً فقط بلا أسماء حجاج. المطلوب: قسم لكل فندق بأسماء الحجاج، 7 أعمدة (اسم EN، جواز، مدينة الهبوط، رقم الرحلة، تاريخ، ساعة، باقة).
