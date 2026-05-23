@@ -4,6 +4,83 @@
 
 ---
 
+## 2026-05-23 | HajjBotServer — إضافة سطر "رقم الخيمة" لقائمة المخيمات
+
+**الطلب:** إضافة "رقم الخيمة" لعرض المخيمات في بوت الحاج (مخيم منى ومخيم عرفة) ليكون مرئياً بين رقم المخيم ورقم الصوفابيد.
+
+**التحقق قبل التعديل:** قراءة `src/feature-camps.js` — وجدت 3 أسطر فقط (الاسم/الموقع، رقم المخيم، رقم الصوفابيد) في كلا الدالتين `handleArafahCamp` و `handleMinaCamp`. لا حقل بيانات لرقم الخيمة في PD.
+
+**التعديل:** سطر واحد مُضاف في كل دالة:
+```js
+text += '🏕️ <b>رقم الخيمة:</b> <i>قيد الإعداد</i>\n';
+```
+
+**النتيجة (4 أسطر بالترتيب):**
+1. 📍 الاسم/الموقع (مخيم منى: `PD.CAMP` col 27، عرفة: ثابت)
+2. 🔢 رقم المخيم — `قيد الإعداد`
+3. 🏕️ رقم الخيمة — `قيد الإعداد` (جديد)
+4. 🛏️ رقم الصوفابيد — `قيد الإعداد`
+
+**النشر:**
+- HajjBotServer submodule: commit `5fa1a48` على `main` → push GitHub ✓
+- Fly deploy: `hajjbot-standby` → machine `08072e6c597748` started ✓
+- تحقُّق: `curl https://hajjbot-standby.fly.dev/` → HTTP 200، uptime 22ث، tenants.ikram.exists=true ✓
+
+**ملفات:** `Projects/HajjBotServer/src/feature-camps.js` (سطران مُضافان في دالتين).
+
+**معلَّق:** عند توفّر مصدر بيانات حقيقي لأرقام المخيم/الخيمة/الصوفابيد (شيت أو حقول PD جديدة)، استبدل الـ placeholders `قيد الإعداد` بقيم ديناميكية.
+
+**ذاكرة:** [project_camps_tent_number_line.md](.claude/projects/C--Users-mubar-Ekram-Aldyf/memory/project_camps_tent_number_line.md)
+
+---
+
+## 2026-05-22 (09:30 PM) | تذاكر قطار 23 مايو — name-trust + رفع 92 تذكرة
+
+**الطلب:** معالجة مجلد `C:\Users\mubar\Downloads\قطار 23 مايو` (تذاكر قطار نسك ليوم 2026-05-23) بسكريبت `name-trust-train-tickets.js`.
+
+**المُدخَلات:** 2 PDF multi-pax: `3_05232026_MAD_3DFAC24F4.pdf` (53 صفحة) + `53_05232026_MAD_13CA24E18.pdf` (41 صفحة) = 94 صفحة.
+
+**التشغيل:** `node scripts/name-trust-train-tickets.js --src "..." --split --dry-run --concurrency=5` → Gemini 29.4ث.
+
+**النتائج (94 صفحة):**
+- 91 مطابقة (name=passport ok)
+- **1 مُصحَّحة بالاسم:** `AMNA OSMAN` — نسك طبعت `A1I911069` (حرف I بدل رقم 1) → السكريبت صحّحها لـ `A11911069` عبر مطابقة الاسم في PD (سبب وجود السكريبت أصلاً)
+- 0 غامضة، 0 مفقودة، 2 صفحة غلاف، 0 أخطاء Gemini
+- → **92 جاهزة في `renamed_by_name/`**
+
+**الرفع:** المستخدم رفع الـ92 ملف يدوياً إلى `TRAIN_FOLDER` Drive (`1A_gihLxAr2nV9RI3DXJhQib13cF-1ucN`) — معتاد لأن Service Account لا quota في My Drive (راجع `project_train_tickets_audit_fix.md`).
+
+**ما بعد الرفع:**
+- `POST /api/admin/reload` على `hajjbot-standby.fly.dev` → ok=true، B2C_v2=6792، PD=6794
+- `train-watcher/status` قبل الرفع: snapshotSize=2920، intervalMs=180000 — المراقب سيلتقط الـ92 الجديدة تلقائياً في الدورة التالية وينفّذ `clearTrainCache()` (راجع `project_train_ticket_watcher.md`).
+
+**التقرير:** `C:\Users\mubar\Downloads\قطار 23 مايو\name_trust_report.csv` محفوظ.
+
+**لا تعديلات كود.** صفر مشاكل، 0 معلَّقات.
+
+---
+
+## 2026-05-21 (08:45 AM) | SheetData — تحديث دوري تلقائي كل 15 دقيقة
+
+**الطلب:** المستخدم أراد تحديث دوري دائم للنسخ المحلية من شيتات Google لسرعة اتخاذ القرار.
+
+**الوضع السابق:** `D:\اكرام الضيف\Ekram Aldyf\Projects\SheetData\refresh.js` (Node.js + Google Service Account readonly) يُصدّر 97 شيت كـ JSON. آخر تحديث يدوي قبل الجلسة: 08:28 صباحاً.
+
+**المكوّنات المُضافة:**
+1. **Junction**: `C:\SheetData` → `D:\اكرام الضيف\Ekram Aldyf\Projects\SheetData` (تجاوز مشكلة PowerShell 5.1 + UTF-8 بدون BOM في المسار العربي). أُنشئ عبر `C:\Users\mubar\mklink-sheet.bat` (chcp 65001).
+2. **Wrapper**: `C:\Users\mubar\refresh-sheets.ps1` يستدعي `node refresh.js` ويكتب log مقصوص لـ 200 سطر.
+3. **Scheduled Task**: `EkramAldyf-RefreshSheets` كل 15 دقيقة، RunLevel=LIMITED (لا باسورد). التشغيل التالي: 9:02 AM.
+
+**تحقق:** تشغيل تجريبي = exit=0، `_index.json` تحدّث، 97 شيت كاملة.
+
+**قيد:** لا يعمل وجهازك نائم — يستأنف بعد الاستيقاظ. للحظات حرجة شغّل يدوياً: `schtasks //Run //TN "EkramAldyf-RefreshSheets"`.
+
+**ذاكرة:** [project_sheetdata_auto_refresh.md](.claude/projects/.../memory/project_sheetdata_auto_refresh.md) — تفاصيل البنية + الأوامر الإدارية + الدروس.
+
+**ملفات جديدة (خارج repo):** `C:\Users\mubar\refresh-sheets.ps1` + `C:\Users\mubar\mklink-sheet.bat` + `C:\SheetData` junction. صفر تعديل كود في المشروع.
+
+---
+
 ## 2026-05-20 (09:30 PM) | HajjBotServer — إصلاح رابط "قائمة الحجاج القادمين" في تنبيهات الوصول
 
 **البلاغ:** الضغط على زر "قائمة الحجاج القادمين 📋" في تنبيه SM493 (T-1h) فتح `https://hajjbot-standby.fly.dev/arrivals?flight=SM493&date=2026-05-20` → "غير مصرّح بالوصول، أضف ?key=YOUR_TOKEN".
