@@ -4,6 +4,43 @@
 
 ---
 
+## 2026-05-25 | HajjBotServer — إضافة مخيم 72 ب ومجر الكبش (تسكين حي)
+
+**الطلب:** "تابع" + إكمال عرض التسكين النهائي لمخيمَين إضافيَّين بعد المعيصم: **مجرى الكبش** و**72 ب**. ربط شيتَين منفصلَين بالبوت.
+
+**الشيتان:**
+- 72 ب — ID `1AoqU7kBtdvIKehzusPArm4YMqfvgrgPz27g8rZAy6R0` — 9 تبويبات (تبويب لكل خيمة G168/G169/G170/G171 + H224/H225/H226 + الفيلا ذكور/إناث) — 249 حاجاً
+- مجر الكبش — ID `1INmsllrVW0dvM0X2NmFPG5BtR4oAigZ_-7NKh051G70` — تبويبان (رجال 340 + نساء 352) = 692 حاجاً
+
+**التحقق قبل التنفيذ (مطلوب صراحة):**
+- 72 ب: 249/249 ✓ في PD
+- مجر الكبش: 668 في PD + 23 في تفاصيل المرشدين = 691/692. حالة واحدة `ZARA TANVEER` — جوازها في الشيت `0A805287` (صفر) لكن الصحيح في PD `OA805287` (حرف O). خطأ كتابة معروف موثَّق سابقاً في `feedback_check_actual_values_first.md`.
+
+**التغييرات:**
+1. **جديد:** `src/camp-72b-store.js` — يقرأ 9 تبويبات، يفرض `campNo='72 ب'`. خريطة الأعمدة: NAME=1, PASSPORT=3, SOFA=4, TENT=5. يبدأ من الصف 3 (تجاوز عنوان دمج + رؤوس).
+2. **جديد:** `src/majar-kabsh-store.js` — يقرأ تبويبَي رجال/نساء، يفرض `campNo='مجر الكبش'`. خريطة الأعمدة: NAME=3, PASSPORT=4, TENT=9, SOFA=10. PASSPORT_ALIAS مدمج: `0A805287 → OA805287` (ZARA).
+3. **معدَّل:** `src/feature-camps.js` — `handleMinaCamp` يبحث الآن: المعيصم → 72 ب → مجر الكبش (أول مطابقة تربح).
+4. **معدَّل:** `server.js` — require + `loadWithRetry(5)` + `startScheduler()` للمتجرَين + شرطَين جديدَين في `/api/admin/reload`.
+5. **معدَّل:** `src/health-monitor.js` — checkStore للمتجرَين الجديدَين.
+
+**النشر:**
+- HajjBotServer commit `72b3c15` → push main ✓
+- `flyctl deploy -a hajjbot-standby` ✓ — machine `08072e6c597748` started
+- `POST /api/admin/reload` تحقُّق حي:
+  - camp72b: 266 rows, **249 unique** ✓ (مطابق)
+  - majarKabsh: 743 rows, **693 unique** ✓ (692 + alias ZARA)
+- اختبار lookup ZARA TANVEER بجوازَيها: كلاهما يُرجع السجل (خيمة 203 صوفا 3) ✓
+
+**ملفات:** `Projects/HajjBotServer/src/camp-72b-store.js` (جديد، 174 سطراً) + `majar-kabsh-store.js` (جديد، 196 سطراً) + 3 ملفات معدَّلة.
+
+**ملاحظة هامة (خارج النطاق):** `origin/main` على HajjBotServer يفتقد ملف `src/mina-passport-ocr.js` رغم أن `server.js` يستدعيه — شغل سابق من جلسة 23 مايو لم يُرفع لـ GitHub. النشر الحالي يعمل لأن Fly يرفع الملفات المحلية مباشرة، لكن أي clone جديد من GitHub سيكسر. يحتاج رفع منفصل بموافقة.
+
+**معلَّق:** عمود `PD.CAMP` (col 27) قد يحوي قيماً قديمة مثل "72" لبعض الحجاج — لم يُفحص. سطر "الاسم/الموقع" يأتي من PD وليس من المتجرَين الجديدَين، فقد يعرض "72" بدل "72 ب" لبعض الحجاج. يحتاج فحصاً منفصلاً.
+
+**ذاكرة:** [project_camps_tent_number_line.md](.claude/projects/C--Users-mubar-Ekram-Aldyf/memory/project_camps_tent_number_line.md) (تُحدَّث).
+
+---
+
 ## 2026-05-23 | HajjBotServer — إضافة سطر "رقم الخيمة" لقائمة المخيمات
 
 **الطلب:** إضافة "رقم الخيمة" لعرض المخيمات في بوت الحاج (مخيم منى ومخيم عرفة) ليكون مرئياً بين رقم المخيم ورقم الصوفابيد.
