@@ -4,6 +4,33 @@
 
 ---
 
+## 2026-05-29 | النقل — فصل صالتي مطار جدة (الأولى/الشمالية) تلقائياً
+
+**الطلب:** مطار جدة صالتان متباعدتان (الصالة الأولى / الصالة الشمالية) تحتاجان نقلاً مختلفاً. يجب أن تنعكس في شيتات النقل وفي الشاشات. اخترنا التحديد **التلقائي** من رحلة كل حاج (صفر عمل يدوي).
+
+**ما وُجد قبل التعديل:** شاشة العمليات كانت تَعُدّ الصالتين منفصلتين (عمل اليوم غير المحفوظ في `dashboard-transfers.js`)، لكن **الباصات نفسها** لم تنفصل — تجميع الباص كان بمفتاح `destinationAr` الذي يحوي "مطار جدة" بلا تمييز صالة، فيُخلط حجاج الصالتين في باص واحد. شيت Airline_Terminals (27 صفاً) يربط كود الشركة بالصالة (Terminal 1 / North Terminal).
+
+**التعديل:**
+1. **جديد:** `src/jeddah-terminals.js` — مصدر واحد: `buildJeddahTerminalLookup()` (من شيت Airline_Terminals) + `jeddahTerminalForFlight(flight, map)` (أول حرفين من رقم الرحلة → t1/north، غير المعروف = t1) + `jeddahTerminalLabelAr()`.
+2. **معدَّل:** `src/transfers-from-drive.js` — عند قراءة كل رحلة: إن كانت الوجهة مطار جدة (تحوي "مطار"+"جدة" ولا تحوي "الصالة") تُلصق " — الصالة رقم ١/الشمالية". فينفصل تجميع الباصات تلقائياً في كل المستهلكين، ويظهر اسم الصالة على الشاشات والكشوف.
+3. **معدَّل:** `src/dashboard-transfers.js` — حُذفت النسخة المكررة من دالتَي الصالة وصارت تستورد من الملف المشترك (مصدر واحد). حُذف `require('./data-store')` غير المستخدم.
+
+**التحقق الحي (Fly):** بعد النشر + اكتمال دورة النقل (8373 رحلة، 17 فندق): `today.cats = airJedNorth:1, airJedT1:1` — حاج اليوم متجه للشمالية وآخر للأولى، مفصولان فعلاً على رحلات حقيقية. اختبار وحدة محلي للمنطق: SV/XY/MS→الأولى، VF/FZ→الشمالية، فارغ→الأولى. ✓
+
+**النشر:** commit `70fcda0` على main + `flyctl deploy -a hajjbot-standby` ✓ (machine `08072e6c597748` started، HTTP 200).
+
+**زر "مسح الاختيارات" (شاشة الفندق):** أُضيف زر في `public/hotel-transfers-screen.html` يُصفّر اختيار التاريخ ويُعيد الشاشة للوضع الطبيعي (رحلات اليوم فقط). commit `a724c54` + نشر ✓.
+
+**قطار المدينة يعدّ القادمين من قطار مكة:** تعديل عرض شاشة العمليات. commit `2f61d2c` + نشر ✓.
+
+**✅ نسخة GitHub الاحتياطية — عادت تعمل:** التحذير السابق "Repository not found" كان عارضاً مؤقتاً. الآن GitHub متطابق تماماً مع المحلي (0 متقدّم / 0 متأخّر، شجرة نظيفة). كل عمل اليوم محفوظ في النسخ الثلاث: المحلي + تاريخ Git + GitHub.
+
+**تنبيه صالة جدة المجهولة (إغلاق أخطر فجوة — بعد مراجعة خبير مستقل):** الكود الجديد كان يضع أي رحلة جدة بشركة طيران غير موجودة في جدول الصالات (27 شركة) في **الصالة رقم ١ بصمت**، فقد يُرسَل حاج للصالة الخطأ دون علم الإدارة. الإصلاح: `jeddah-terminals.js` (+`jeddahAirlineCode`/`jeddahCodeIsKnown`) + `transfers-from-drive.js` يجمع الأكواد المجهولة + `hotel-transfers-syncer.js` يرسل تنبيه تيليجرام مرة واحدة لكل كود عبر `sendTelegram` الموجودة. commit `d6a9fcd` + push GitHub ✓ + `flyctl deploy` ✓ (HTTP 200).
+
+**ذاكرة:** [project_transfers_drive_as_source.md](.claude/projects/C--Users-mubar-Ekram-Aldyf/memory/project_transfers_drive_as_source.md) (مُحدَّثة).
+
+---
+
 ## 2026-05-25 | HajjBotServer — إضافة مخيم 72 ب ومجر الكبش (تسكين حي)
 
 **الطلب:** "تابع" + إكمال عرض التسكين النهائي لمخيمَين إضافيَّين بعد المعيصم: **مجرى الكبش** و**72 ب**. ربط شيتَين منفصلَين بالبوت.
@@ -847,4 +874,32 @@ curl ".../exec?action=run&fn=createTriggerHourly&key=ekram2026claude"
 - `C:/tmp/closure_results/v2_*.json` (نتائج)
 - `C:/tmp/closure_log_v2.txt` (سجل)
 - ذاكرة جديدة: `project_no_empty_bed_closure.md`
+
+---
+
+## جلسة 2026-06-10 — إيقاف كل التحديثات الآلية لانتهاء الموسم
+
+**الطلب:** «انتهى الموسم، أوقف جميع التحديثات الآلية، وتأكد مرتين أو أكثر أن كل شيء توقف.»
+**الحالة:** مكتمل — أُوقفت 4 أنظمة، البوت يبقى يردّ على الحجّاج (قراءة فقط)، تحقّق مزدوج منفَّذ.
+
+### ما أُوقف
+1. **بوت HajjBotServer (Fly hajjbot-standby):** مفتاح واحد `SEASON_ENDED=true` في `server.js` (~2694) أوقف الـ13 مشغّلاً دفعةً (كلها تنطلق من كتلة واحدة). بقي `sheetDirectLoader`+`cancelledPilgrimsStore` (قراءة فقط) فالبوت يجيب الحاج. commit `e93dddc` على main، مرفوع origin/main، منشور (نسخة 183).
+2. **GDS (Apps Script):** حُذف مشغّل الوقت `syncTicketUrls` عبر نشرة @80 (تحوي removeTicketUrlSyncTriggers؛ المشغّلات مشتركة بين النشرات). بقي `showGDSMenu` (ON_OPEN، قائمة لا تحديث).
+3. **FolderSync-AbuOwn (Apps Script):** أُنشئ `SeasonStop.js` (removeAllTriggers/listTriggers) + push + `deploy -i` @14 → حُذف `syncCheck`. listTriggers count=0.
+4. **جهاز ويندوز:** مهمة `EkramAldyf-RefreshSheets` (تحديث الشيتات كل 15د) صارت Disabled.
+
+### بلا تدخّل (لا تستطيع تشغيل مشغّل وقت)
+Ticket Processor / B2C Sync / PNR Target Countries Sync — لا تملك صلاحية `script.scriptapp` فيستحيل أن تحوي مشغّلاً آلياً حيّاً.
+
+### التحقق المزدوج
+- البوت: `/api/train-watcher/status` → running:false، cycleCount:0 + سجل الخادم `[SEASON_ENDED] all automated schedulers OFF` + الصفحة الرئيسية HTTP 200.
+- GDS: listTriggers → showGDSMenu فقط. FolderSync: listTriggers → 0. ويندوز: schtasks Query → Disabled.
+
+### الاستئناف الموسم القادم
+- البوت: `SEASON_ENDED=false` ثم إعادة النشر.
+- GDS/FolderSync: أعد تشغيل دالة setup الأصلية لكل مشروع.
+- ويندوز: `schtasks //Change //TN EkramAldyf-RefreshSheets //ENABLE`.
+
+### ملف ذاكرة
+`project_season_end_stop_all_automation.md` + سطر فهرس في MEMORY.md.
 
